@@ -10,4 +10,4 @@ public class HomeController {
     public String home() {
         return "Bienvenue dans le backend SQLI 👋";
     }
-}
+}   
