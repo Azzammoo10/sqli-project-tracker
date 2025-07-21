@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Ne pas versionner les fichiers sensibles de config
+src/main/resources/application.properties
