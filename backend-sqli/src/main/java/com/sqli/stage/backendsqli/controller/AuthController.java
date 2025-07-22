@@ -3,6 +3,7 @@ package com.sqli.stage.backendsqli.controller;
 import com.sqli.stage.backendsqli.dto.LoginDTO.LoginRequest;
 import com.sqli.stage.backendsqli.dto.LoginDTO.LoginResponse;
 import com.sqli.stage.backendsqli.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,7 +19,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 }

@@ -1,5 +1,6 @@
 package com.sqli.stage.backendsqli.service;
 
+import com.sqli.stage.backendsqli.dto.CreateAdminDTO;
 import com.sqli.stage.backendsqli.dto.CreateUserRequest;
 import com.sqli.stage.backendsqli.dto.UpdateUserRequest;
 import com.sqli.stage.backendsqli.dto.UserResponse;
@@ -21,5 +22,9 @@ public interface AdminService {
 
     UserResponse assignRoleToUser(int id, Role role);
 
+    UserResponse enableUser(int id);
+
     UserResponse disableUser(int id);
+
+    UserResponse createNewAdmin(CreateAdminDTO request);
 }

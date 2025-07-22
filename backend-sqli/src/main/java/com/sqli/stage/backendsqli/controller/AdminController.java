@@ -5,8 +5,10 @@ import com.sqli.stage.backendsqli.entity.Enums.Role;
 import com.sqli.stage.backendsqli.exception.EmailAlreadyExistsException;
 import com.sqli.stage.backendsqli.exception.ResourceNotFoundException;
 import com.sqli.stage.backendsqli.service.AdminService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,13 +16,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
+//@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final AdminService adminService;
 
     // Créer un utilisateur
     @PostMapping("/users")
-    public ResponseEntity<UserResponse> createUser(@RequestBody CreateUserRequest request) {
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
 
         return ResponseEntity.ok(adminService.createUser(request));
 
@@ -39,7 +42,7 @@ public class AdminController {
     }
 
     // Mettre à jour un utilisateur
-    @PutMapping("/users/update/{id}")
+    @PutMapping("/users/{id}")
     public ResponseEntity<UserResponse> updateUser(@PathVariable int id,
                                                    @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(adminService.updateUser(id, request));
@@ -70,5 +73,18 @@ public class AdminController {
 
         return ResponseEntity.ok(adminService.disableUser(id));
 
+    }
+
+    @PutMapping("/users/{id}/enable")
+    public ResponseEntity<UserResponse> enableUser(@PathVariable int id) {
+
+        return ResponseEntity.ok(adminService.enableUser(id));
+
+    }
+
+
+    @PostMapping("/users/admin")
+    public ResponseEntity<UserResponse> createAdmin(@Valid @RequestBody CreateAdminDTO request){
+        return ResponseEntity.ok(adminService.createNewAdmin(request));
     }
 }

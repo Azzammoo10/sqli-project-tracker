@@ -1,5 +1,6 @@
 package com.sqli.stage.backendsqli.service.ImplementationService;
 
+import com.sqli.stage.backendsqli.dto.CreateAdminDTO;
 import com.sqli.stage.backendsqli.dto.CreateUserRequest;
 import com.sqli.stage.backendsqli.dto.UpdateUserRequest;
 import com.sqli.stage.backendsqli.dto.UserResponse;
@@ -10,11 +11,14 @@ import com.sqli.stage.backendsqli.exception.ResourceNotFoundException;
 import com.sqli.stage.backendsqli.repository.UserRepository;
 import com.sqli.stage.backendsqli.service.AdminService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.text.Normalizer;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 
@@ -23,10 +27,36 @@ import java.util.stream.Collectors;
 public class AdminServiceImpl implements AdminService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    private String generateUsername(String nom) {
-        int random = new Random().nextInt(9000) + 1000; // nombre entre 1000 et 9999
-        return nom.toLowerCase().replaceAll("\\s+", "") + ".sqli-" + random;
+
+    // Methode pour generer des username automatique en respectant les Norrmes d'un Projet Pro
+    private String generateUsername(String nom, Role role) {
+        String username = "";
+        int attempts = 0;
+        do {
+            // Normalisation pour retirer les accents
+            String cleanNom = Normalizer.normalize(nom, Normalizer.Form.NFD)
+                    .replaceAll("[^\\p{ASCII}]", "") // enlève les accents
+                    .replaceAll("[^a-zA-Z]", "")     // garde uniquement lettres
+                    .toLowerCase();
+
+            String roleCode = switch (role) {
+                case CHEF_DE_PROJET -> "cp";
+                case DEVELOPPEUR -> "dev";
+                case CLIENT -> "cli";
+                case ADMIN -> "adm";
+                default -> "usr";
+            };
+
+            int random = ThreadLocalRandom.current().nextInt(1000, 10000);
+            username = cleanNom + "." + roleCode + "-sqli" + random;
+            attempts++;
+            if (attempts > 10) {
+                throw new RuntimeException("Impossible de générer un username unique");
+            }
+        }while (userRepository.findByUsername(username).isPresent());
+        return username;
     }
 
     @Override
@@ -39,9 +69,9 @@ public class AdminServiceImpl implements AdminService {
         User user = new User();
         user.setNom(request.getNom());
         user.setEmail(request.getEmail());
-        user.setMotDePasse(request.getMotDePasse());
+        user.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
         user.setRole(request.getRole());
-        user.setUsername(generateUsername(request.getNom()));
+        user.setUsername(generateUsername(request.getNom(),request.getRole()));
         user.setEnabled(true);
 
         User savedUser = userRepository.save(user);
@@ -132,6 +162,23 @@ public class AdminServiceImpl implements AdminService {
         );
     }
 
+    @Override
+    public UserResponse enableUser(int id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec id : " + id));
+
+        user.setEnabled(true);
+        User disabledUser = userRepository.save(user);
+
+        return new UserResponse(
+                disabledUser.getId(),
+                disabledUser.getUsername(),
+                disabledUser.getEmail(),
+                disabledUser.getNom(),
+                disabledUser.getRole()
+        );
+    }
+
 
     @Override
     public UserResponse disableUser(int id) {
@@ -148,6 +195,33 @@ public class AdminServiceImpl implements AdminService {
                 disabledUser.getNom(),
                 disabledUser.getRole()
         );
+
     }
+
+        @Override
+        public UserResponse createNewAdmin(CreateAdminDTO request) {
+            if(userRepository.existsByEmail(request.getEmail())){
+                throw new EmailAlreadyExistsException("Email déjà utilisé");
+            }
+
+            User user = new User();
+            user.setNom(request.getNom());
+            user.setEmail(request.getEmail());
+            user.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
+            user.setRole(Role.ADMIN);
+            user.setUsername(generateUsername(request.getNom(),Role.ADMIN));
+            user.setEnabled(true);
+
+            User savedAdmin = userRepository.save(user);
+
+            return new UserResponse(
+                    savedAdmin.getId(),
+                    savedAdmin.getUsername(),
+                    savedAdmin.getEmail(),
+                    savedAdmin.getNom(),
+                    savedAdmin.getRole()
+            );
+
+        }
 
 }

@@ -7,6 +7,7 @@ import com.sqli.stage.backendsqli.repository.UserRepository;
 import com.sqli.stage.backendsqli.security.JwtUtil;
 import com.sqli.stage.backendsqli.service.AuthService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,13 +16,15 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("Nom d'utilisateur incorrect"));
 
-        if (!user.getMotDePasse().equals(request.getMotDePasse())) {
+
+        if (!passwordEncoder.matches(request.getMotDePasse(), user.getMotDePasse())) {
             throw new RuntimeException("Mot de passe incorrect");
         }
 

@@ -25,10 +25,11 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // pas de protection CSRF pour API
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()   // login public
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN") // seulement les admins
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")    // d'abord restreindre admin
+                        .requestMatchers("/api/auth/**").permitAll()          // les routes d'auth publique
+                        .anyRequest().authenticated()                         // tout le reste : JWT requis
                 )
+
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
