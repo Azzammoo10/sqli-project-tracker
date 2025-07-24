@@ -32,6 +32,7 @@ public class User {
     private boolean enabled = true;
 
 
+
     @OneToMany(mappedBy = "developpeur", cascade = CascadeType.ALL)
     private List<Task> tasks;
 }
