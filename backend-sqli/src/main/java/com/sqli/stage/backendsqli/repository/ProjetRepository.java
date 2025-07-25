@@ -17,4 +17,7 @@ public interface ProjetRepository extends JpaRepository<Project,Integer> {
     List<Project> findByTitreContainingIgnoreCase(String keyword);
     List<Project> findByIsPublicLinkEnabledTrue();
 
+    List<Project> findByCreatedById(int id);
+
+    List<Project> findByDeveloppeurId(int id);
 }

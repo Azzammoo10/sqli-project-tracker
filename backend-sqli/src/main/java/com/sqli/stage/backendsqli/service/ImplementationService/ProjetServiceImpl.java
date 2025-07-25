@@ -4,6 +4,7 @@ import com.sqli.stage.backendsqli.dto.ProjectDTO.DashboardStatsResponse;
 import com.sqli.stage.backendsqli.dto.ProjectDTO.ProjectDetailsResponse;
 import com.sqli.stage.backendsqli.dto.ProjectDTO.ProjectRequest;
 import com.sqli.stage.backendsqli.dto.ProjectDTO.ProjectResponse;
+import com.sqli.stage.backendsqli.entity.Enums.Role;
 import com.sqli.stage.backendsqli.entity.Enums.StatutProjet;
 import com.sqli.stage.backendsqli.entity.Project;
 import com.sqli.stage.backendsqli.entity.User;
@@ -99,13 +100,20 @@ public class ProjetServiceImpl implements ProjetService {
 
     @Override
     public List<ProjectResponse> getAllProjects() {
+        User currentUser = getCurrentUser();
+        Role role = currentUser.getRole();
+        List<Project> projects;
 
-        List<Project> projects = projetRepository.findAll();
+        switch (role) {
+            case ADMIN -> projects = projetRepository.findAll();
+            case CHEF_DE_PROJET -> projects = projetRepository.findByCreatedById(currentUser.getId());
+            case DEVELOPPEUR -> projects = projetRepository.findByDeveloppeurId(currentUser.getId());
+            default -> throw new AccessdeniedException("Vous n'avez pas l'autorisation de consulter les projets.");
+        }
 
-        return projects.stream()
-                .map(this::mapToResponse) // méthode de mapping personnalisée
-                .collect(Collectors.toList());
+        return projects.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
+
 
 
     @Override
