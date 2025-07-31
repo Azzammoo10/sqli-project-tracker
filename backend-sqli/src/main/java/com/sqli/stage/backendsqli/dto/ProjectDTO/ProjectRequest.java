@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -23,6 +24,8 @@ public class ProjectRequest {
     @Positive(message = "L'identifiant du client doit être un nombre positif")
     private Integer clientId;
 
+    private List<Integer> developpeurIds;
+
     @NotNull(message = "La date de début est obligatoire")
     @PastOrPresent(message = "La date de début doit être une date passée ou la date actuelle")
     private LocalDate dateDebut;
@@ -34,3 +37,5 @@ public class ProjectRequest {
     @NotNull(message = "Le statut est obligatoire")
     private StatutProjet statut;
 }
+
+

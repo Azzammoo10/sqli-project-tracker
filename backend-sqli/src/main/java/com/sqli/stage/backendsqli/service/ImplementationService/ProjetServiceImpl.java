@@ -1,9 +1,8 @@
 package com.sqli.stage.backendsqli.service.ImplementationService;
 
-import com.sqli.stage.backendsqli.dto.ProjectDTO.DashboardStatsResponse;
-import com.sqli.stage.backendsqli.dto.ProjectDTO.ProjectDetailsResponse;
-import com.sqli.stage.backendsqli.dto.ProjectDTO.ProjectRequest;
-import com.sqli.stage.backendsqli.dto.ProjectDTO.ProjectResponse;
+import com.sqli.stage.backendsqli.dto.ProjectDTO.*;
+import com.sqli.stage.backendsqli.dto.TaskDTO.TaskResponse;
+import com.sqli.stage.backendsqli.dto.TaskDTO.TaskresponseByProject;
 import com.sqli.stage.backendsqli.entity.Enums.Role;
 import com.sqli.stage.backendsqli.entity.Enums.StatutProjet;
 import com.sqli.stage.backendsqli.entity.Project;
@@ -37,9 +36,9 @@ public class ProjetServiceImpl implements ProjetService {
 
         User currentUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
+
         User client = userRepository.findById(request.getClientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec ID " + request.getClientId()));
-
 
         Project project = new Project();
         project.setTitre(request.getTitre());
@@ -52,10 +51,22 @@ public class ProjetServiceImpl implements ProjetService {
         project.setPublicLinkEnabled(false);
         project.setCreatedBy(currentUser);
 
+        if (request.getDeveloppeurIds() != null && !request.getDeveloppeurIds().isEmpty()) {
+            List<User> developpeurs = userRepository.findAllById(request.getDeveloppeurIds()).stream()
+                    .filter(user -> user.getRole() == Role.DEVELOPPEUR)
+                    .toList();
+
+            if (developpeurs.isEmpty()) {
+                throw new ResourceNotFoundException("Aucun développeur valide trouvé dans la liste fournie");
+            }
+
+            project.setDeveloppeurs(developpeurs);
+        }
+
         Project savedProject = projetRepository.save(project);
         return mapToResponse(savedProject);
-
     }
+
 
     public ProjectResponse updateProject(int id, ProjectRequest request) {
         Project project = projetRepository.findById(id)
@@ -72,6 +83,12 @@ public class ProjetServiceImpl implements ProjetService {
         if (request.getDateDebut() != null) project.setDateDebut(request.getDateDebut());
         if (request.getDateFin() != null) project.setDateFin(request.getDateFin());
         if (request.getStatut() != null) { project.setStatut(request.getStatut()); }
+        if (request.getDeveloppeurIds() != null && !request.getDeveloppeurIds().isEmpty()) {
+            List<User> developpeurs = userRepository.findAllById(request.getDeveloppeurIds()).stream()
+                    .filter(user -> user.getRole() == Role.DEVELOPPEUR)
+                    .toList();
+            project.setDeveloppeurs(developpeurs);
+        }
 
         Project updatedProject = projetRepository.save(project);
 
@@ -115,7 +132,6 @@ public class ProjetServiceImpl implements ProjetService {
     }
 
 
-
     @Override
     public List<ProjectResponse> getProjectsByChef(String username) {
         return projetRepository.findByCreatedByUsername(username).stream()
@@ -157,6 +173,17 @@ public class ProjetServiceImpl implements ProjetService {
         Project project = projetRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Projet introuvable avec ID : " + id));
 
+        List<TaskresponseByProject> taskResponses = project.getTasks().stream()
+                .map(task -> new TaskresponseByProject(
+                        task.getTitre(),
+                        task.getDescription(),
+                        task.getDateDebut(),
+                        task.getDateFin(),
+                        task.getStatut(),
+                        task.getDeveloppeur() != null ? task.getDeveloppeur().getUsername() : null
+                ))
+                .collect(Collectors.toList());
+
         return new ProjectDetailsResponse(
                 project.getId(),
                 project.getTitre(),
@@ -167,10 +194,12 @@ public class ProjetServiceImpl implements ProjetService {
                 project.getDateFin(),
                 project.getStatut(),
                 project.isPublicLinkEnabled(),
-                project.getUuidPublic()
-                //project.getTasks()
+                project.getUuidPublic(),
+                taskResponses
         );
     }
+
+
 
 
     @Override
@@ -204,6 +233,35 @@ public class ProjetServiceImpl implements ProjetService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public void assignDevelopersToProject(int projectId, List<Integer> developerIds) {
+        Project project = projetRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projet introuvable avec ID : " + projectId));
+
+        if (developerIds == null || developerIds.isEmpty()) {
+            throw new IllegalArgumentException("La liste des développeurs ne peut pas être vide");
+        }
+
+        List<User> newDevelopers = userRepository.findAllById(developerIds).stream()
+                .filter(user -> user.getRole() == Role.DEVELOPPEUR)
+                .toList();
+
+        if (newDevelopers.isEmpty()) {
+            throw new ResourceNotFoundException("Aucun développeur valide trouvé dans la liste fournie");
+        }
+
+        List<User> currentDevelopers = project.getDeveloppeurs();
+        for (User dev : newDevelopers) {
+            if (!currentDevelopers.contains(dev)) {
+                currentDevelopers.add(dev);
+            }
+        }
+
+        project.setDeveloppeurs(currentDevelopers);
+        projetRepository.save(project);
+    }
+
+
     private User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByUsername(username)
@@ -211,7 +269,15 @@ public class ProjetServiceImpl implements ProjetService {
     }
 
 
-    private ProjectResponse mapToResponse(Project project) {
+    public ProjectResponse mapToResponse(Project project) {
+        List<DeveloperResponse> developpeurList = project.getDeveloppeurs().stream()
+                .map(dev -> new DeveloperResponse(
+                        dev.getNom(),
+                        dev.getEmail(),
+                        dev.getUsername()
+                ))
+                .collect(Collectors.toList());
+
         return new ProjectResponse(
                 project.getId(),
                 project.getTitre(),
@@ -221,6 +287,9 @@ public class ProjetServiceImpl implements ProjetService {
                 project.getDateFin(),
                 project.getStatut(),
                 project.isPublicLinkEnabled(),
-                project.getUuidPublic());
+                project.getUuidPublic(),
+                developpeurList
+        );
     }
+
 }

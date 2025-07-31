@@ -1,4 +1,5 @@
 package com.sqli.stage.backendsqli.dto.ProjectDTO;
+import com.sqli.stage.backendsqli.dto.UserResponse;
 import com.sqli.stage.backendsqli.entity.Enums.StatutProjet;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -6,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -40,4 +42,7 @@ public class ProjectResponse {
 
     @Pattern(regexp = "^[a-f0-9\\-]{36}$", message = "Le UUID public doit être un identifiant valide")
     private String uuidPublic;
+
+
+    private List<DeveloperResponse> developpeurs;
 }

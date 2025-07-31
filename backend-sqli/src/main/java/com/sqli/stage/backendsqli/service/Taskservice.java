@@ -28,5 +28,4 @@ public interface Taskservice {
     Map<StatutTache, Long> getWorkloadForCurrentUser();
     public Page<TaskResponse> getAllTasksPaged(Pageable pageable);
     List<TaskResponse> filterTasks(TaskFilterRequest filter);
-
 }

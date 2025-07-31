@@ -1,8 +1,6 @@
 package com.sqli.stage.backendsqli.controller;
 
-import com.sqli.stage.backendsqli.dto.ProjectDTO.DashboardStatsResponse;
-import com.sqli.stage.backendsqli.dto.ProjectDTO.ProjectRequest;
-import com.sqli.stage.backendsqli.dto.ProjectDTO.ProjectResponse;
+import com.sqli.stage.backendsqli.dto.ProjectDTO.*;
 import com.sqli.stage.backendsqli.service.ProjetService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -46,12 +44,13 @@ public class ProjetController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProjectResponse> getProjectById(@PathVariable int id) {
-        ProjectResponse response = projetService.getProjectById(id);
+    public ResponseEntity<ProjectDetailsResponse> getProjectById(@PathVariable int id) {
+        ProjectDetailsResponse response = projetService.getDetailedProject(id);
         log.info("Détails du projet avec l'ID : {} récupérés avec succès", id);
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'CHEF_DE_PROJET')")
     @GetMapping
     public ResponseEntity<List<ProjectResponse>> getAllProjects() {
         List<ProjectResponse> projects = projetService.getAllProjects();
@@ -102,6 +101,16 @@ public class ProjetController {
         log.info("Recherche terminée. Nombre de projets trouvés pour le mot-clé '{}': {}", keyword, results.size());
         return ResponseEntity.ok(results);
     }
+
+    @PutMapping("/{projectId}/assign-developers")
+    public ResponseEntity<?> assignDevelopers(
+            @PathVariable int projectId,
+            @RequestBody DeveloperAssignmentRequest request) {
+        projetService.assignDevelopersToProject(projectId, request.getDeveloperIds());
+        return ResponseEntity.ok().build();
+    }
+
+
 
     @GetMapping("/public")
     public ResponseEntity<List<ProjectResponse>> getAllPublicProjects() {

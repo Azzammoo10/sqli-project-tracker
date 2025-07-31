@@ -1,5 +1,6 @@
 package com.sqli.stage.backendsqli.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.sqli.stage.backendsqli.entity.Enums.Priorite;
 import com.sqli.stage.backendsqli.entity.Enums.StatutTache;
 import jakarta.persistence.*;
@@ -44,8 +45,9 @@ public class Task {
     @Column(columnDefinition = "int default 0")
     private int progression;
 
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "project_id")
+    @JsonIgnoreProperties({"tasks", "client", "createdBy"}) // casse les liens récursifs
     private Project project;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)

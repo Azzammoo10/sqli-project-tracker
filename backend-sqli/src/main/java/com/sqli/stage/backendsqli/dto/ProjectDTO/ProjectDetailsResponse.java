@@ -1,10 +1,14 @@
 package com.sqli.stage.backendsqli.dto.ProjectDTO;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskResponse;
+import com.sqli.stage.backendsqli.dto.TaskDTO.TaskresponseByProject;
 import com.sqli.stage.backendsqli.entity.Enums.StatutProjet;
+import com.sqli.stage.backendsqli.entity.Task;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -23,5 +27,7 @@ public class ProjectDetailsResponse {
     private boolean isPublicLinkEnabled;
     private String uuidPublic;
 
-    //private List<TaskResponse> tasks; // 👈 Optionnel à intégrer plus tard
+    @JsonIgnoreProperties("project") // sécurise le JSON
+    private List<TaskresponseByProject> tasks;
+
 }

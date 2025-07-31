@@ -1,5 +1,6 @@
 package com.sqli.stage.backendsqli.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.sqli.stage.backendsqli.entity.Enums.StatutProjet;
 import jakarta.persistence.*;
 import lombok.*;
@@ -37,10 +38,18 @@ public class Project {
     @ManyToOne
     private User createdBy;
 
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("project")
     private List<Task> tasks;
 
-    @ManyToOne
-    @JoinColumn(name = "developpeur_id")
-    private User developpeur;
+    @ManyToMany
+    @JoinTable(
+            name = "project_developpeurs",
+            joinColumns = @JoinColumn(name = "project_id"),
+            inverseJoinColumns = @JoinColumn(name = "developpeur_id")
+    )
+    @JsonIgnoreProperties({"tasks", "role", "motDePasse", "projects"})
+    private List<User> developpeurs;
+
+
 }

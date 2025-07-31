@@ -53,6 +53,10 @@ public class TaskserviceImpl implements Taskservice {
         if(devellopeur.getRole() != Role.DEVELOPPEUR){
             throw new IllegalArgumentException("Seuls les développeurs peuvent recevoir des tâches");
         }
+        if (!projet.getDeveloppeurs().contains(devellopeur)) {
+            throw new AccessdeniedException("Ce développeur n’est pas affecté à ce projet.");
+        }
+
 
 
         Task task = new Task();
