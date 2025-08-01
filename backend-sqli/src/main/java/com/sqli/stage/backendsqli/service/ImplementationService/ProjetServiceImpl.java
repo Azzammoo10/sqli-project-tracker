@@ -1,18 +1,23 @@
 package com.sqli.stage.backendsqli.service.ImplementationService;
 
+import com.sqli.stage.backendsqli.dto.HistoriqueDTO.LogRequest;
 import com.sqli.stage.backendsqli.dto.ProjectDTO.*;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskResponse;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskresponseByProject;
+import com.sqli.stage.backendsqli.entity.Enums.EntityName;
 import com.sqli.stage.backendsqli.entity.Enums.Role;
 import com.sqli.stage.backendsqli.entity.Enums.StatutProjet;
+import com.sqli.stage.backendsqli.entity.Enums.TypeOperation;
 import com.sqli.stage.backendsqli.entity.Project;
 import com.sqli.stage.backendsqli.entity.User;
 import com.sqli.stage.backendsqli.exception.AccessdeniedException;
 import com.sqli.stage.backendsqli.exception.ResourceNotFoundException;
 import com.sqli.stage.backendsqli.repository.ProjetRepository;
 import com.sqli.stage.backendsqli.repository.UserRepository;
+import com.sqli.stage.backendsqli.service.HistoriqueService;
 import com.sqli.stage.backendsqli.service.ProjetService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +34,8 @@ public class ProjetServiceImpl implements ProjetService {
 
     private final UserRepository userRepository;
     private final ProjetRepository projetRepository;
+    @Autowired
+    private HistoriqueService historiqueService;
 
     @Override
     public ProjectResponse createProject(ProjectRequest request) {
@@ -63,7 +70,16 @@ public class ProjetServiceImpl implements ProjetService {
             project.setDeveloppeurs(developpeurs);
         }
 
+
         Project savedProject = projetRepository.save(project);
+
+        LogRequest logRequest = new LogRequest();
+        logRequest.setAction(TypeOperation.CREATION);
+        logRequest.setDescription("Création du projet '" + savedProject.getTitre() + "' (ID: " + savedProject.getId() + ") par " + username);
+        logRequest.setEntityId(project.getId());
+        logRequest.setEntityName(EntityName.PROJECT);
+        historiqueService.logAction(logRequest);
+
         return mapToResponse(savedProject);
     }
 
@@ -72,6 +88,7 @@ public class ProjetServiceImpl implements ProjetService {
         Project project = projetRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Projet Introuvable avec ID :" + id));
 
+        String username = getCurrentUser().getUsername();
 
         if (request.getTitre() != null) { project.setTitre(request.getTitre()); }
         if (request.getDescription() != null) project.setDescription(request.getDescription());
@@ -92,6 +109,13 @@ public class ProjetServiceImpl implements ProjetService {
 
         Project updatedProject = projetRepository.save(project);
 
+        LogRequest logRequest = new LogRequest();
+        logRequest.setAction(TypeOperation.MODIFICATION);
+        logRequest.setDescription("Modification du projet '" + updatedProject.getTitre() + "' (ID: " + updatedProject.getId() + ") par " + username);
+        logRequest.setEntityId(project.getId());
+        logRequest.setEntityName(EntityName.PROJECT);
+        historiqueService.logAction(logRequest);
+
         return mapToResponse(updatedProject);
     }
 
@@ -101,10 +125,18 @@ public class ProjetServiceImpl implements ProjetService {
         Project project = projetRepository.findById(id)
                 .orElseThrow(() ->  new ResourceNotFoundException("Projet Introuvable avec ID :" + id));
 
+        String username = getCurrentUser().getUsername();
+
         if(!project.getCreatedBy().getUsername().equals(getCurrentUser().getUsername())) {
             throw new AccessdeniedException("Vous n'avez pas les droits pour modifier ce projet");
         }
         projetRepository.deleteById(id);
+        LogRequest logRequest = new LogRequest();
+        logRequest.setAction(TypeOperation.SUPPRESSION);
+        logRequest.setDescription("Suppresion du projet '" + project.getTitre() + "' (ID: " + project.getId() + ") par " + username);
+        logRequest.setEntityId(project.getId());
+        logRequest.setEntityName(EntityName.PROJECT);
+        historiqueService.logAction(logRequest);
     }
 
 

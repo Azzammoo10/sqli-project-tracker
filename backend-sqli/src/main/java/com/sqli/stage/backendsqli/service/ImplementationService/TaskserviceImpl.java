@@ -1,10 +1,13 @@
 package com.sqli.stage.backendsqli.service.ImplementationService;
 
+import com.sqli.stage.backendsqli.dto.HistoriqueDTO.LogRequest;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskFilterRequest;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskRequest;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskResponse;
+import com.sqli.stage.backendsqli.entity.Enums.EntityName;
 import com.sqli.stage.backendsqli.entity.Enums.Role;
 import com.sqli.stage.backendsqli.entity.Enums.StatutTache;
+import com.sqli.stage.backendsqli.entity.Enums.TypeOperation;
 import com.sqli.stage.backendsqli.entity.Project;
 import com.sqli.stage.backendsqli.entity.Task;
 import com.sqli.stage.backendsqli.entity.User;
@@ -13,6 +16,7 @@ import com.sqli.stage.backendsqli.exception.ResourceNotFoundException;
 import com.sqli.stage.backendsqli.repository.ProjetRepository;
 import com.sqli.stage.backendsqli.repository.TaskRepository;
 import com.sqli.stage.backendsqli.repository.UserRepository;
+import com.sqli.stage.backendsqli.service.HistoriqueService;
 import com.sqli.stage.backendsqli.service.Taskservice;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -33,6 +37,7 @@ public class TaskserviceImpl implements Taskservice {
     private final UserRepository userRepository;
     private final TaskRepository taskRepoistory;
     private final ProjetRepository projetRepository;
+    private final HistoriqueService historiqueService;
 
     @Override
     public TaskResponse createTask(TaskRequest request) {
@@ -69,6 +74,13 @@ public class TaskserviceImpl implements Taskservice {
         task.setProject(projet);
         Task savedTask = taskRepoistory.save(task);
 
+        LogRequest logRequest = new LogRequest();
+        logRequest.setAction(TypeOperation.CREATION);
+        logRequest.setDescription("Création du tache '" + savedTask.getTitre() + "' (ID: " + savedTask.getId() + ") par " + getCurrentUser().getUsername());
+        logRequest.setEntityId(savedTask.getId());
+        logRequest.setEntityName(EntityName.TASK);
+        historiqueService.logAction(logRequest);
+
         return mapToReponse(savedTask);
     }
 
@@ -96,6 +108,13 @@ public class TaskserviceImpl implements Taskservice {
             task.setDeveloppeur(dev);
         }
         Task updatedTask = taskRepoistory.save(task);
+
+        LogRequest logRequest = new LogRequest();
+        logRequest.setAction(TypeOperation.MODIFICATION);
+        logRequest.setDescription("Création du tache '" + updatedTask.getTitre() + "' (ID: " + updatedTask.getId() + ") par " + getCurrentUser().getUsername());
+        logRequest.setEntityId(updatedTask.getId());
+        logRequest.setEntityName(EntityName.TASK);
+        historiqueService.logAction(logRequest);
         return mapToReponse(updatedTask);
     }
 
@@ -108,6 +127,13 @@ public class TaskserviceImpl implements Taskservice {
             throw new AccessdeniedException("Vous n'avez pas les droits de mise a jour pour cette task");
         }
         taskRepoistory.deleteById(id);
+
+        LogRequest logRequest = new LogRequest();
+        logRequest.setAction(TypeOperation.SUPPRESSION);
+        logRequest.setDescription("Création du tache '" + task.getTitre() + "' (ID: " + task.getId() + ") par " + getCurrentUser().getUsername());
+        logRequest.setEntityId(task.getId());
+        logRequest.setEntityName(EntityName.TASK);
+        historiqueService.logAction(logRequest);
     }
 
     @Override
