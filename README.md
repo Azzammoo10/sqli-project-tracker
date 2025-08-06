@@ -1,23 +1,22 @@
-🔷 Portail Intelligent de Suivi des Projets Clients
+# 🔷 Portail Intelligent de Suivi des Projets Clients
 
-👥 Collaboration
+Bienvenue sur le portail intelligent de suivi des projets clients, développé pour SQLI Rabat et RFC Digital Rabat. Ce projet vise à faciliter la gestion, la collaboration et le suivi des projets clients grâce à une application web moderne, sécurisée et automatisée.
 
-Réalisé par : Mohamed AZZAM & Aya OUAHI
+---
 
-Entreprise : SQLI Rabat en collaboration avec RFC Digital Rabat
+## 👥 Collaboration
 
-Date : Août 2025
---
+- **Auteurs** : [Mohamed AZZAM](https://github.com/Azzammoo10) & [Aya Ouahi](https://github.com/Ayaaa9)
+- **Entreprise** : SQLI Rabat & RFC Digital Rabat
+- **Date** : Août 2025
 
+---
 
+## 📌 Objectif
 
+Développer un portail web intelligent permettant aux chefs de projets, développeurs et clients de collaborer efficacement, tout en assurant la sécurité, la traçabilité et l’automatisation des tâches clés.
 
-📌 Objectif du Projet
---
-Développer un portail web intelligent pour assurer le suivi des projets clients chez SQLI/RFC Digital. L'application permet aux chefs de projets, développeurs et clients de collaborer efficacement tout en assurant la sécurité, la traçabilité et l’automatisation des tâches clés.
-
-
-
+---
 
 ## 📄 Technologies utilisées
 
@@ -35,43 +34,37 @@ Développer un portail web intelligent pour assurer le suivi des projets clients
 
 ## 🔢 Fonctionnalités principales
 
-### 1. 🔐 Authentification et sécurité JWT
+1. **Authentification & Sécurité**
+   - Connexion via JWT Token (`/api/auth/login`)
+   - Déconnexion avec Token Blacklist (`/api/auth/logout`)
+   - Validation de mot de passe fort (`@StrongPassword`)
+   - Génération automatique de `username` unique (`nom.sqli-XXXX`)
+   - Protection des routes selon les rôles (`ADMIN`, `CHEF_DE_PROJET`, etc.)
 
-* Connexion via JWT Token (`/api/auth/login`)
-* Déconnexion avec Token Blacklist (`/api/auth/logout`)
-* Validation de mot de passe fort `@StrongPassword`
-* Génération automatique de `username` unique (`nom.sqli-XXXX`)
-* Protection des routes selon les rôles (admin, chef de projet, etc.)
+2. **Gestion des utilisateurs (admin)**
+   - CRUD utilisateurs
+   - Affectation des rôles : `ADMIN`, `CHEF_DE_PROJET`, `DEVELOPPEUR`, `CLIENT`
+   - Activation / Désactivation de compte
 
-### 2. 💼 Gestion des utilisateurs (admin uniquement)
+3. **Gestion des projets**
+   - CRUD projets
+   - Affectation client & chef de projet
+   - Génération de lien public (UUID)
+   - Visualisation publique via HTML (`public-project.html`)
 
-* Création, mise à jour, suppression d’utilisateurs
-* Affectation des rôles : `ADMIN`, `CHEF_DE_PROJET`, `DEVELOPPEUR`, `CLIENT`
-* Activation / Désactivation de compte
+4. **Gestion des tâches**
+   - Création, affectation, modification de tâches
+   - Statuts : `TODO`, `EN_COURS`, `TERMINEE`
+   - Visualisation par projet, développeur ou statut
 
-### 3. 📅 Gestion des projets
+5. **Audit & Historique**
+   - Traçage des actions sensibles (login, logout, création, suppression...)
+   - Filtrage par utilisateur, date, type d’opération ou entité
+   - Accessible uniquement par les admins
 
-* CRUD des projets
-* Affectation à un client et à un chef de projet
-* Génération de lien public (UUID)
-* Visualisation d’un projet public via HTML (`public-project.html`)
-
-### 4. 📆 Tâches (Tasks)
-
-* Création, affectation, modification de tâches liées à un projet
-* Statuts : `TODO`, `EN_COURS`, `TERMINEE`
-* Visualisation des tâches par projet, développeur, ou statut
-
-### 5. 🕵️ Audit & Historique (Log)
-
-* Traçage de toutes les actions sensibles (login, logout, création, suppression...)
-* Filtrage par utilisateur, date, type d’opération ou entité
-* Accessible uniquement par les admins
-
-### 6. 🔹 Utilitaires
-
-* Swagger pour test d’API
-* QR Code généré automatiquement pour les projets publics (en cours)
+6. **Utilitaires**
+   - Swagger pour test d’API
+   - QR Code généré automatiquement pour les projets publics (en cours)
 
 ---
 
@@ -95,10 +88,10 @@ backend-sqli/
 
 ---
 
-## 🚪 Accès Swagger / API
+## 🚪 Accès API & Swagger
 
-* Swagger UI : [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
-* JWT Token à passer dans `Authorization: Bearer <token>`
+- **Swagger UI** : [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- **JWT Token** : à passer dans `Authorization: Bearer <token>`
 
 ---
 
@@ -113,33 +106,38 @@ backend-sqli/
 | Historique / Logs        | ✅ Terminé  | Logs déconnexion, création, suppression...             |
 | Swagger UI               | ✅ Terminé  | Visualisation et test des endpoints                    |
 | QR Code                  | ⏳ En cours | Génération de QR code projet public                    |
-| Tests unitaires          | ❌ Non fait | à prévoir si nécessaire avant déploiement              |
+| Tests unitaires          | ❌ Non fait | À prévoir avant déploiement                            |
 
 ---
 
-## 💡 Fonctionnalités prévues
+## 💡 Fonctionnalités à venir
 
-* Matching IA : développeur <-> tâche selon compétences (entités `Skill`, `MatchingScore`)
-* Dashboard analytique pour suivi des projets
-* Export PDF des fiches projets et rapports de tâches
-* Intégration de notifications WebSocket
-* Historique de sécurité (tentatives ratées, changement mdp...)
-* CI/CD GitHub Actions + déploiement Azure (production)
+- Matching IA : développeur <-> tâche selon compétences (`Skill`, `MatchingScore`)
+- Dashboard analytique pour suivi des projets
+- Export PDF des fiches projets et rapports de tâches
+- Notifications WebSocket
+- Historique de sécurité (tentatives ratées, changement mdp...)
+- CI/CD GitHub Actions + déploiement Azure
 
 ---
 
-## 👨‍💼 Auteurs
+## 🧑‍💻 Auteurs
 
-* 👤 Nom : [Mohamed AZZAM](https://github.com/Azzammoo10)
-* 👤 Nom : [Aya Ouahi](https://github.com/Ayaaa9)
-* 🏢 Stage de fin d'année : SQLI  + RFC Digital
-* ✨ Technologies maîtrisées : Java, Spring Boot, PostgreSQL, React.js
-
+- [Mohamed AZZAM](https://github.com/Azzammoo10)
+- [Aya Ouahi](https://github.com/Ayaaa9)
+- Stage de fin d'année : SQLI + RFC Digital
+- Technologies maîtrisées : Java, Spring Boot, PostgreSQL, React.js
 
 ---
 
 ## 🔖 Licence
 
-Ce projet est développé dans le cadre d’un Projet de Fin D'annes. Toute réutilisation à des fins académiques est permise avec attribution.
+Projet réalisé dans le cadre d’un Projet de Fin d’Année. Réutilisation académique permise avec attribution.
+
+---
+
+## 📬 Contact
+
+Pour toute question ou suggestion, n’hésitez pas à contacter les auteurs via leurs profils GitHub respectifs.
 
 
