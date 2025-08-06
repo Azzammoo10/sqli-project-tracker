@@ -18,10 +18,8 @@ import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
 import java.util.List;
-
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
-
 
 @RequiredArgsConstructor
 @Service
@@ -31,16 +29,13 @@ public class AdminServiceImpl implements AdminService {
     private final PasswordEncoder passwordEncoder;
     private final StrongPasswordValidator strongPasswordValidator;
 
-
-    // Methode pour generer des username automatique en respectant les Norrmes d'un Projet Pro
     private String generateUsername(String nom, Role role) {
         String username = "";
         int attempts = 0;
         do {
-            // Normalisation pour retirer les accents
             String cleanNom = Normalizer.normalize(nom, Normalizer.Form.NFD)
-                    .replaceAll("[^\\p{ASCII}]", "") // enlève les accents
-                    .replaceAll("[^a-zA-Z]", "")     // garde uniquement lettres
+                    .replaceAll("[^\\p{ASCII}]", "")
+                    .replaceAll("[^a-zA-Z]", "")
                     .toLowerCase();
 
             String roleCode = switch (role) {
@@ -57,7 +52,7 @@ public class AdminServiceImpl implements AdminService {
             if (attempts > 10) {
                 throw new RuntimeException("Impossible de générer un username unique");
             }
-        }while (userRepository.findByUsername(username).isPresent());
+        } while (userRepository.findByUsername(username).isPresent());
         return username;
     }
 
@@ -71,14 +66,16 @@ public class AdminServiceImpl implements AdminService {
             throw new WeakPasswordException("Le mot de passe est trop faible : il doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.");
         }
 
-
         User user = new User();
         user.setNom(request.getNom());
         user.setEmail(request.getEmail());
         user.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
         user.setRole(request.getRole());
-        user.setUsername(generateUsername(request.getNom(),request.getRole()));
+        user.setUsername(generateUsername(request.getNom(), request.getRole()));
         user.setEnabled(true);
+        user.setJobTitle(request.getJobTitle());
+        user.setDepartment(request.getDepartment());
+        user.setPhone(request.getPhone());
 
         User savedUser = userRepository.save(user);
 
@@ -91,15 +88,9 @@ public class AdminServiceImpl implements AdminService {
         );
     }
 
-
-
-
-
     @Override
     public List<UserResponse> getAllUsers() {
-        List<User> users = userRepository.findAll();
-
-        return users.stream()
+        return userRepository.findAll().stream()
                 .map(user -> new UserResponse(
                         user.getId(),
                         user.getUsername(),
@@ -131,8 +122,12 @@ public class AdminServiceImpl implements AdminService {
 
         if (request.getNom() != null) user.setNom(request.getNom());
         if (request.getEmail() != null) user.setEmail(request.getEmail());
-        if (request.getMotDePasse() != null) user.setMotDePasse(request.getMotDePasse());
+        if (request.getMotDePasse() != null)
+            user.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
         if (request.getRole() != null) user.setRole(request.getRole());
+        if (request.getJobTitle() != null) user.setJobTitle(request.getJobTitle());
+        if (request.getDepartment() != null) user.setDepartment(request.getDepartment());
+        if (request.getPhone() != null) user.setPhone(request.getPhone());
 
         User updatedUser = userRepository.save(user);
 
@@ -144,7 +139,6 @@ public class AdminServiceImpl implements AdminService {
                 updatedUser.getRole()
         );
     }
-
 
     @Override
     public void deleteUser(int id) {
@@ -174,17 +168,16 @@ public class AdminServiceImpl implements AdminService {
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec id : " + id));
 
         user.setEnabled(true);
-        User disabledUser = userRepository.save(user);
+        User enabledUser = userRepository.save(user);
 
         return new UserResponse(
-                disabledUser.getId(),
-                disabledUser.getUsername(),
-                disabledUser.getEmail(),
-                disabledUser.getNom(),
-                disabledUser.getRole()
+                enabledUser.getId(),
+                enabledUser.getUsername(),
+                enabledUser.getEmail(),
+                enabledUser.getNom(),
+                enabledUser.getRole()
         );
     }
-
 
     @Override
     public UserResponse disableUser(int id) {
@@ -201,33 +194,33 @@ public class AdminServiceImpl implements AdminService {
                 disabledUser.getNom(),
                 disabledUser.getRole()
         );
-
     }
 
-        @Override
-        public UserResponse createNewAdmin(CreateAdminDTO request) {
-            if(userRepository.existsByEmail(request.getEmail())){
-                throw new EmailAlreadyExistsException("Email déjà utilisé");
-            }
-
-            User user = new User();
-            user.setNom(request.getNom());
-            user.setEmail(request.getEmail());
-            user.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
-            user.setRole(Role.ADMIN);
-            user.setUsername(generateUsername(request.getNom(),Role.ADMIN));
-            user.setEnabled(true);
-
-            User savedAdmin = userRepository.save(user);
-
-            return new UserResponse(
-                    savedAdmin.getId(),
-                    savedAdmin.getUsername(),
-                    savedAdmin.getEmail(),
-                    savedAdmin.getNom(),
-                    savedAdmin.getRole()
-            );
-
+    @Override
+    public UserResponse createNewAdmin(CreateAdminDTO request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new EmailAlreadyExistsException("Email déjà utilisé");
         }
 
+        User user = new User();
+        user.setNom(request.getNom());
+        user.setEmail(request.getEmail());
+        user.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
+        user.setRole(Role.ADMIN);
+        user.setUsername(generateUsername(request.getNom(), Role.ADMIN));
+        user.setEnabled(true);
+        user.setJobTitle(request.getJobTitle());
+        user.setDepartment(request.getDepartment());
+        user.setPhone(request.getPhone());
+
+        User savedAdmin = userRepository.save(user);
+
+        return new UserResponse(
+                savedAdmin.getId(),
+                savedAdmin.getUsername(),
+                savedAdmin.getEmail(),
+                savedAdmin.getNom(),
+                savedAdmin.getRole()
+        );
+    }
 }
