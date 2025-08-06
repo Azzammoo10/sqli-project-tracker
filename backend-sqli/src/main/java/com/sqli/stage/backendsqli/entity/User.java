@@ -3,6 +3,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sqli.stage.backendsqli.entity.Enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -21,11 +23,15 @@ public class User {
 
     private String nom;
 
-    @Column(unique = true, nullable = false)
+    @Column(name = "work_email", unique = true, nullable = false)
     private String email;
 
 
     private String motDePasse;
+
+    private String jobTitle;      // Adapté à partir de hr_employee
+    private String department;    // Adapté à partir de hr_employee
+    private String phone;
 
     @Enumerated(EnumType.STRING)
     private Role role;
@@ -39,4 +45,7 @@ public class User {
 
     @OneToMany(mappedBy = "developpeur", cascade = CascadeType.ALL)
     private List<Task> tasks;
+
+    @OneToMany(mappedBy = "employee", fetch = FetchType.LAZY)
+    private List<AccountAnalyticLine> analyticLines = new ArrayList<>();
 }

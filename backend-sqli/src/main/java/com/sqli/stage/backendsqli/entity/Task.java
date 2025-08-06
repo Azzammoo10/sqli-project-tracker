@@ -8,7 +8,9 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 import com.sqli.stage.backendsqli.entity.User;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Data
@@ -22,14 +24,16 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @NotBlank @Size(min = 3, max = 100)
+    @NotBlank
+    @Size(min = 3, max = 100)
+    @Column(name = "name")
     private String titre;
 
-    @NotBlank
-    @Size(min = 5, max = 500)
+    @Size(max = 500)
     private String description;
 
-    @NotNull @FutureOrPresent
+    @NotNull
+    @FutureOrPresent
     private LocalDate dateDebut;
 
     @NotNull
@@ -37,21 +41,33 @@ public class Task {
     private LocalDate dateFin;
 
     @Enumerated(EnumType.STRING)
-    private StatutTache statut;
+    private StatutTache statut; // correspond à `state`
 
     @Enumerated(EnumType.STRING)
     private Priorite priorite;
 
-    @Column(columnDefinition = "int default 0")
-    private int progression;
+    @Column(precision = 5, scale = 2)
+    private BigDecimal progression; // correspond à `progress` (NUMERIC)
+
+    @Column(name = "planned_hours")
+    private Integer plannedHours;
+
+    @Column(name = "effective_hours")
+    private Integer effectiveHours;
+
+    @Column(name = "remaining_hours")
+    private Integer remainingHours;
 
     @ManyToOne
     @JoinColumn(name = "project_id")
-    @JsonIgnoreProperties({"tasks", "client", "createdBy"}) // casse les liens récursifs
+    @JsonIgnoreProperties({"tasks", "client", "createdBy"})
     private Project project;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "developpeur_id")
+    @JoinColumn(name = "developpeur_id") // tu peux aussi mapper sur "assigned_to"
     private User developpeur;
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL)
+    private List<AccountAnalyticLine> pointages;
 }
 
