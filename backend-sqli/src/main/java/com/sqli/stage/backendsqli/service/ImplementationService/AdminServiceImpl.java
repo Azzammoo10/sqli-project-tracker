@@ -43,6 +43,7 @@ public class AdminServiceImpl implements AdminService {
                 case DEVELOPPEUR -> "dev";
                 case CLIENT -> "cli";
                 case ADMIN -> "adm";
+                case STAGIAIRE -> "stg";
                 default -> "usr";
             };
 
@@ -67,14 +68,14 @@ public class AdminServiceImpl implements AdminService {
         }
 
         User user = new User();
-        String jobTitle = request.getJobTitle();
+        Role role = inferRoleFromJobTitle(request.getJobTitle());
         user.setNom(request.getNom());
         user.setEmail(request.getEmail());
         user.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
-        user.setRole(request.getRole());
+        user.setRole(role);
         user.setUsername(generateUsername(request.getNom(), request.getRole()));
         user.setEnabled(true);
-        user.setJobTitle(jobTitle);
+        user.setJobTitle(request.getJobTitle());
         user.setDepartment(request.getDepartment());
         user.setPhone(request.getPhone());
 

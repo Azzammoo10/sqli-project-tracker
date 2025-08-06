@@ -49,7 +49,10 @@ public class UserService {
                 savedUser.getUsername(),
                 savedUser.getEmail(),
                 savedUser.getNom(),
-                savedUser.getRole()
+                savedUser.getRole(),
+                savedUser.getJobTitle(),
+                savedUser.getDepartment(),
+                savedUser.getPhone()
         );
     }
 
