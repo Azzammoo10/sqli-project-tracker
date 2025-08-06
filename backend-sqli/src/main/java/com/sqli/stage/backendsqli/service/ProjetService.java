@@ -22,4 +22,5 @@ public interface ProjetService {
     List<ProjectResponse> searchProjectsByKeyword(String keyword);
     List<ProjectResponse> getAllPublicProjects();
     void assignDevelopersToProject(int projectId, List<Integer> developerIds);
+
 }

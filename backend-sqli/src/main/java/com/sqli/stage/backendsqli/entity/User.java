@@ -1,6 +1,7 @@
 package com.sqli.stage.backendsqli.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sqli.stage.backendsqli.entity.Enums.Role;
+import com.sqli.stage.backendsqli.entity.Enums.TypeDepartment;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,8 +30,10 @@ public class User {
 
     private String motDePasse;
 
-    private String jobTitle;      // Adapté à partir de hr_employee
-    private String department;    // Adapté à partir de hr_employee
+    private String jobTitle;
+
+    @Enumerated(EnumType.STRING)
+    private TypeDepartment department;    // Adapté à partir de hr_employee
     private String phone;
 
     @Enumerated(EnumType.STRING)
