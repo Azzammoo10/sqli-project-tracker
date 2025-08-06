@@ -1,5 +1,6 @@
 package com.sqli.stage.backendsqli.Script;
 import com.sqli.stage.backendsqli.entity.Enums.Role;
+import com.sqli.stage.backendsqli.entity.Enums.TypeDepartment;
 import com.sqli.stage.backendsqli.entity.User;
 import com.sqli.stage.backendsqli.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,27 +22,48 @@ public class InitUserData implements CommandLineRunner {
     @Override
     public void run(String... args) {
         if (userRepository.count() == 0) {
-            createUser("Mohamed", "mohamed.azzam@outlook.com", "M0hamed!Admin2025", Role.ADMIN);
-            createUser("Aya", "Aya.ouahi@gmail.com", "Aya!Admin2026", Role.ADMIN);
-            createUser("Ismail", "ismail.benali@gmail.com", "Ism@Dev2025#", Role.DEVELOPPEUR);
-            createUser("Riyad", "riyad.elhaddad@proton.me", "R!yadDev@2025", Role.DEVELOPPEUR);
-            createUser("Khalid", "khalid.mansouri@yahoo.fr", "Kh@lidD3v2025$", Role.DEVELOPPEUR);
-            createUser("Hamza", "hamza.bouzit@outlook.com", "Hamz@Chef2025#", Role.CHEF_DE_PROJET);
-            createUser("Karim", "karim.dalimani@gmail.com", "Kar!mChef@25$", Role.CHEF_DE_PROJET);
-            createUser("Sami", "sami.hakim@proton.me", "S@miChef_2025", Role.CHEF_DE_PROJET);
-            createUser("Client1", "yasmine.bensaid@gmail.com", "Cl!entOne#2025", Role.CLIENT);
-            createUser("Client2", "omar.aittaleb@outlook.com", "Cl!entTwo$2025", Role.CLIENT);
-            createUser("Client3", "fatima.ouahbi@yahoo.fr", "Cl!entThree@2025", Role.CLIENT);
-        }
+
+            createUser("Abdelouahed DEBBAGH", "abdou.d@rfcdigital.com", "Abdelouahed!2025", Role.CHEF_DE_PROJET, TypeDepartment.EXTERNE);
+            createUser("Ayoub El Manssouri", "Ayoub.elmansouri@gmail.com", "Ayoub!2025", Role.DEVELOPPEUR);
+            createUser("Mustapha KHALKI", "Mustapha@rfcdigital.dev", "Mustapha!2025", Role.DEVELOPPEUR);
+            createUser("Chafia HASSOUD", "chafia.hassoud01@gmail.com", "Chafia!2025", Role.ADMIN);
+            createUser("Achraf ALAMI", "achraf.a@rfcdigital.dev", "Achraf!2025", Role.DEVELOPPEUR);
+            createUser("Salma ELGMIRI", "salma.e@rfcdigital.dev", "Salma!2025", Role.DEVELOPPEUR);
+            createUser("Soukaina BOUGUIRI", "administratif@rfcdigital.com", "Soukaina!2025", Role.ADMIN);
+            createUser("Abdoulkader", "abdoukadriadamou75@gmail.com", "Abdoulkader!2025", Role.DEVELOPPEUR);
+            createUser("Ex dev interne", "ex.dev@rfc-digital.com", "Ex!2025", Role.CLIENT);
+            createUser("Zakaria BENMOUMEN", "zakaria@rfcdigital.com", "Zakaria!2025", Role.ADMIN);
+            createUser("Youssef BASSOU", "youssef.b@rfcdigital.com", "Youssef!2025", Role.CHEF_DE_PROJET);
+            createUser("Imad Ghssisse EXT", "mohibimaddev@gmail.com", "Imad!2025", Role.CLIENT);
+            createUser("Imane ACHKOUNE", "imane.a@rfcdigital.com", "Imane!2025", Role.CHEF_DE_PROJET);
+            createUser("Imane ACHOUALE", "imane.achoual@rfcdigital.dev", "Imane!2025", Role.DEVELOPPEUR);
+            createUser("Amine AKERMOUD", "amine.akermoud@rfcdigital.dev", "Amine!2025", Role.DEVELOPPEUR);
+            createUser("Abdarazak Laanaya EXT", "laanayabdrazak@gmail.com", "Abdarazak!2025", Role.CLIENT);
+            createUser("Mohamed OUBAKHAYI", "mohamed.o@rfcdigital.com", "Mohamed!2025", Role.ADMIN);
+            createUser("Ayoub SABI", "Ayoub.sabi.dev@gmail.com", "Ayoub!2025", Role.DEVELOPPEUR);
+            createUser("Hicham SOUFIANI", "Hicham.s@rfcdigital.com", "Hicham!2025", Role.CHEF_DE_PROJET);
+            createUser("Mohamed Aherdane EXT", "mohamed.aherdane@waveagency.fr", "Mohamed!2025", Role.CLIENT);
+            createUser("Mohamed TBARKA", "simo.tbarka@gmail.com", "Mohamed!2025", Role.DEVELOPPEUR);
+            createUser("Abdeslam BOUGAA", "Abdo.bougaa@gmail.com", "Abdeslam!2025", Role.CLIENT);
+            createUser("Aya OUAHI", "ayaouahi99@gmail.com", "Aya!2025", Role.STAGIAIRE);
+            createUser("Mohamed AZZAM", "azzam.moo@gmail.com", "azzam!2025", Role.STAGIAIRE);
+            createUser("Mohamed MAKKAOUI", "makkaoui@rfcdigital.dev", "Mohamed!2025", Role.DEVELOPPEUR);
+            createUser("Anass AIT BELARBI", "anassaitbelarbi7@gmail.com", "Anass!2025", Role.CLIENT);
+            createUser("Yasser El Mimouni", "elmimouni.yasser@gmail.com", "Yasser!2025", Role.CLIENT);
+            }
     }
 
 
-    private void createUser(String nom, String email, String motDePasse, Role role) {
+
+    private void createUser(String nom, String email, String motDePasse,String jobTitle, Role role,TypeDepartment department,String phone) {
         User user = new User();
         user.setNom(nom);
         user.setEmail(email);
         user.setMotDePasse(passwordEncoder.encode(motDePasse));
+        user.setJobTitle(jobTitle);
         user.setRole(role);
+        user.setDepartment(department);
+        user.setPhone(phone);
         user.setEnabled(true);
         user.setUsername(generateUsername(nom, role)); // assure-toi d’avoir cette méthode dans ton service
         userRepository.save(user);
@@ -62,11 +84,12 @@ public class InitUserData implements CommandLineRunner {
                 case DEVELOPPEUR -> "dev";
                 case CLIENT -> "cli";
                 case ADMIN -> "adm";
+                case STAGIAIRE -> "stg";
                 default -> "usr";
             };
 
             int random = ThreadLocalRandom.current().nextInt(1000, 10000);
-            username = cleanNom + "." + roleCode + "-sqli" + random;
+            username = cleanNom + "." + roleCode + "-IT" + random;
             attempts++;
             if (attempts > 10) {
                 throw new RuntimeException("Impossible de générer un username unique");
