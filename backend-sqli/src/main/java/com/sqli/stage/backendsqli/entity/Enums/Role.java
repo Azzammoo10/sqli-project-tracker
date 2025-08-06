@@ -4,5 +4,6 @@ public enum Role {
     CLIENT,
     DEVELOPPEUR,
     CHEF_DE_PROJET,
-    ADMIN
+    ADMIN,
+    STAGIAIRE
 }
