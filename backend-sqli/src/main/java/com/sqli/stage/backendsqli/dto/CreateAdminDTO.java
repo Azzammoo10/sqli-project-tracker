@@ -21,4 +21,8 @@ public class CreateAdminDTO {
 
     @StrongPassword
     private String motDePasse;
+
+    private String jobTitle;
+    private String department;
+    private String phone;
 }

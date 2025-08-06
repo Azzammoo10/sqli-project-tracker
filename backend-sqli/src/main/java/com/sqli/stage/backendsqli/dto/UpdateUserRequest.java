@@ -17,4 +17,8 @@ public class UpdateUserRequest {
     @StrongPassword
     private String motDePasse;
     private Role role;
+
+    private String jobTitle;
+    private String department;
+    private String phone;
 }

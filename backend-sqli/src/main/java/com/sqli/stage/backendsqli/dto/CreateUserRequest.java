@@ -28,5 +28,9 @@ public class CreateUserRequest {
     private String motDePasse;
 
     private Role role;
+
+    private String jobTitle;
+    private String department;
+    private String phone;
 }
 

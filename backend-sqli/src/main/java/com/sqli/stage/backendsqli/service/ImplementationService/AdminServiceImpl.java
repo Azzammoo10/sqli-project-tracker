@@ -67,13 +67,14 @@ public class AdminServiceImpl implements AdminService {
         }
 
         User user = new User();
+        String jobTitle = request.getJobTitle();
         user.setNom(request.getNom());
         user.setEmail(request.getEmail());
         user.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
         user.setRole(request.getRole());
         user.setUsername(generateUsername(request.getNom(), request.getRole()));
         user.setEnabled(true);
-        user.setJobTitle(request.getJobTitle());
+        user.setJobTitle(jobTitle);
         user.setDepartment(request.getDepartment());
         user.setPhone(request.getPhone());
 
@@ -84,7 +85,10 @@ public class AdminServiceImpl implements AdminService {
                 savedUser.getUsername(),
                 savedUser.getEmail(),
                 savedUser.getNom(),
-                savedUser.getRole()
+                savedUser.getRole(),
+                savedUser.getJobTitle(),
+                savedUser.getDepartment(),
+                savedUser.getPhone()
         );
     }
 
@@ -96,7 +100,10 @@ public class AdminServiceImpl implements AdminService {
                         user.getUsername(),
                         user.getEmail(),
                         user.getNom(),
-                        user.getRole()
+                        user.getRole(),
+                        user.getJobTitle(),
+                        user.getDepartment(),
+                        user.getPhone()
                 ))
                 .collect(Collectors.toList());
     }
@@ -111,7 +118,10 @@ public class AdminServiceImpl implements AdminService {
                 user.getUsername(),
                 user.getEmail(),
                 user.getNom(),
-                user.getRole()
+                user.getRole(),
+                user.getJobTitle(),
+                user.getDepartment(),
+                user.getPhone()
         );
     }
 
@@ -136,7 +146,10 @@ public class AdminServiceImpl implements AdminService {
                 updatedUser.getUsername(),
                 updatedUser.getEmail(),
                 updatedUser.getNom(),
-                updatedUser.getRole()
+                updatedUser.getRole(),
+                updatedUser.getJobTitle(),
+                updatedUser.getDepartment(),
+                updatedUser.getPhone()
         );
     }
 
@@ -158,7 +171,10 @@ public class AdminServiceImpl implements AdminService {
                 updatedUser.getUsername(),
                 updatedUser.getEmail(),
                 updatedUser.getNom(),
-                updatedUser.getRole()
+                updatedUser.getRole(),
+                updatedUser.getJobTitle(),
+                updatedUser.getDepartment(),
+                updatedUser.getPhone()
         );
     }
 
@@ -175,7 +191,10 @@ public class AdminServiceImpl implements AdminService {
                 enabledUser.getUsername(),
                 enabledUser.getEmail(),
                 enabledUser.getNom(),
-                enabledUser.getRole()
+                enabledUser.getRole(),
+                enabledUser.getJobTitle(),
+                enabledUser.getDepartment(),
+                enabledUser.getPhone()
         );
     }
 
@@ -192,7 +211,10 @@ public class AdminServiceImpl implements AdminService {
                 disabledUser.getUsername(),
                 disabledUser.getEmail(),
                 disabledUser.getNom(),
-                disabledUser.getRole()
+                disabledUser.getRole(),
+                disabledUser.getJobTitle(),
+                disabledUser.getDepartment(),
+                disabledUser.getPhone()
         );
     }
 
@@ -220,7 +242,24 @@ public class AdminServiceImpl implements AdminService {
                 savedAdmin.getUsername(),
                 savedAdmin.getEmail(),
                 savedAdmin.getNom(),
-                savedAdmin.getRole()
+                savedAdmin.getRole(),
+                savedAdmin.getJobTitle(),
+                savedAdmin.getDepartment(),
+                savedAdmin.getPhone()
         );
     }
+
+    public Role inferRoleFromJobTitle(String jobTitle) {
+        if (jobTitle == null) return Role.DEVELOPPEUR;
+
+        jobTitle = jobTitle.toLowerCase();
+
+        if (jobTitle.contains("stagiaire")) return Role.STAGIAIRE;
+        if (jobTitle.contains("chef") || jobTitle.contains("projet")) return Role.CHEF_DE_PROJET;
+        if (jobTitle.contains("cto") || jobTitle.contains("directeur")) return Role.ADMIN;
+        if (jobTitle.contains("fullstack") || jobTitle.contains("dev")) return Role.DEVELOPPEUR;
+
+        return Role.DEVELOPPEUR;
+    }
+
 }
