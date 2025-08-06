@@ -100,8 +100,9 @@ public class HistoriqueServiceImpl implements HistoriqueService {
                 historique.getDescription(),
                 historique.getEntityId(),
                 historique.getEntityName(),
-                historique.getUser().getUsername(),
-                historique.getUser().getNom()
+                historique.getUser().getNom(),
+                historique.getUser().getUsername()
+
         );
     }
 }
