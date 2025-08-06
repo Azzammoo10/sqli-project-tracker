@@ -32,7 +32,7 @@ public class InitUserData implements CommandLineRunner {
             createUser("Soukaina BOUGUIRI", "administratif@rfcdigital.com", "Soukaina!2025", "Assistante administrative", Role.ADMIN, TypeDepartment.ADMINISTRATION, "+212 625-895494");
             createUser("Abdoulkader", "abdoukadriadamou75@gmail.com", "Abdoulkader!2025", "Dev Fullstack", Role.ADMIN, TypeDepartment.DEVELOPPEMENT, null);
             createUser("Ex dev interne", "ex.dev@rfc-digital.com", "Ex!2025", null, Role.ADMIN, null, null);
-                createUser("Zakaria BENMOUMEN", "zakaria@rfcdigital.com", "Zakaria!2025", "Directeur Général", Role.ADMIN, TypeDepartment.MANAGEMENT, "0661910256");
+            createUser("Zakaria BENMOUMEN", "zakaria@rfcdigital.com", "Zakaria!2025", "Directeur Général", Role.ADMIN, TypeDepartment.MANAGEMENT, "0661910256");
             createUser("Youssef BASSOU", "youssef.b@rfcdigital.com", "Youssef!2025", "Chargé de projets TMA", Role.ADMIN, TypeDepartment.MANAGEMENT, "+212 661-388312");
             createUser("Imad Ghssisse EXT", "mohibimaddev@gmail.com", "Imad!2025", "Dev Fullstack", Role.ADMIN, TypeDepartment.DEVELOPPEMENT, null);
             createUser("Imane ACHKOUNE", "imane.a@rfcdigital.com", "Imane!2025", "Chef de projet", Role.ADMIN, TypeDepartment.MANAGEMENT, "+212 662-387174");
@@ -46,6 +46,8 @@ public class InitUserData implements CommandLineRunner {
             createUser("Mohamed TBARKA", "simo.tbarka@gmail.com", "Mohamed!2025", "LEAD TEK", Role.ADMIN, TypeDepartment.DEVELOPPEMENT, null);
             createUser("Abdeslam BOUGAA", "Abdo.bougaa@gmail.com", "Abdeslam!2025", null, Role.ADMIN, null, null);
             createUser("Aya OUAHI", "ayaouahi99@gmail.com", "Aya!2025", "stagiaire", Role.ADMIN, TypeDepartment.DEVELOPPEMENT, null);
+            createUser("Mohamed AZZAM", "azzam.moo@gmail.com", "azzam!2025", "stagiaire", Role.STAGIAIRE, TypeDepartment.DEVELOPPEMENT, null);
+
             createUser("Mohamed MAKKAOUI", "makkaoui@rfcdigital.dev", "Mohamed!2025", "Dev Fullstack", Role.ADMIN, null, null);
             createUser("Anass AIT BELARBI", "anassaitbelarbi7@gmail.com", "Anass!2025", null, Role.ADMIN, null, null);
             createUser("Yasser El Mimouni", "elmimouni.yasser@gmail.com", "Yasser!2025", null, Role.ADMIN, null, null);
