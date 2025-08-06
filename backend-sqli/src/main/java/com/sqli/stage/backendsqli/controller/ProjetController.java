@@ -2,11 +2,17 @@ package com.sqli.stage.backendsqli.controller;
 
 import com.sqli.stage.backendsqli.dto.ProjectDTO.*;
 import com.sqli.stage.backendsqli.service.ProjetService;
+import com.sqli.stage.backendsqli.utils.QRCodeGenerator;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -112,11 +118,36 @@ public class ProjetController {
 
 
 
-    @GetMapping("/public")
-    public ResponseEntity<List<ProjectResponse>> getAllPublicProjects() {
-        List<ProjectResponse> projects = projetService.getAllPublicProjects();
-        log.info("Projets publics récupérés avec succès. Nombre total : {}", projects.size());
-        return ResponseEntity.ok(projects);
+    @Value("${app.base-url}")
+    private String baseUrl;
+
+    public String generatePublicUrl(String uuid) {
+        return baseUrl + "/api/projects/public/" + uuid + "/view";
     }
+
+    @GetMapping("/public/{uuid}/qrcode")
+    public ResponseEntity<byte[]> getProjectQrCode(@PathVariable String uuid) {
+        ProjectResponse project = projetService.getProjectByUuid(uuid);
+
+        if (!project.isPublicLinkEnabled()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        String url = generatePublicUrl(project.getUuidPublic());
+
+        try {
+            byte[] qrCode = QRCodeGenerator.generateQRCodeImage(url, 300, 300);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.IMAGE_PNG)
+                    .body(qrCode);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+
+
+
 }
 

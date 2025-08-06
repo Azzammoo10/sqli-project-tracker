@@ -21,18 +21,20 @@ public class InitUserData implements CommandLineRunner {
     @Override
     public void run(String... args) {
         if (userRepository.count() == 0) {
-            createUser("Mohamed", "mohamed.azzam@outlook.com", "admin123", Role.ADMIN);
-            createUser("Ismail", "ismail.benali@gmail.com", "dev123", Role.DEVELOPPEUR);
-            createUser("Riyad", "riyad.elhaddad@proton.me", "dev123", Role.DEVELOPPEUR);
-            createUser("Khalid", "khalid.mansouri@yahoo.fr", "dev123", Role.DEVELOPPEUR);
-            createUser("Hamza", "hamza.bouzit@outlook.com", "cp123", Role.CHEF_DE_PROJET);
-            createUser("Karim", "karim.dalimani@gmail.com", "cp123", Role.CHEF_DE_PROJET);
-            createUser("Sami", "sami.hakim@proton.me", "cp123", Role.CHEF_DE_PROJET);
-            createUser("Client1", "yasmine.bensaid@gmail.com", "client123", Role.CLIENT);
-            createUser("Client2", "omar.aittaleb@outlook.com", "client123", Role.CLIENT);
-            createUser("Client3", "fatima.ouahbi@yahoo.fr", "client123", Role.CLIENT);
+            createUser("Mohamed", "mohamed.azzam@outlook.com", "M0hamed!Admin2025", Role.ADMIN);
+            createUser("Aya", "Aya.ouahi@gmail.com", "Aya!Admin2026", Role.ADMIN);
+            createUser("Ismail", "ismail.benali@gmail.com", "Ism@Dev2025#", Role.DEVELOPPEUR);
+            createUser("Riyad", "riyad.elhaddad@proton.me", "R!yadDev@2025", Role.DEVELOPPEUR);
+            createUser("Khalid", "khalid.mansouri@yahoo.fr", "Kh@lidD3v2025$", Role.DEVELOPPEUR);
+            createUser("Hamza", "hamza.bouzit@outlook.com", "Hamz@Chef2025#", Role.CHEF_DE_PROJET);
+            createUser("Karim", "karim.dalimani@gmail.com", "Kar!mChef@25$", Role.CHEF_DE_PROJET);
+            createUser("Sami", "sami.hakim@proton.me", "S@miChef_2025", Role.CHEF_DE_PROJET);
+            createUser("Client1", "yasmine.bensaid@gmail.com", "Cl!entOne#2025", Role.CLIENT);
+            createUser("Client2", "omar.aittaleb@outlook.com", "Cl!entTwo$2025", Role.CLIENT);
+            createUser("Client3", "fatima.ouahbi@yahoo.fr", "Cl!entThree@2025", Role.CLIENT);
         }
     }
+
 
     private void createUser(String nom, String email, String motDePasse, Role role) {
         User user = new User();

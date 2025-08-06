@@ -11,18 +11,10 @@ import java.util.List;
 
 public interface HistoriqueService  {
     LogResponse logAction(LogRequest request);
-
     LogResponse logAction(LogRequest request, User user);
-
     List<LogResponse> getAllLogs(); // Tous les logs triés par date desc
-
     List<LogResponse> getLogsByAction(TypeOperation action);
-
     List<LogResponse> getLogsByEntity(EntityName entity);
-
     List<LogResponse> getLogsByUser(int userId);
-
     List<LogResponse> getLogsBetweenDates(LocalDateTime start, LocalDateTime end);
-
-
 }

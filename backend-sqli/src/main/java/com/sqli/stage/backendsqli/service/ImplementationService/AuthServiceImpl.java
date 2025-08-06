@@ -6,10 +6,12 @@ import com.sqli.stage.backendsqli.dto.LoginDTO.LoginResponse;
 import com.sqli.stage.backendsqli.entity.Enums.EntityName;
 import com.sqli.stage.backendsqli.entity.Enums.TypeOperation;
 import com.sqli.stage.backendsqli.entity.User;
+import com.sqli.stage.backendsqli.exception.InvalidTokenException;
 import com.sqli.stage.backendsqli.repository.UserRepository;
 import com.sqli.stage.backendsqli.security.JwtUtil;
 import com.sqli.stage.backendsqli.service.AuthService;
 import com.sqli.stage.backendsqli.service.HistoriqueService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -38,7 +40,7 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Mot de passe incorrect");
         }
 
-        String token = jwtUtil.generateToken(user.getUsername(), user.getRole().name());
+        String token = jwtUtil.generateToken(user.getUsername(), user.getRole().name(),user.getId());
 
         LogRequest logRequest = new LogRequest();
         logRequest.setAction(TypeOperation.LOGIN);
@@ -49,4 +51,24 @@ public class AuthServiceImpl implements AuthService {
 
         return new LoginResponse("Connexion réussie", token, user.getUsername(), user.getRole().name());
     }
+
+    @Override
+    public String extractTokenFromHeader(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        throw new InvalidTokenException("Token invalide ou manquant dans l'en-tête Authorization");
+    }
+
+    @Override
+    public Integer extractIdUserFromToken(String token) {
+        return jwtUtil.extractId(token);
+    }
+
+    @Override
+    public String extractUsernameFromToken(String token) {
+        return jwtUtil.extractUsername(token);
+    }
+
 }

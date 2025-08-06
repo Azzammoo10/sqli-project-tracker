@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Détails du Projet</title>
+</head>
+<body>
+<h1 th:text="'Projet : ' + ${project.titre}">Titre du projet</h1>
+<p><strong>Description :</strong> <span th:text="${project.description}"></span></p>
+<p><strong>Client :</strong> <span th:text="${project.client.nom}"></span></p>
+<p><strong>Date début :</strong> <span th:text="${project.dateDebut}"></span></p>
+<p><strong>Date fin :</strong> <span th:text="${project.dateFin}"></span></p>
+<p><strong>Statut :</strong> <span th:text="${project.statut}"></span></p>
+</body>
+</html>

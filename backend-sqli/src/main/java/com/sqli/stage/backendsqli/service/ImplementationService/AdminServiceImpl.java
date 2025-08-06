@@ -8,16 +8,17 @@ import com.sqli.stage.backendsqli.entity.Enums.Role;
 import com.sqli.stage.backendsqli.entity.User;
 import com.sqli.stage.backendsqli.exception.EmailAlreadyExistsException;
 import com.sqli.stage.backendsqli.exception.ResourceNotFoundException;
+import com.sqli.stage.backendsqli.exception.WeakPasswordException;
 import com.sqli.stage.backendsqli.repository.UserRepository;
 import com.sqli.stage.backendsqli.service.AdminService;
+import com.sqli.stage.backendsqli.validation.StrongPasswordValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
 import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -28,6 +29,7 @@ public class AdminServiceImpl implements AdminService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final StrongPasswordValidator strongPasswordValidator;
 
 
     // Methode pour generer des username automatique en respectant les Norrmes d'un Projet Pro
@@ -63,6 +65,10 @@ public class AdminServiceImpl implements AdminService {
     public UserResponse createUser(CreateUserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new EmailAlreadyExistsException("Email déjà utilisé");
+        }
+
+        if (!strongPasswordValidator.isValid(request.getMotDePasse(), null)) {
+            throw new WeakPasswordException("Le mot de passe est trop faible : il doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.");
         }
 
 

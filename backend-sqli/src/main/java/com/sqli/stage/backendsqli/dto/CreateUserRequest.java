@@ -1,6 +1,7 @@
 package com.sqli.stage.backendsqli.dto;
 
 import com.sqli.stage.backendsqli.entity.Enums.Role;
+import com.sqli.stage.backendsqli.validation.StrongPassword;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,8 +24,7 @@ public class CreateUserRequest {
     @Email(message = "Email invalide")
     private String email;
 
-    @NotBlank(message = "Le mot de passe est obligatoire")
-    @Size(min = 8, message = "Le mot de passe doit faire au moins 8 caractères")
+    @StrongPassword
     private String motDePasse;
 
     private Role role;
