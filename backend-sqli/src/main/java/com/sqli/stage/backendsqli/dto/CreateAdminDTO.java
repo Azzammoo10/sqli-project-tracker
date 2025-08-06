@@ -1,5 +1,6 @@
 package com.sqli.stage.backendsqli.dto;
 
+import com.sqli.stage.backendsqli.entity.Enums.TypeDepartment;
 import com.sqli.stage.backendsqli.validation.StrongPassword;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -23,6 +24,6 @@ public class CreateAdminDTO {
     private String motDePasse;
 
     private String jobTitle;
-    private String department;
+    private TypeDepartment department;
     private String phone;
 }

@@ -1,5 +1,6 @@
 package com.sqli.stage.backendsqli.dto;
 import com.sqli.stage.backendsqli.entity.Enums.Role;
+import com.sqli.stage.backendsqli.entity.Enums.TypeDepartment;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,6 +15,6 @@ public class UserResponse {
     private String nom;
     private Role role;
     private String jobTitle;
-    private String department;
+    private TypeDepartment department;
     private String phone;
 }

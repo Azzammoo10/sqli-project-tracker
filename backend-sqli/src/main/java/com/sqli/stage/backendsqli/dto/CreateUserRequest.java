@@ -1,6 +1,7 @@
 package com.sqli.stage.backendsqli.dto;
 
 import com.sqli.stage.backendsqli.entity.Enums.Role;
+import com.sqli.stage.backendsqli.entity.Enums.TypeDepartment;
 import com.sqli.stage.backendsqli.validation.StrongPassword;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,7 +31,7 @@ public class CreateUserRequest {
     private Role role;
 
     private String jobTitle;
-    private String department;
+    private TypeDepartment department;
     private String phone;
 }
 

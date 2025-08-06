@@ -294,6 +294,8 @@ public class ProjetServiceImpl implements ProjetService {
     }
 
 
+
+
     private User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByUsername(username)
