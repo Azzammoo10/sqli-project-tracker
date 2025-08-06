@@ -1,4 +1,4 @@
-package com.sqli.stage.backendsqli.service;
+package com.sqli.stage.backendsqli.utils;
 
 import com.sqli.stage.backendsqli.dto.CreateUserRequest;
 import com.sqli.stage.backendsqli.dto.UserResponse;
@@ -7,7 +7,6 @@ import com.sqli.stage.backendsqli.exception.EmailAlreadyExistsException;
 import com.sqli.stage.backendsqli.entity.User;
 import com.sqli.stage.backendsqli.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Random;

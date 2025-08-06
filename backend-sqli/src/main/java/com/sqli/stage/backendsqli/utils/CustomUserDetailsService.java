@@ -1,4 +1,4 @@
-package com.sqli.stage.backendsqli.service;
+package com.sqli.stage.backendsqli.utils;
 
 import com.sqli.stage.backendsqli.entity.User;
 import com.sqli.stage.backendsqli.repository.UserRepository;

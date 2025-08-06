@@ -1,4 +1,5 @@
 package com.sqli.stage.backendsqli.entity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sqli.stage.backendsqli.entity.Enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
@@ -23,6 +24,7 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
+
     private String motDePasse;
 
     @Enumerated(EnumType.STRING)
@@ -30,6 +32,9 @@ public class User {
 
     @Column(nullable = false)
     private boolean enabled = true;
+
+    @ManyToMany(mappedBy = "developpeurs")
+    private List<Project> projects;
 
 
     @OneToMany(mappedBy = "developpeur", cascade = CascadeType.ALL)
