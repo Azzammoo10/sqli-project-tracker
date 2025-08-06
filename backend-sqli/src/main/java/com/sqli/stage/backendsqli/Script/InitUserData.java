@@ -23,35 +23,34 @@ public class InitUserData implements CommandLineRunner {
     public void run(String... args) {
         if (userRepository.count() == 0) {
 
-            createUser("Abdelouahed DEBBAGH", "abdou.d@rfcdigital.com", "Abdelouahed!2025", Role.CHEF_DE_PROJET, TypeDepartment.EXTERNE);
-            createUser("Ayoub El Manssouri", "Ayoub.elmansouri@gmail.com", "Ayoub!2025", Role.DEVELOPPEUR);
-            createUser("Mustapha KHALKI", "Mustapha@rfcdigital.dev", "Mustapha!2025", Role.DEVELOPPEUR);
-            createUser("Chafia HASSOUD", "chafia.hassoud01@gmail.com", "Chafia!2025", Role.ADMIN);
-            createUser("Achraf ALAMI", "achraf.a@rfcdigital.dev", "Achraf!2025", Role.DEVELOPPEUR);
-            createUser("Salma ELGMIRI", "salma.e@rfcdigital.dev", "Salma!2025", Role.DEVELOPPEUR);
-            createUser("Soukaina BOUGUIRI", "administratif@rfcdigital.com", "Soukaina!2025", Role.ADMIN);
-            createUser("Abdoulkader", "abdoukadriadamou75@gmail.com", "Abdoulkader!2025", Role.DEVELOPPEUR);
-            createUser("Ex dev interne", "ex.dev@rfc-digital.com", "Ex!2025", Role.CLIENT);
-            createUser("Zakaria BENMOUMEN", "zakaria@rfcdigital.com", "Zakaria!2025", Role.ADMIN);
-            createUser("Youssef BASSOU", "youssef.b@rfcdigital.com", "Youssef!2025", Role.CHEF_DE_PROJET);
-            createUser("Imad Ghssisse EXT", "mohibimaddev@gmail.com", "Imad!2025", Role.CLIENT);
-            createUser("Imane ACHKOUNE", "imane.a@rfcdigital.com", "Imane!2025", Role.CHEF_DE_PROJET);
-            createUser("Imane ACHOUALE", "imane.achoual@rfcdigital.dev", "Imane!2025", Role.DEVELOPPEUR);
-            createUser("Amine AKERMOUD", "amine.akermoud@rfcdigital.dev", "Amine!2025", Role.DEVELOPPEUR);
-            createUser("Abdarazak Laanaya EXT", "laanayabdrazak@gmail.com", "Abdarazak!2025", Role.CLIENT);
-            createUser("Mohamed OUBAKHAYI", "mohamed.o@rfcdigital.com", "Mohamed!2025", Role.ADMIN);
-            createUser("Ayoub SABI", "Ayoub.sabi.dev@gmail.com", "Ayoub!2025", Role.DEVELOPPEUR);
-            createUser("Hicham SOUFIANI", "Hicham.s@rfcdigital.com", "Hicham!2025", Role.CHEF_DE_PROJET);
-            createUser("Mohamed Aherdane EXT", "mohamed.aherdane@waveagency.fr", "Mohamed!2025", Role.CLIENT);
-            createUser("Mohamed TBARKA", "simo.tbarka@gmail.com", "Mohamed!2025", Role.DEVELOPPEUR);
-            createUser("Abdeslam BOUGAA", "Abdo.bougaa@gmail.com", "Abdeslam!2025", Role.CLIENT);
-            createUser("Aya OUAHI", "ayaouahi99@gmail.com", "Aya!2025", Role.STAGIAIRE);
-            createUser("Mohamed AZZAM", "azzam.moo@gmail.com", "azzam!2025", Role.STAGIAIRE);
-            createUser("Mohamed MAKKAOUI", "makkaoui@rfcdigital.dev", "Mohamed!2025", Role.DEVELOPPEUR);
-            createUser("Anass AIT BELARBI", "anassaitbelarbi7@gmail.com", "Anass!2025", Role.CLIENT);
-            createUser("Yasser El Mimouni", "elmimouni.yasser@gmail.com", "Yasser!2025", Role.CLIENT);
-            }
-    }
+            createUser("Abdelouahed DEBBAGH", "abdou.d@rfcdigital.com", "Abdelouahed!2025", "Chargé de projets TMA", Role.ADMIN, TypeDepartment.MANAGEMENT, "+212 666-060312");
+            createUser("Ayoub El Manssouri", "ayoub.elmansouri@gmail.com", "Ayoub!2025", null, Role.ADMIN, null, null);
+            createUser("Mustapha KHALKI", "mustapha@rfcdigital.dev", "Mustapha!2025", "Dev Fullstack", Role.ADMIN, TypeDepartment.DEV, null);
+            createUser("Chafia HASSOUD", "chafia.hassoud01@gmail.com", "Chafia!2025", "Contrôleuse qualité et webmaster", Role.ADMIN, TypeDepartment.EXTERNE, null);
+            createUser("Achraf ALAMI", "achraf.a@rfcdigital.dev", "Achraf!2025", "Dev Fullstack", Role.ADMIN, TypeDepartment.DEV, "+212 762-628323");
+            createUser("Salma ELGMIRI", "salma.e@rfcdigital.dev", "Salma!2025", "Dev Fullstack", Role.ADMIN, TypeDepartment.DEV, null);
+            createUser("Soukaina BOUGUIRI", "administratif@rfcdigital.com", "Soukaina!2025", "Assistante administrative", Role.ADMIN, TypeDepartment.ADMINISTRATION, "+212 625-895494");
+            createUser("Abdoulkader", "abdoukadriadamou75@gmail.com", "Abdoulkader!2025", "Dev Fullstack", Role.ADMIN, TypeDepartment.DEV, null);
+            createUser("Ex dev interne", "ex.dev@rfc-digital.com", "Ex!2025", null, Role.ADMIN, null, null);
+            createUser("Zakaria BENMOUMEN", "zakaria@rfcdigital.com", "Zakaria!2025", "Directeur Général", Role.ADMIN, TypeDepartment.MANAGEMENT, "0661910256");
+            createUser("Youssef BASSOU", "youssef.b@rfcdigital.com", "Youssef!2025", "Chargé de projets TMA", Role.ADMIN, TypeDepartment.MANAGEMENT, "+212 661-388312");
+            createUser("Imad Ghssisse EXT", "mohibimaddev@gmail.com", "Imad!2025", "Dev Fullstack", Role.ADMIN, TypeDepartment.DEV, null);
+            createUser("Imane ACHKOUNE", "imane.a@rfcdigital.com", "Imane!2025", "Chef de projet", Role.ADMIN, TypeDepartment.MANAGEMENT, "+212 662-387174");
+            createUser("Imane ACHOUALE", "imane.achoual@rfcdigital.dev", "Imane!2025", "Dev Fullstack", Role.ADMIN, TypeDepartment.DEV, "+212 662-439992");
+            createUser("Amine AKERMOUD", "amine.akermoud@rfcdigital.dev", "Amine!2025", "Dev Fullstack", Role.ADMIN, TypeDepartment.DEV, "+212 640-610184");
+            createUser("Abdarazak Laanaya EXT", "laanayabdrazak@gmail.com", "Abdarazak!2025", null, Role.ADMIN, null, null);
+            createUser("Mohamed OUBAKHAYI", "mohamed.o@rfcdigital.com", "Mohamed!2025", "CTO", Role.ADMIN, TypeDepartment.MANAGEMENT, "+212 665-185390");
+            createUser("Ayoub SABI", "ayoub.sabi.dev@gmail.com", "Ayoub!2025", null, Role.ADMIN, null, null);
+            createUser("Hicham SOUFIANI", "hicham.s@rfcdigital.com", "Hicham!2025", "Chef de projet", Role.ADMIN, TypeDepartment.MANAGEMENT, "+212 766-510077");
+            createUser("Mohamed Aherdane EXT", "mohamed.aherdane@waveagency.fr", "Mohamed!2025", null, Role.ADMIN, null, null);
+            createUser("Mohamed TBARKA", "simo.tbarka@gmail.com", "Mohamed!2025", "LEAD TEK", Role.ADMIN, TypeDepartment.DEV, null);
+            createUser("Abdeslam BOUGAA", "Abdo.bougaa@gmail.com", "Abdeslam!2025", null, Role.ADMIN, null, null);
+            createUser("Aya OUAHI", "ayaouahi99@gmail.com", "Aya!2025", "stagiaire", Role.ADMIN, TypeDepartment.DEV, null);
+            createUser("Mohamed MAKKAOUI", "makkaoui@rfcdigital.dev", "Mohamed!2025", "Dev Fullstack", Role.ADMIN, null, null);
+            createUser("Anass AIT BELARBI", "anassaitbelarbi7@gmail.com", "Anass!2025", null, Role.ADMIN, null, null);
+            createUser("Yasser El Mimouni", "elmimouni.yasser@gmail.com", "Yasser!2025", null, Role.ADMIN, null, null);
+
+        }
 
 
 
