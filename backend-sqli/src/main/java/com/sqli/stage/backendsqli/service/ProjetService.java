@@ -1,9 +1,6 @@
 package com.sqli.stage.backendsqli.service;
 
-import com.sqli.stage.backendsqli.dto.ProjectDTO.DashboardStatsResponse;
-import com.sqli.stage.backendsqli.dto.ProjectDTO.ProjectDetailsResponse;
-import com.sqli.stage.backendsqli.dto.ProjectDTO.ProjectRequest;
-import com.sqli.stage.backendsqli.dto.ProjectDTO.ProjectResponse;
+import com.sqli.stage.backendsqli.dto.ProjectDTO.*;
 
 import java.util.List;
 
@@ -21,6 +18,14 @@ public interface ProjetService {
     DashboardStatsResponse getProjectStats();
     List<ProjectResponse> searchProjectsByKeyword(String keyword);
     List<ProjectResponse> getAllPublicProjects();
-    void assignDevelopersToProject(int projectId, List<Integer> developerIds);
+    void assignUsersToProject (int projectId, List<Integer> developerIds);
+
+
+    // New Fonctionnaliter  ----------------------------------
+    List<ProjectSkillResponse> getRequiredSkillsForProject(int projectId);
+
+    void defineRequiredSkills(int projectId, List<SkillDTO> skills);
+
+    List<ProjectResponse> getProjectsForCurrentUser(); // selon rôle
 
 }

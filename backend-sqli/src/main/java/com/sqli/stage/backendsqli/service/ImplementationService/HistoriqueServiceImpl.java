@@ -1,5 +1,6 @@
 package com.sqli.stage.backendsqli.service.ImplementationService;
 
+import com.sqli.stage.backendsqli.dto.HistoriqueDTO.LogFilterRequest;
 import com.sqli.stage.backendsqli.dto.HistoriqueDTO.LogRequest;
 import com.sqli.stage.backendsqli.dto.HistoriqueDTO.LogResponse;
 import com.sqli.stage.backendsqli.entity.Enums.EntityName;
@@ -85,6 +86,15 @@ public class HistoriqueServiceImpl implements HistoriqueService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<LogResponse> getLogsByUserAndEntity(int userId, EntityName entity) {
+        return List.of();
+    }
+
+    @Override
+    public List<LogResponse> getLogsFiltered(LogFilterRequest filter) {
+        return List.of();
+    }
 
 
     private User getConnectedUser() {

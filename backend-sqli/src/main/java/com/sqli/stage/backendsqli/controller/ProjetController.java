@@ -112,7 +112,7 @@ public class ProjetController {
     public ResponseEntity<?> assignDevelopers(
             @PathVariable int projectId,
             @RequestBody DeveloperAssignmentRequest request) {
-        projetService.assignDevelopersToProject(projectId, request.getDeveloperIds());
+        projetService.assignUsersToProject(projectId, request.getDeveloperIds());
         return ResponseEntity.ok().build();
     }
 

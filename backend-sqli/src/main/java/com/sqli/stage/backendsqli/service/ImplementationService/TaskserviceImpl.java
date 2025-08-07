@@ -2,6 +2,7 @@ package com.sqli.stage.backendsqli.service.ImplementationService;
 
 import com.sqli.stage.backendsqli.dto.HistoriqueDTO.LogRequest;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskFilterRequest;
+import com.sqli.stage.backendsqli.dto.TaskDTO.TaskProgressResponse;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskRequest;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskResponse;
 import com.sqli.stage.backendsqli.entity.Enums.EntityName;
@@ -172,7 +173,7 @@ public class TaskserviceImpl implements Taskservice {
     }
 
     @Override
-    public List<TaskResponse> getTasksByDeveloper(int developpeurId) {
+    public List<TaskResponse> getTasksByUser(int developpeurId) {
         return taskRepoistory.findByDeveloppeurId(developpeurId).stream().map(this::mapToReponse).collect(Collectors.toList());
     }
 
@@ -269,6 +270,16 @@ public class TaskserviceImpl implements Taskservice {
                 .map(this::mapToReponse)
 
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public TaskProgressResponse getProgressByProject(int projectId) {
+        return null;
+    }
+
+    @Override
+    public TaskResponse markTaskAsBlocked(int taskId) {
+        return null;
     }
 
 

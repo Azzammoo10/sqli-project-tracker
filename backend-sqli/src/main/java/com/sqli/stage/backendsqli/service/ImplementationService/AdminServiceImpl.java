@@ -1,9 +1,6 @@
 package com.sqli.stage.backendsqli.service.ImplementationService;
 
-import com.sqli.stage.backendsqli.dto.CreateAdminDTO;
-import com.sqli.stage.backendsqli.dto.CreateUserRequest;
-import com.sqli.stage.backendsqli.dto.UpdateUserRequest;
-import com.sqli.stage.backendsqli.dto.UserResponse;
+import com.sqli.stage.backendsqli.dto.*;
 import com.sqli.stage.backendsqli.entity.Enums.Role;
 import com.sqli.stage.backendsqli.entity.User;
 import com.sqli.stage.backendsqli.exception.EmailAlreadyExistsException;
@@ -160,7 +157,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public UserResponse assignRoleToUser(int id, Role role) {
+    public UserResponse assignRole(int id, Role role) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec id : " + id));
 
@@ -248,6 +245,21 @@ public class AdminServiceImpl implements AdminService {
                 savedAdmin.getDepartment(),
                 savedAdmin.getPhone()
         );
+    }
+
+    @Override
+    public List<UserResponse> getUsersByRole(Role role) {
+        return List.of();
+    }
+
+    @Override
+    public List<UserSkillResponse> getUserSkills(int userId) {
+        return List.of();
+    }
+
+    @Override
+    public UserAvailabilityResponse getAvailability(int userId) {
+        return null;
     }
 
     public Role inferRoleFromJobTitle(String jobTitle) {

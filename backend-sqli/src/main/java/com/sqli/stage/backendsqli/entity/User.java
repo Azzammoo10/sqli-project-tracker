@@ -46,6 +46,11 @@ public class User {
     private List<Project> projects;
 
 
+    @Column(name = "actif_dans_projet")
+    private boolean actifDansProjet = false;
+
+
+
     @OneToMany(mappedBy = "developpeur", cascade = CascadeType.ALL)
     private List<Task> tasks;
 

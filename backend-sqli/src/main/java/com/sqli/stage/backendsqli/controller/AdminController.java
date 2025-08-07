@@ -62,7 +62,7 @@ public class AdminController {
     public ResponseEntity<UserResponse> assignRole(@PathVariable int id,
                                                    @RequestParam Role role) {
 
-        return ResponseEntity.ok(adminService.assignRoleToUser(id, role));
+        return ResponseEntity.ok(adminService.assignRole(id, role));
 
     }
 

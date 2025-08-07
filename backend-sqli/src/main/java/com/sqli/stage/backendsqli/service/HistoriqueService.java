@@ -1,5 +1,6 @@
 package com.sqli.stage.backendsqli.service;
 
+import com.sqli.stage.backendsqli.dto.HistoriqueDTO.LogFilterRequest;
 import com.sqli.stage.backendsqli.dto.HistoriqueDTO.LogRequest;
 import com.sqli.stage.backendsqli.dto.HistoriqueDTO.LogResponse;
 import com.sqli.stage.backendsqli.entity.Enums.EntityName;
@@ -17,4 +18,9 @@ public interface HistoriqueService  {
     List<LogResponse> getLogsByEntity(EntityName entity);
     List<LogResponse> getLogsByUser(int userId);
     List<LogResponse> getLogsBetweenDates(LocalDateTime start, LocalDateTime end);
+
+
+    // new fonctionnaliter
+    List<LogResponse> getLogsByUserAndEntity(int userId, EntityName entity);
+    List<LogResponse> getLogsFiltered(LogFilterRequest filter);
 }

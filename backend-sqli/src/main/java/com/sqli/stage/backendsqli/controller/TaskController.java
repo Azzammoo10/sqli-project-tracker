@@ -82,7 +82,7 @@ public class TaskController {
     @PreAuthorize("hasRole('CHEF_DE_PROJET')")
     @GetMapping("/developer/{developpeurId}")
     public ResponseEntity<List<TaskResponse>> getTasksByDeveloper(@PathVariable int developpeurId) {
-        List<TaskResponse> responses = taskservice.getTasksByDeveloper(developpeurId);
+        List<TaskResponse> responses = taskservice.getTasksByUser(developpeurId);
         log.info("Récupération des tâches pour le développeur avec l'ID {} réussie. Nombre de tâches trouvées : {}", developpeurId, responses.size());
         return ResponseEntity.ok(responses);
     }

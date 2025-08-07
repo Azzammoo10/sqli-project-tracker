@@ -37,6 +37,10 @@ public class ProjetServiceImpl implements ProjetService {
     @Autowired
     private HistoriqueService historiqueService;
 
+    private String generateShortHexUUID() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+    }
+
     @Override
     public ProjectResponse createProject(ProjectRequest request) {
         String username = getCurrentUser().getUsername();
@@ -50,24 +54,28 @@ public class ProjetServiceImpl implements ProjetService {
         Project project = new Project();
         project.setTitre(request.getTitre());
         project.setDescription(request.getDescription());
+        project.setType(request.getType());
         project.setClient(client);
         project.setDateDebut(request.getDateDebut());
         project.setDateFin(request.getDateFin());
         project.setStatut(request.getStatut());
-        project.setUuidPublic(UUID.randomUUID().toString());
+        project.setUuidPublic(generateShortHexUUID());
         project.setPublicLinkEnabled(false);
         project.setCreatedBy(currentUser);
 
         if (request.getDeveloppeurIds() != null && !request.getDeveloppeurIds().isEmpty()) {
-            List<User> developpeurs = userRepository.findAllById(request.getDeveloppeurIds()).stream()
+            List<User> developers = userRepository.findAllById(request.getDeveloppeurIds()).stream()
                     .filter(user -> user.getRole() == Role.DEVELOPPEUR)
                     .toList();
 
-            if (developpeurs.isEmpty()) {
+            developers.forEach(dev -> dev.setActifDansProjet(true));
+            userRepository.saveAll(developers);
+
+            if (developers.isEmpty()) {
                 throw new ResourceNotFoundException("Aucun développeur valide trouvé dans la liste fournie");
             }
 
-            project.setDeveloppeurs(developpeurs);
+            project.setDeveloppeurs(developers);
         }
 
 
@@ -92,6 +100,7 @@ public class ProjetServiceImpl implements ProjetService {
 
         if (request.getTitre() != null) { project.setTitre(request.getTitre()); }
         if (request.getDescription() != null) project.setDescription(request.getDescription());
+        if (request.getType() != null) project.setType(request.getType());
         if (request.getClientId() != null) {
             User client = userRepository.findById(request.getClientId())
                     .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
@@ -265,8 +274,13 @@ public class ProjetServiceImpl implements ProjetService {
                 .collect(Collectors.toList());
     }
 
+    private boolean isEligibleAsDeveloper(User user) {
+        return user.getRole() == Role.DEVELOPPEUR || user.getRole() == Role.STAGIAIRE;
+    }
+
+
     @Override
-    public void assignDevelopersToProject(int projectId, List<Integer> developerIds) {
+    public void assignUsersToProject(int projectId, List<Integer> developerIds) {
         Project project = projetRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Projet introuvable avec ID : " + projectId));
 
@@ -275,7 +289,7 @@ public class ProjetServiceImpl implements ProjetService {
         }
 
         List<User> newDevelopers = userRepository.findAllById(developerIds).stream()
-                .filter(user -> user.getRole() == Role.DEVELOPPEUR)
+                .filter(this::isEligibleAsDeveloper)
                 .toList();
 
         if (newDevelopers.isEmpty()) {
@@ -293,7 +307,20 @@ public class ProjetServiceImpl implements ProjetService {
         projetRepository.save(project);
     }
 
+    @Override
+    public List<ProjectSkillResponse> getRequiredSkillsForProject(int projectId) {
+        return List.of();
+    }
 
+    @Override
+    public void defineRequiredSkills(int projectId, List<SkillDTO> skills) {
+
+    }
+
+    @Override
+    public List<ProjectResponse> getProjectsForCurrentUser() {
+        return List.of();
+    }
 
 
     private User getCurrentUser() {

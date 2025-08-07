@@ -1,6 +1,7 @@
 package com.sqli.stage.backendsqli.dto.ProjectDTO;
 
 import com.sqli.stage.backendsqli.entity.Enums.StatutProjet;
+import com.sqli.stage.backendsqli.entity.Enums.TypeProjet;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
@@ -19,6 +20,9 @@ public class ProjectRequest {
     @NotBlank(message = "La description est obligatoire")
     @Size(max = 500, message = "La description ne peut pas dépasser 500 caractères")
     private String description;
+
+    private TypeProjet type;
+
 
     @NotNull(message = "L'identifiant du client est obligatoire")
     @Positive(message = "L'identifiant du client doit être un nombre positif")
