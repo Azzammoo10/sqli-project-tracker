@@ -18,6 +18,7 @@ import com.sqli.stage.backendsqli.repository.ProjetRepository;
 import com.sqli.stage.backendsqli.repository.TaskRepository;
 import com.sqli.stage.backendsqli.repository.UserRepository;
 import com.sqli.stage.backendsqli.service.HistoriqueService;
+import com.sqli.stage.backendsqli.service.ProjetService;
 import com.sqli.stage.backendsqli.service.Taskservice;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,6 +26,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -44,46 +46,66 @@ public class TaskserviceImpl implements Taskservice {
     public TaskResponse createTask(TaskRequest request) {
         User chefProjet = getCurrentUser();
 
-        if(chefProjet.getRole() != Role.CHEF_DE_PROJET){
+        // Vérifier rôle
+        if (chefProjet.getRole() != Role.CHEF_DE_PROJET) {
             throw new AccessdeniedException("Seuls les chefs de projet peuvent créer des tâches");
         }
-        User devellopeur = userRepository.findById(request.getDeveloppeurId())
+
+        // Récupérer le développeur
+        User developpeur = userRepository.findById(request.getDeveloppeurId())
                 .orElseThrow(() -> new ResourceNotFoundException("Développeur non trouvé"));
 
+        // Récupérer le projet
         Project projet = projetRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Projet introuvable"));
 
-        if(projet.getCreatedBy().getId() != chefProjet.getId()){
+        // Vérifier ownership projet
+        if (!projet.getCreatedBy().getId().equals(chefProjet.getId())) {
             throw new AccessdeniedException("Vous ne pouvez pas créer une tâche sur un projet que vous n'avez pas créé.");
         }
-        if(devellopeur.getRole() != Role.DEVELOPPEUR){
+
+        // Vérifier rôle du développeur
+        if (developpeur.getRole() != Role.DEVELOPPEUR) {
             throw new IllegalArgumentException("Seuls les développeurs peuvent recevoir des tâches");
         }
-        if (!projet.getDeveloppeurs().contains(devellopeur)) {
-            throw new AccessdeniedException("Ce développeur n’est pas affecté à ce projet.");
-        }
 
 
 
+        // Création de la tâche (équivalent INSERT)
         Task task = new Task();
         task.setTitre(request.getTitre());
         task.setDescription(request.getDescription());
         task.setDateDebut(request.getDateDebut());
         task.setDateFin(request.getDateFin());
         task.setStatut(request.getStatut());
-        task.setDeveloppeur(devellopeur);
+        task.setPriorite(request.getPriorite());
+        task.setProgression(BigDecimal.ZERO); // valeur par défaut
+        task.setPlannedHours(request.getPlannedHours());
+        task.setEffectiveHours(0); // valeur par défaut
+        task.setRemainingHours(request.getPlannedHours()); // initialement = planifiées
+        task.setDeveloppeur(developpeur);
         task.setProject(projet);
+
+        // Sauvegarde
         Task savedTask = taskRepoistory.save(task);
 
+        // Vérifier affectation au projet
+        if (!projet.getDeveloppeurs().contains(developpeur)) {
+            projet.getDeveloppeurs().add(developpeur);
+        }
+
+        // Log historique
         LogRequest logRequest = new LogRequest();
         logRequest.setAction(TypeOperation.CREATION);
-        logRequest.setDescription("Création du tache '" + savedTask.getTitre() + "' (ID: " + savedTask.getId() + ") par " + getCurrentUser().getUsername());
+        logRequest.setDescription("Création de la tâche '" + savedTask.getTitre() +
+                "' (ID: " + savedTask.getId() + ") par " + chefProjet.getUsername());
         logRequest.setEntityId(savedTask.getId());
         logRequest.setEntityName(EntityName.TASK);
         historiqueService.logAction(logRequest);
 
         return mapToReponse(savedTask);
     }
+
 
     @Override
     public TaskResponse updateTask(int id, TaskRequest request) {
@@ -296,6 +318,11 @@ public class TaskserviceImpl implements Taskservice {
                 task.getDateDebut(),
                 task.getDateFin(),
                 task.getStatut(),
+                task.getPriorite(),
+                task.getPlannedHours(),
+                task.getEffectiveHours(),
+                task.getRemainingHours(),
+                task.getProgression(),
                 task.getDeveloppeur().getUsername(),
                 task.getProject().getTitre()
         );
