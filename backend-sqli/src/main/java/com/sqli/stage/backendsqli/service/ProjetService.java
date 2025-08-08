@@ -2,6 +2,7 @@ package com.sqli.stage.backendsqli.service;
 
 import com.sqli.stage.backendsqli.dto.ProjectDTO.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface ProjetService {
@@ -19,6 +20,7 @@ public interface ProjetService {
     List<ProjectResponse> searchProjectsByKeyword(String keyword);
     List<ProjectResponse> getAllPublicProjects();
     void assignUsersToProject (int projectId, List<Integer> developerIds);
+    public BigDecimal updateProjectProgress(Integer projectId);
 
 
     // New Fonctionnaliter  ----------------------------------

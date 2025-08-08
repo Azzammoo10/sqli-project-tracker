@@ -5,6 +5,7 @@ import com.sqli.stage.backendsqli.entity.Enums.TypeProjet;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -22,6 +23,8 @@ public class ProjectRequest {
     private String description;
 
     private TypeProjet type;
+
+    private BigDecimal progression;
 
 
     @NotNull(message = "L'identifiant du client est obligatoire")

@@ -5,6 +5,8 @@ import com.sqli.stage.backendsqli.entity.Enums.StatutProjet;
 import com.sqli.stage.backendsqli.entity.Enums.TypeProjet;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -36,6 +38,9 @@ public class Project {
     @Column(name = "state")
     @Enumerated(EnumType.STRING)
     private StatutProjet statut; // basé sur les valeurs : "open", "done", etc.
+
+    @Column(precision = 5, scale = 2)
+    private BigDecimal progression; // correspond à `progress` (NUMERIC)
 
     @Column(name = "start_date")
     private LocalDate dateDebut;

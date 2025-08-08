@@ -4,15 +4,13 @@ import com.sqli.stage.backendsqli.dto.HistoriqueDTO.LogRequest;
 import com.sqli.stage.backendsqli.dto.ProjectDTO.*;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskResponse;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskresponseByProject;
-import com.sqli.stage.backendsqli.entity.Enums.EntityName;
-import com.sqli.stage.backendsqli.entity.Enums.Role;
-import com.sqli.stage.backendsqli.entity.Enums.StatutProjet;
-import com.sqli.stage.backendsqli.entity.Enums.TypeOperation;
+import com.sqli.stage.backendsqli.entity.Enums.*;
 import com.sqli.stage.backendsqli.entity.Project;
 import com.sqli.stage.backendsqli.entity.User;
 import com.sqli.stage.backendsqli.exception.AccessdeniedException;
 import com.sqli.stage.backendsqli.exception.ResourceNotFoundException;
 import com.sqli.stage.backendsqli.repository.ProjetRepository;
+import com.sqli.stage.backendsqli.repository.TaskRepository;
 import com.sqli.stage.backendsqli.repository.UserRepository;
 import com.sqli.stage.backendsqli.service.HistoriqueService;
 import com.sqli.stage.backendsqli.service.ProjetService;
@@ -21,6 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -34,6 +34,7 @@ public class ProjetServiceImpl implements ProjetService {
 
     private final UserRepository userRepository;
     private final ProjetRepository projetRepository;
+    private final TaskRepository taskRepository;
     @Autowired
     private HistoriqueService historiqueService;
 
@@ -56,6 +57,7 @@ public class ProjetServiceImpl implements ProjetService {
         project.setDescription(request.getDescription());
         project.setType(request.getType());
         project.setClient(client);
+        project.setProgression(BigDecimal.ZERO);
         project.setDateDebut(request.getDateDebut());
         project.setDateFin(request.getDateFin());
         project.setStatut(request.getStatut());
@@ -115,6 +117,7 @@ public class ProjetServiceImpl implements ProjetService {
                     .toList();
             project.setDeveloppeurs(developpeurs);
         }
+        if (request.getProgression() != null) project.setProgression(request.getProgression());
 
         Project updatedProject = projetRepository.save(project);
 
@@ -308,6 +311,32 @@ public class ProjetServiceImpl implements ProjetService {
     }
 
     @Override
+    public BigDecimal updateProjectProgress(Integer projectId) {
+        long total = taskRepository.countByProjectId(projectId);
+        BigDecimal progress = BigDecimal.ZERO;
+
+        if (total > 0) {
+            long done = taskRepository.countByProjectIdAndStatut(projectId, StatutTache.TERMINE);
+            progress = BigDecimal
+                    .valueOf(done * 100.0 / total)
+                    .setScale(2, RoundingMode.HALF_UP);
+            Project p = projetRepository.findById(projectId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Projet introuvable"));
+
+            p.setProgression(progress);
+
+            if (done == total) {
+                p.setStatut(StatutProjet.TERMINE);
+            }else {
+                p.setStatut(StatutProjet.EN_COURS);
+            }
+            projetRepository.save(p);
+
+        }
+        return progress;
+    }
+
+    @Override
     public List<ProjectSkillResponse> getRequiredSkillsForProject(int projectId) {
         return List.of();
     }
@@ -344,6 +373,7 @@ public class ProjetServiceImpl implements ProjetService {
                 project.getTitre(),
                 project.getDescription(),
                 project.getClient().getNom(),
+                project.getProgression(),
                 project.getDateDebut(),
                 project.getDateFin(),
                 project.getStatut(),

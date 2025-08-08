@@ -29,6 +29,9 @@ public interface Taskservice {
     Map<StatutTache, Long> getWorkloadForCurrentUser(); // déplacer dans un futur AnalyticsService
     public Page<TaskResponse> getAllTasksPaged(Pageable pageable);
     List<TaskResponse> filterTasks(TaskFilterRequest filter);
+    public TaskResponse markTaskAsFinished(int taskId);
+    public TaskResponse markTaskAsInProgress(int taskId);
+
 
 
     // new Fonctionnaliter  ----------------------------------

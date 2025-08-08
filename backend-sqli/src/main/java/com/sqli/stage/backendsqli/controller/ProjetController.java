@@ -15,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -116,6 +117,11 @@ public class ProjetController {
         return ResponseEntity.ok().build();
     }
 
+    @PatchMapping("/{projectId}/progress/recompute")
+    public ResponseEntity<BigDecimal> recompute(@PathVariable Integer projectId) {
+        BigDecimal progress = projetService.updateProjectProgress(projectId);
+        return ResponseEntity.ok(progress);
+    }
 
 
     @Value("${app.base-url}")

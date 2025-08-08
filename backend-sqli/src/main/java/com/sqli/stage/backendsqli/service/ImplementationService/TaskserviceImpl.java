@@ -41,6 +41,7 @@ public class TaskserviceImpl implements Taskservice {
     private final TaskRepository taskRepoistory;
     private final ProjetRepository projetRepository;
     private final HistoriqueService historiqueService;
+    private final ProjetService projetService;
 
     @Override
     public TaskResponse createTask(TaskRequest request) {
@@ -79,7 +80,6 @@ public class TaskserviceImpl implements Taskservice {
         task.setDateFin(request.getDateFin());
         task.setStatut(request.getStatut());
         task.setPriorite(request.getPriorite());
-        task.setProgression(BigDecimal.ZERO); // valeur par défaut
         task.setPlannedHours(request.getPlannedHours());
         task.setEffectiveHours(0); // valeur par défaut
         task.setRemainingHours(request.getPlannedHours()); // initialement = planifiées
@@ -140,6 +140,8 @@ public class TaskserviceImpl implements Taskservice {
         historiqueService.logAction(logRequest);
         return mapToReponse(updatedTask);
     }
+
+
 
     @Override
     public void deleteTask(int id) {
@@ -295,6 +297,65 @@ public class TaskserviceImpl implements Taskservice {
     }
 
     @Override
+    public TaskResponse markTaskAsFinished(int taskId) {
+        User current = getCurrentUser();
+
+        Task task = taskRepoistory.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tâche introuvable"));
+
+        // (Optionnel) sécurité: seul le dev assigné ou le chef de projet peut clôturer
+        if (!task.getDeveloppeur().getId().equals(current.getId())) {
+            throw new AccessdeniedException("Non autorisé à clôturer cette tâche.");
+        }
+
+        // déjà terminé ? on sort idempotent
+        if (task.getStatut() == StatutTache.TERMINE) {
+            return mapToReponse(task);
+        }
+
+        task.setStatut(StatutTache.TERMINE);
+        taskRepoistory.save(task);
+
+        // ⬇️ Mise à jour immédiate de la progression projet
+        projetService.updateProjectProgress(task.getProject().getId());
+
+        // (Optionnel) log + notif
+        //logDone(task);
+        // notificationService.notifyProjectProgressUpdated(task.getProject().getId());
+
+        return mapToReponse(task);
+    }
+        @Override
+    public TaskResponse markTaskAsInProgress(int taskId) {
+            User current = getCurrentUser();
+
+            Task task = taskRepoistory.findById(taskId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Tâche introuvable"));
+
+            // (Optionnel) sécurité: seul le dev assigné ou le chef de projet peut clôturer
+            if (!task.getDeveloppeur().getId().equals(current.getId())) {
+                throw new AccessdeniedException("Non autorisé à clôturer cette tâche.");
+            }
+
+            // déjà terminé ? on sort idempotent
+            if (task.getStatut() == StatutTache.EN_COURS) {
+                return mapToReponse(task);
+            }
+
+            task.setStatut(StatutTache.EN_COURS);
+            taskRepoistory.save(task);
+
+            // ⬇️ Mise à jour immédiate de la progression projet
+            projetService.updateProjectProgress(task.getProject().getId());
+
+            // (Optionnel) log + notif
+            //logDone(task);
+            // notificationService.notifyProjectProgressUpdated(task.getProject().getId());
+
+            return mapToReponse(task);
+    }
+
+    @Override
     public TaskProgressResponse getProgressByProject(int projectId) {
         return null;
     }
@@ -322,7 +383,6 @@ public class TaskserviceImpl implements Taskservice {
                 task.getPlannedHours(),
                 task.getEffectiveHours(),
                 task.getRemainingHours(),
-                task.getProgression(),
                 task.getDeveloppeur().getUsername(),
                 task.getProject().getTitre()
         );

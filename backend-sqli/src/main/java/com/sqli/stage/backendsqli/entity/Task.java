@@ -46,8 +46,6 @@ public class Task {
     @Enumerated(EnumType.STRING)
     private Priorite priorite;
 
-    @Column(precision = 5, scale = 2)
-    private BigDecimal progression; // correspond à `progress` (NUMERIC)
 
     @Column(name = "planned_hours")
     private Integer plannedHours;

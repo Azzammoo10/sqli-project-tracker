@@ -21,7 +21,6 @@ public class TaskResponse {
     private Integer plannedHours;         // ajouté
     private Integer effectiveHours;       // ajouté
     private Integer remainingHours;       // ajouté
-    private BigDecimal progression;       // ajouté
     private String developpeurUsername;
     private String projectTitre;
 }

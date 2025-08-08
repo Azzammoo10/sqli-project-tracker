@@ -17,6 +17,7 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
     Long countByProjectId(int projectId);
 
     List<Task> findByPriorite(Priorite priorite);
+    long countByProjectIdAndStatut(int projectId, StatutTache statut);
 
     List<Task> findByTitreContainingIgnoreCaseOrDescriptionContainingIgnoreCase(String titre, String description);
     List<Task> findByDateFinBeforeAndStatutNot(LocalDate date, StatutTache statutExclu);

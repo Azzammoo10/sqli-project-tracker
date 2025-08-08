@@ -162,4 +162,10 @@ public class TaskController {
         log.info("Filtrage des tâches effectué avec succès. Critères : {}. Nombre de tâches trouvées : {}", filter, responses.size());
         return ResponseEntity.ok(responses);
     }
+
+    @PreAuthorize("hasRole('DEVELOPPEUR')")
+    @PutMapping("/{taskId}/markAsFinished")
+    public ResponseEntity<TaskResponse> markTaskAsFinished(@PathVariable int taskId) {
+        return ResponseEntity.ok(taskservice.markTaskAsFinished(taskId));
+    }
 }
