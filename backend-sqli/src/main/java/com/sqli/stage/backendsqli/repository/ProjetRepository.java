@@ -2,7 +2,6 @@ package com.sqli.stage.backendsqli.repository;
 
 import com.sqli.stage.backendsqli.entity.Enums.StatutProjet;
 import com.sqli.stage.backendsqli.entity.Project;
-import com.sqli.stage.backendsqli.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,6 +21,12 @@ public interface ProjetRepository extends JpaRepository<Project,Integer> {
 
     @Query("SELECT p FROM Project p JOIN p.developpeurs d WHERE d.id = :devId")
     List<Project> findByDeveloppeurId(@Param("devId") int devId);
+
+    @Query("SELECT p FROM Project p WHERE p.type = 'Delivery'")
+    List<Project> findBuildProjects();
+
+    @Query("SELECT p FROM Project p WHERE p.type = 'TMA'")
+    List<Project> findTmaProjects();
 
 
 }
