@@ -2,7 +2,6 @@ package com.sqli.stage.backendsqli.service.ImplementationService;
 
 import com.sqli.stage.backendsqli.dto.HistoriqueDTO.LogRequest;
 import com.sqli.stage.backendsqli.dto.ProjectDTO.*;
-import com.sqli.stage.backendsqli.dto.TaskDTO.TaskResponse;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskresponseByProject;
 import com.sqli.stage.backendsqli.entity.Enums.*;
 import com.sqli.stage.backendsqli.entity.Project;

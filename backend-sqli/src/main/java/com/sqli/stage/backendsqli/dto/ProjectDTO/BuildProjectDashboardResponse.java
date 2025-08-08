@@ -9,10 +9,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class DashboardStatsResponse {
-    private long totalProjects;
-    private long activeProjects;
-    private long completedProjects;
-    private long lateProjects;
+public class BuildProjectDashboardResponse {
+    private int projectId;
+    private String titre;
+    private double completionRate;
+    private int totalTasks;
+    private int completedTasks;
 }
-
