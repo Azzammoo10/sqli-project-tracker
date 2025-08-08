@@ -30,7 +30,7 @@ public class InitUserData implements CommandLineRunner {
             createUser("Achraf ALAMI", "achraf.a@rfcdigital.dev", "Achraf!2025", "Dev Fullstack", Role.DEVELOPPEUR, TypeDepartment.DEVELOPPEMENT, "+212 762-628323");
             createUser("Salma ELGMIRI", "salma.e@rfcdigital.dev", "Salma!2025", "Dev Fullstack", Role.DEVELOPPEUR, TypeDepartment.DEVELOPPEMENT, null);
             createUser("Soukaina BOUGUIRI", "administratif@rfcdigital.com", "Soukaina!2025", "Assistante administrative", Role.DEVELOPPEUR, TypeDepartment.ADMINISTRATION, "+212 625-895494");
-            createUser("Abdoulkader", "abdoukadriadamou75@gmail.com", "Abdoulkader!2025", "Dev Fullstack", Role.DEVELOPPEUR, TypeDepartment.DEVELOPPEMENT, null);
+            createUser("Abdoulkader i", "abdoukadriadamou75@gmail.com", "Abdoulkader!2025", "Dev Fullstack", Role.DEVELOPPEUR, TypeDepartment.DEVELOPPEMENT, null);
             createUser("Ex dev interne", "ex.dev@rfc-digital.com", "Ex!2025", null, Role.DEVELOPPEUR, null, null);
             createUser("Zakaria BENMOUMEN", "zakaria@rfcdigital.com", "Zakaria!2025", "Directeur Général", Role.ADMIN, TypeDepartment.MANAGEMENT, "0661910256");
             createUser("Youssef BASSOU", "youssef.b@rfcdigital.com", "Youssef!2025", "Chargé de projets TMA", Role.CHEF_DE_PROJET, TypeDepartment.MANAGEMENT, "+212 661-388312");
@@ -85,10 +85,11 @@ public class InitUserData implements CommandLineRunner {
 
     private String generateUsername(String nom, Role role) {
         String username = "";
+        String[] ExtractUser = nom.split(" ");
         int attempts = 0;
         do {
             // Normalisation pour retirer les accents
-            String cleanNom = Normalizer.normalize(nom, Normalizer.Form.NFD)
+            String cleanNom = Normalizer.normalize(ExtractUser[1], Normalizer.Form.NFD)
                     .replaceAll("[^\\p{ASCII}]", "") // enlève les accents
                     .replaceAll("[^a-zA-Z]", "")     // garde uniquement lettres
                     .toLowerCase();
