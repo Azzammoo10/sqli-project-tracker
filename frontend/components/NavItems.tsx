@@ -52,7 +52,7 @@ const NavItems = ({handleClick} : { handleClick?: () => void }) => {
                         <p>{azzam.username}</p>
                     </article>
                     <button onClick={() => {
-                        alert(`${azzam.name} has been logged out`);
+                        alert(`${aya.name} has been logged out`);
                     }}
                             className="cursor-pointer"
                     >
