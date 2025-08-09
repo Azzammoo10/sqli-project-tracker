@@ -15,9 +15,27 @@ export const sidebarItems = [
   },
   {
     id: 4,
-    icon: "/assets/icons/itinerary.svg",
-    label: "AI Trips",
-    href: "/trips",
+    icon: "/assets/icons/briefcase.svg",
+    label: "Projets",
+    href: "/projets",
+  },
+  {
+    id: 4,
+    icon: "/assets/icons/taches.svg",
+    label: "Taches",
+    href: "/taches",
+  },
+  {
+    id: 4,
+    icon: "/assets/icons/state.svg",
+    label: "Statistique",
+    href: "/stat",
+  },
+  {
+    id: 4,
+    icon: "/assets/icons/settings.svg",
+    label: "Parametres",
+    href: "/parametres",
   },
 ];
 

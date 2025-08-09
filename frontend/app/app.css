@@ -38,6 +38,8 @@
   --color-red-500: #b93815;
   --color-red-50: #fff4ed;
   --color-red-100: #ff543d;
+  --color-purple-700: #4B2A7B;
+  --color-teal-700: #1A4256;
 
   --background-image-auth: url("/assets/images/auth-img.webp");
   --background-image-hero: url("/assets/images/hero-img.png");
@@ -463,7 +465,7 @@
     @apply grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-7;
   }
   .nav-item {
-    @apply flex items-center text-xs md:text-lg font-normal cursor-pointer gap-2.5 py-[18px] px-3.5 rounded-lg text-dark-200 hover:bg-primary-100 hover:text-white;
+    @apply flex items-center text-xs md:text-lg font-normal cursor-pointer gap-2.5 py-[18px] px-3.5 rounded-lg text-dark-200 hover:bg-purple-700 hover:text-white;
   }
   .combo-box {
     @apply !p-3.5 !border w-full !border-light-400 !rounded-xl !text-base !text-dark-300 !font-normal;

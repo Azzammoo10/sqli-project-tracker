@@ -5,6 +5,8 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
+
+  // Empêche Vite d’externaliser Syncfusion en SSR pour éviter les bugs
   ssr: {
     noExternal: [/@syncfusion/]
   }
