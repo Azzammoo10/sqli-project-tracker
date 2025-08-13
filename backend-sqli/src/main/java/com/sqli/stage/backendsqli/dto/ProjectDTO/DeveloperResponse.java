@@ -11,5 +11,6 @@ public class DeveloperResponse {
     private String nom;
     private String email;
     private String username;
+    private String JobTitle;
 }
 

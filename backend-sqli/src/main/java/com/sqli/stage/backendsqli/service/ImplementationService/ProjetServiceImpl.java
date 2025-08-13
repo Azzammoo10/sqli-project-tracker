@@ -363,7 +363,8 @@ public class ProjetServiceImpl implements ProjetService {
                 .map(dev -> new DeveloperResponse(
                         dev.getNom(),
                         dev.getEmail(),
-                        dev.getUsername()
+                        dev.getUsername(),
+                        dev.getJobTitle()
                 ))
                 .collect(Collectors.toList());
 
