@@ -158,3 +158,50 @@ export const RIGHT_CONFETTI = {
   angle: 135,
   origin: { x: 1, y: 1 },
 };
+
+export const user = {name: "AZZAM"}
+export const dahsboardStats = {
+    totalProjets: 400,
+    projectAded: {currentMont: 15, lassmonth: 10},
+    totaltachees: 10,
+    taskaded: {currentMont: 10, lassmonth: 10},
+    userRole: {total: 10, currentMont: 10, lassmonth: 107}
+}
+
+export const allProjects = [{
+    id: 1,
+    name: "Migration vers AWS",
+    imageUrls: ["/assets/images/sampleSQLI.png"],
+    clients: [{client: "CyberWatch Africa"}],
+    tags: ["Cloud", "DevOps"],
+    travelStyle: "Solo",
+    status: "EN_ATTENTE",
+},
+    {
+        id: 2,
+        name: "Dashboard Cybersécurité",
+        imageUrls: ["/assets/images/sampleSQLI.png"],
+        clients: [{client: "SmartBank"}],
+        tags: ["Sécurité", "Web"],
+        travelStyle: "Family",
+        status: "EN_COURS",
+    },
+    {
+        id: 3,
+        name: "Application Mobile RH",
+        imageUrls: ["/assets/images/sampleRFC.png"],
+        clients: [{client: "CyberWatch Africa"}],
+        tags: ["Mobile", "Flutter"],
+        travelStyle: "Couple",
+        status: "TERMINE",
+    },
+    {
+        id: 4,
+        name: "Analyse IA des ventes",
+        imageUrls: ["/assets/images/sampleRFC.png"],
+        clients: [{client: "Business Intelligence"}],
+        tags: ["IA", "Data Science"],
+        travelStyle: "Friends",
+        status: "BLOQUE",
+    },
+];

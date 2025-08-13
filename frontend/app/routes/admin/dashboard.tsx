@@ -1,16 +1,10 @@
 import {Header, ProjectCard, StatsCard} from "../../../components";
+import {dahsboardStats,user,allProjects} from "~/constants";
+const {totalProjets, totaltachees, projectAded, taskaded, userRole} = dahsboardStats;
+
+
 
 const Dashboard = () => {
-    const user = {name: "AZZAM"}
-    const dahsboardStats = {
-        totalProjets: 400,
-        projectAded: {currentMont:15, lassmonth:10},
-        totaltachees: 10,
-        taskaded:{currentMont:10, lassmonth:10},
-        userRole: {total: 10,currentMont:10, lassmonth:107}
-    }
-
-    const {totalProjets, totaltachees, projectAded, taskaded, userRole} = dahsboardStats;
     return (
         <main className="dashboard wrapper">
             <Header
@@ -18,32 +12,47 @@ const Dashboard = () => {
                 description="Suivi centralisé des projets, tâches et utilisateurs en un coup d'œil"
             />
             <section className="flex flex-col gap-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full ">
-                        <StatsCard
-                            headerTitle="Total Project"
-                            total={totalProjets}
-                            currentMonthCount={projectAded.currentMont}
-                            lastMonthCount={projectAded.lassmonth}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full ">
+                    <StatsCard
+                        headerTitle="Total Project"
+                        total={totalProjets}
+                        currentMonthCount={projectAded.currentMont}
+                        lastMonthCount={projectAded.lassmonth}
 
-                        />
-                        <StatsCard
-                            headerTitle="Total Tâches"
-                            total={totaltachees}
-                            currentMonthCount={taskaded.currentMont}
-                            lastMonthCount={taskaded.lassmonth}
+                    />
+                    <StatsCard
+                        headerTitle="Total Tâches"
+                        total={totaltachees}
+                        currentMonthCount={taskaded.currentMont}
+                        lastMonthCount={taskaded.lassmonth}
 
-                        />
-                        <StatsCard
-                            headerTitle="Tâches aujourd’hui"
-                            total={userRole.total}
-                            currentMonthCount={userRole.currentMont}
-                            lastMonthCount={userRole.lassmonth}
+                    />
+                    <StatsCard
+                        headerTitle="Tâches aujourd’hui"
+                        total={userRole.total}
+                        currentMonthCount={userRole.currentMont}
+                        lastMonthCount={userRole.lassmonth}
 
-                        />
-                    </div>
+                    />
+                </div>
             </section>
+            <section className="container">
+                <h1 className="text-xl font-semibold text-dark-100">Projets récents</h1>
 
-            <ProjectCard />
+                <div className="trip-grid">
+                    {allProjects.slice(0,4).map(({id, name, imageUrls, clients,tags, status}) => (
+                        <ProjectCard
+                            key={id}
+                            id={id.toString()}
+                            name={name}
+                            imageUrl={imageUrls[0]}
+                            client={clients?.[0]?.client ?? ''}
+                            tags={tags}
+                            status={status}
+                        />
+                    ))}
+                </div>
+            </section>
         </main>
     )
 }

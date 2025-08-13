@@ -83,6 +83,15 @@ declare interface TripCardProps {
   price: string;
 }
 
+declare interface ProjectCardProps {
+    id: string;
+    name: string;
+    client: string;
+    imageUrl: string;
+    tags: string[];
+    status: string;
+}
+
 declare interface StatsCard {
   headerTitle: string;
   total: number;
