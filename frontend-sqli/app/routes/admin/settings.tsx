@@ -1,4 +1,4 @@
-// app/routes/admin/settings.tsx
+    // app/routes/admin/settings.tsx
 import { useEffect, useState } from 'react';
 import { Activity, Edit, Mail, ShieldCheck, User, Globe, BadgeCheck } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -83,7 +83,7 @@ export default function AdminSettings() {
         <div className="flex-1 overflow-auto">
           <div className="p-6">
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">Welcome {user.username?.toUpperCase()} 👋</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Welcome {user.username?.toLowerCase()} 👋</h1>
               <p className="text-gray-600">Suivi centralisé des projets, tâches et utilisateurs en un coup d’œil</p>
             </div>
 

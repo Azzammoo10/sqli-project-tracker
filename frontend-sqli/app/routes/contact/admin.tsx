@@ -42,8 +42,12 @@ export default function ContactAdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#4B2A7B] via-[#5B3A8B] to-[#6B4A9B] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
+      <div className="min-h-screen flex items-center justify-center p-4"
+           style={{
+               background: "linear-gradient(135deg, #2a1b3d 0%, #44337a 50%, #6b46c1 100%)"
+           }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
+
         <div className="flex">
           {/* Section Formulaire - Gauche */}
           <div className="flex-1 p-8">

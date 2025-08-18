@@ -42,7 +42,7 @@ export default function NavAdmin({ user, onLogout }: NavAdminProps) {
         <img 
           src={sqliLogo} 
           alt="SQLI Digital Experience" 
-          className="h-8 mx-auto"
+          className="h-9 mx-auto"
         />
       </div>
 
