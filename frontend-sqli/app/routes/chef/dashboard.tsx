@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Activity, BarChart3, ClipboardList, FolderOpen, Users, Plus } from 'lucide-react';
 import NavChef from '../../components/NavChef';
 import ProtectedRoute from '../../components/ProtectedRoute';
-import { authService } from '../../services/api';
+import apiClient, { authService } from '../../services/api';
 import { projectService, type Project } from '../../services/projectService';
 import { dashboardService } from '../../services/dashboardService';
 import { taskService } from '../../services/taskService';
@@ -28,8 +28,8 @@ export default function ChefDashboard() {
         setUser(userData);
         const [s, build, teamDash, trendData, chefProjects, allTasks, tStats] = await Promise.all([
           projectService.getProjectStats(),
-          fetch('http://localhost:8080/api/analytics/projects/build', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(r => r.json()),
-          fetch('http://localhost:8080/api/analytics/dashboard/team', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(r => r.json()),
+          apiClient.get('/analytics/projects/build').then(r => r.data),
+          apiClient.get('/analytics/dashboard/team').then(r => r.data),
           dashboardService.getTrendData(),
           projectService.getProjectsByChef(),
           taskService.getAll(),
@@ -134,7 +134,19 @@ export default function ChefDashboard() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {recentProjects.map((p) => (
-                    <ProjectCard key={p.id} project={p} />
+                    <div key={p.id} className="rounded-lg border border-gray-200 p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{p.statut}</span>
+                      </div>
+                      <div className="text-2xl font-semibold text-gray-900 mb-2">{p.titre}</div>
+                      <div className="text-xs text-gray-500 mb-3">Client: {p.client?.username ?? '—'}</div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="px-2.5 py-1 rounded-full font-medium bg-indigo-50 text-indigo-700">{p.type}</span>
+                        {(p.developpeurs ?? []).slice(0,2).map(d => (
+                          <span key={d.id} className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-800">{d.username}</span>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                   {recentProjects.length === 0 && <p className="text-gray-500">Aucun projet</p>}
                 </div>
@@ -222,8 +234,8 @@ export default function ChefDashboard() {
                   </table>
                 </div>
               </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
+            
+            <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-lg font-semibold mb-4">Progression des tâches terminées</h2>
                 <TrendChart data={trend} />
                 <div className="mt-8">
@@ -269,37 +281,6 @@ function StatusDistribution({ data }: { data: Record<string, number> }) {
           <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-gray-600">{label}</span>
         </div>
       ))}
-    </div>
-  );
-}
-
-function ProjectCard({ project }: { project: Project }) {
-  const statusMap: Record<Project['statut'], string> = {
-    EN_COURS: 'bg-emerald-50 text-emerald-700',
-    TERMINE: 'bg-violet-50 text-violet-700',
-    EN_ATTENTE: 'bg-amber-50 text-amber-700',
-    ANNULE: 'bg-rose-50 text-rose-700',
-  };
-  const typeMap: Record<Project['type'], string> = {
-    Delivery: 'bg-indigo-50 text-indigo-700',
-    TMA: 'bg-blue-50 text-blue-700',
-    Interne: 'bg-gray-100 text-gray-800',
-  };
-  return (
-    <div className="rounded-lg border border-gray-200 p-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusMap[project.statut]}`}>{
-          { EN_COURS: 'EN_COURS', TERMINE: 'TERMINE', EN_ATTENTE: 'EN_ATTENTE', ANNULE: 'ANNULE' }[project.statut]
-        }</span>
-      </div>
-      <div className="text-2xl font-semibold text-gray-900 mb-2">{project.titre}</div>
-      <div className="text-xs text-gray-500 mb-3">Client: {project.client?.username ?? '—'}</div>
-      <div className="flex items-center gap-2 text-xs">
-        <span className={`px-2.5 py-1 rounded-full font-medium ${typeMap[project.type]}`}>{project.type}</span>
-        {project.developpeurs?.slice(0,2).map(d => (
-          <span key={d.id} className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-800">{d.username}</span>
-        ))}
-      </div>
     </div>
   );
 }

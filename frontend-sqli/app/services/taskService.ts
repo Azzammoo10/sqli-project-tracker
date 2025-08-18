@@ -26,7 +26,7 @@ export const taskService = {
     return data;
   },
   getStats: async (): Promise<Record<string, number>> => {
-    const { data } = await apiClient.get('/task/stats');
+    const { data } = await apiClient.get('/task/stats/me');
     return data;
   },
   getLate: async (): Promise<Task[]> => {
