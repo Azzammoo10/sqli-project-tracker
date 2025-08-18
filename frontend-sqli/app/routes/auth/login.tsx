@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { authService } from "../../services/api";
 import toast from "react-hot-toast";
 import secureIllustration from "../../assets/images/undraw_secure.svg";
@@ -26,6 +26,7 @@ export default function LoginPage() {
     motDePasse: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // 👈 état pour l’œil
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -44,39 +45,29 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      console.log("🚀 Tentative de connexion pour:", formData.username);
-      
-      // 1) Appel API
       const res = await authService.login(formData);
-      console.log("📡 Réponse API brute:", res);
-      
-      // Si authService retourne un AxiosResponse, on lit res.data
-      const data: LoginResponse = (res && typeof res === "object" && "data" in res) ? (res as { data: LoginResponse }).data : (res as LoginResponse);
-      
-      console.log("📊 Données extraites:", data);
+      const data: LoginResponse =
+        (res && typeof res === "object" && "data" in res)
+          ? (res as { data: LoginResponse }).data
+          : (res as LoginResponse);
 
-      // 2) Validation minimale de la réponse
       if (!data?.token || !data?.role) {
-        console.error("❌ Données manquantes:", { token: !!data?.token, role: !!data?.role });
         toast.error("Réponse invalide du serveur (token/role manquants).");
         return;
       }
 
-      // 3) Persistance (token + user)
       const userData = {
         id: data.id,
         username: data.username,
         email: data.email,
         role: data.role,
       };
-      
-      console.log("💾 Sauvegarde des données:", userData);
+
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(userData));
 
       toast.success("Connexion réussie !");
-      
-      // 4) Mapping rôle -> destination
+
       const targetByRole: Record<string, string> = {
         ADMIN: "/admin/dashboard",
         CHEF_DE_PROJET: "/chef/dashboard",
@@ -86,30 +77,14 @@ export default function LoginPage() {
 
       const roleKey = String(data.role).toUpperCase();
       const targetPath = targetByRole[roleKey] ?? "/auth/login";
-      
-      console.log("🎭 Rôle détecté:", roleKey);
-      console.log("🎯 Chemin de destination:", targetPath);
-      console.log("🗺️ Mapping des rôles:", targetByRole);
 
-      // 5) Redirection
-      console.log("🔄 Tentative de navigation vers:", targetPath);
       navigate(targetPath, { replace: true });
-
-      // 6) Fallback (si un guard bloque/retarde la navigation)
       setTimeout(() => {
-        const currentPath = window.location.pathname;
-        console.log("⏰ Vérification après 500ms - Chemin actuel:", currentPath);
-        console.log("🎯 Chemin cible:", targetPath);
-        
-        if (currentPath !== targetPath) {
-          console.log("⚠️ Navigation échouée, fallback vers:", targetPath);
+        if (window.location.pathname !== targetPath) {
           window.location.href = targetPath;
-        } else {
-          console.log("✅ Navigation réussie vers:", targetPath);
         }
       }, 500);
     } catch (error: any) {
-      console.error("❌ Erreur de connexion:", error);
       const errorMessage =
         error?.response?.data?.message ||
         error?.message ||
@@ -121,11 +96,14 @@ export default function LoginPage() {
   };
 
   return (
-      <div className="min-h-screen flex items-center justify-center p-4"
-           style={{
-               background: "linear-gradient(135deg, #2a1b3d 0%, #44337a 50%, #6b46c1 100%)"
-           }}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background:
+          "linear-gradient(135deg, #2a1b3d 0%, #44337a 50%, #6b46c1 100%)",
+      }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
         <div className="flex">
           {/* Section Login - Gauche */}
           <div className="flex-1 p-8">
@@ -139,7 +117,10 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Username */}
               <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="username"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Username
                 </label>
                 <div className="relative">
@@ -152,8 +133,8 @@ export default function LoginPage() {
                     name="username"
                     value={formData.username}
                     onChange={handleInputChange}
-                    placeholder="admin.adm-IT6245"
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                    placeholder="username.IT*"
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent text-black"
                     required
                   />
                 </div>
@@ -161,7 +142,10 @@ export default function LoginPage() {
 
               {/* Password */}
               <div>
-                <label htmlFor="motDePasse" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="motDePasse"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Password
                 </label>
                 <div className="relative">
@@ -169,15 +153,27 @@ export default function LoginPage() {
                     <Lock className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"} // 👈 toggle visible
                     id="motDePasse"
                     name="motDePasse"
                     value={formData.motDePasse}
                     onChange={handleInputChange}
                     placeholder="••••••••"
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                    className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent text-black"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -204,7 +200,11 @@ export default function LoginPage() {
           {/* Section Illustration - Droite */}
           <div className="flex-1 bg-gradient-to-br from-[#4B2A7B]/5 to-[#4B2A7B]/10 p-8 flex items-center justify-center relative">
             <div className="text-center">
-              <img src={secureIllustration} alt="Secure Login" className="w-full max-w-md mx-auto" />
+              <img
+                src={secureIllustration}
+                alt="Secure Login"
+                className="w-full max-w-md mx-auto"
+              />
             </div>
           </div>
         </div>

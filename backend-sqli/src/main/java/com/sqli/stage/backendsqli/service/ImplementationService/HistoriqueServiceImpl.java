@@ -49,8 +49,12 @@ public class HistoriqueServiceImpl implements HistoriqueService {
 
     @Override
     public List<LogResponse> getAllLogs() {
-        return historiqueRepo.findAll().stream().map(this::mapToReponse).collect(Collectors.toList());
+        return historiqueRepo.findAll().stream()
+                .sorted((h1, h2) -> h2.getDateHeure().compareTo(h1.getDateHeure())) // tri DESC
+                .map(this::mapToReponse)
+                .collect(Collectors.toList());
     }
+
 
     @Override
     public List<LogResponse> getLogsByAction(TypeOperation action) {
