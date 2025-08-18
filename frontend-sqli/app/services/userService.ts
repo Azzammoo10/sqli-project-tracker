@@ -1,4 +1,3 @@
-// app/services/userService.ts
 import apiClient from './api';
 
 export type Role =
@@ -28,7 +27,6 @@ export interface User {
   dateCreation?: string;
 }
 
-// ⚠️ DTO EXACT du backend
 export interface CreateUserRequestBackend {
   nom: string;
   email: string;

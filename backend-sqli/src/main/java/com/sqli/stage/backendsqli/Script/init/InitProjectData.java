@@ -1,3 +1,4 @@
+
 package com.sqli.stage.backendsqli.Script.init;
 
 import com.sqli.stage.backendsqli.entity.*;
