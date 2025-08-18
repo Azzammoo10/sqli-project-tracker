@@ -18,8 +18,11 @@ export default function Home() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#4B2A7B] via-[#5B3A8B] to-[#6B4A9B] flex items-center justify-center">
-      <div className="text-center text-white">
+      <div className="min-h-screen flex items-center justify-center p-4"
+           style={{
+               background: "linear-gradient(135deg, #2a1b3d 0%, #44337a 50%, #6b46c1 100%)"
+           }}>
+          <div className="text-center text-white">
         <h1 className="text-4xl font-bold mb-4">SQLI Digital Experience</h1>
         <p className="text-xl">Redirection vers la page de connexion...</p>
       </div>

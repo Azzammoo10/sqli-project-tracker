@@ -8,6 +8,7 @@ type Props = {
   projects: Project[];
   userRole: 'ADMIN' | 'CHEF_DE_PROJET' | 'DEVELOPPEUR' | 'CLIENT';
   onTogglePublicLink?: (projectId: number) => void;
+  onDeleteProject?: (projectId: number) => void;
   loading?: boolean;
 };
 
@@ -46,7 +47,7 @@ const ProgressBar = ({ value }: { value: number }) => (
   </div>
 );
 
-export default function ProjectsTable({ projects, userRole, onTogglePublicLink, loading }: Props) {
+export default function ProjectsTable({ projects, userRole, onTogglePublicLink, onDeleteProject, loading }: Props) {
   const [q, setQ] = useState('');
   const [statut, setStatut] = useState<string>('ALL');
   const [type, setType] = useState<string>('ALL');
@@ -173,12 +174,14 @@ export default function ProjectsTable({ projects, userRole, onTogglePublicLink, 
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
-                      <Link
-                        to={`/admin/projects/${p.id}`}
-                        className="p-2 rounded-md hover:bg-gray-100 text-black"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Link>
+                      {userRole === 'ADMIN' && (
+                        <Link
+                          to={`/admin/projects/${p.id}`}
+                          className="p-2 rounded-md hover:bg-gray-100 text-black"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                      )}
                       {userRole !== 'CLIENT' && onTogglePublicLink && (
                         <button
                           onClick={() => onTogglePublicLink(p.id)}
@@ -186,6 +189,15 @@ export default function ProjectsTable({ projects, userRole, onTogglePublicLink, 
                           title="Activer/Désactiver le lien public"
                         >
                           <LinkIcon className="w-4 h-4" />
+                        </button>
+                      )}
+                      {onDeleteProject && (
+                        <button
+                          onClick={() => onDeleteProject(p.id)}
+                          className="p-2 rounded-md hover:bg-gray-100 text-rose-600"
+                          title="Supprimer"
+                        >
+                          ×
                         </button>
                       )}
                       {(p.developpeurs?.length ?? 0) === 0 && (

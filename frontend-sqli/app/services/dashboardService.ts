@@ -42,11 +42,7 @@ export interface LogsByAction {
   'Disable users': number;
 }
 
-export interface ChartData {
-  month: string;
-  thisYear: number;
-  lastYear: number;
-}
+export interface ChartData { label: string; value: number }
 
 // Service pour le dashboard admin
 export const dashboardService = {
@@ -82,7 +78,7 @@ export const dashboardService = {
 
   // Récupérer les données pour le graphique de tendance
   getTrendData: async (): Promise<ChartData[]> => {
-    const response = await apiClient.get('/admin/analytics/trends');
+    const response = await apiClient.get('/analytics/completion-rate');
     return response.data;
   },
 

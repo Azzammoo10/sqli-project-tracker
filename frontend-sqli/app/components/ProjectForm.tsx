@@ -109,7 +109,7 @@ export default function ProjectForm({ project, mode, onSubmit, loading = false }
                 onChange={handleInputChange}
                 placeholder="Nom du projet"
                 required
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent bg-white text-black placeholder:text-gray-500"
               />
             </div>
           </div>
@@ -126,7 +126,7 @@ export default function ProjectForm({ project, mode, onSubmit, loading = false }
               placeholder="Décrivez le projet..."
               rows={4}
               required
-              className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+              className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent bg-white text-black placeholder:text-gray-500"
             />
           </div>
         </div>
@@ -142,7 +142,7 @@ export default function ProjectForm({ project, mode, onSubmit, loading = false }
               name="type"
               value={formData.type}
               onChange={handleInputChange}
-              className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+              className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent bg-white text-black"
             >
               <option value="Delivery">Delivery</option>
               <option value="TMA">TMA</option>
@@ -164,7 +164,7 @@ export default function ProjectForm({ project, mode, onSubmit, loading = false }
                 value={formData.clientId}
                 onChange={handleInputChange}
                 required
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent bg-white text-black"
               >
                 <option value="">Sélectionner le Client</option>
                 <option value={1}>Client Demo 1</option>
@@ -192,7 +192,7 @@ export default function ProjectForm({ project, mode, onSubmit, loading = false }
                 value={formData.dateDebut}
                 onChange={handleInputChange}
                 required
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent bg-white text-black"
               />
             </div>
           </div>
@@ -212,7 +212,7 @@ export default function ProjectForm({ project, mode, onSubmit, loading = false }
                 value={formData.dateFin}
                 onChange={handleInputChange}
                 required
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent bg-white text-black"
               />
             </div>
           </div>
@@ -239,7 +239,7 @@ export default function ProjectForm({ project, mode, onSubmit, loading = false }
                   developpeurIds: selectedOptions
                 }));
               }}
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent bg-white text-black"
             >
               <option value={1}>Développeur 1</option>
               <option value={2}>Développeur 2</option>

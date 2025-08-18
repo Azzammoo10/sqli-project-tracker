@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity } from 'lucide-react';
+import { Activity, Plus } from 'lucide-react';
 import NavChef from '../../components/NavChef';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { authService } from '../../services/api';
@@ -78,9 +78,17 @@ export default function ChefProjects() {
         
         <div className="flex-1 overflow-auto">
           <div className="p-6">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">Mes Projets</h1>
-              <p className="text-gray-600">Gérez vos projets et équipes</p>
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Mes Projets</h1>
+                <p className="text-gray-600">Gérez vos projets et équipes</p>
+              </div>
+              <button
+                onClick={() => navigate('/chef/projects/create')}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#4B2A7B] text-white rounded-md hover:bg-[#5B3A8B]"
+              >
+                <Plus className="w-4 h-4" /> Nouveau Projet
+              </button>
             </div>
 
             <ProjectsTable

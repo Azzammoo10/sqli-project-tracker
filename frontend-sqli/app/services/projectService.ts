@@ -37,8 +37,7 @@ export interface ProjectStats {
   totalProjects: number;
   activeProjects: number;
   completedProjects: number;
-  projectsByType: { TMA: number; Delivery: number; Interne: number };
-  projectsByStatus: { EN_COURS: number; TERMINE: number; EN_ATTENTE: number; ANNULE: number };
+  lateProjects: number;
 }
 
 export const projectService = {
@@ -49,8 +48,13 @@ export const projectService = {
   },
 
   // CHEF
-  getProjectsByChef: async (username: string): Promise<Project[]> => {
-    const { data } = await apiClient.get('/projects/chef', { params: { username } });
+  getProjectsByChef: async (username?: string): Promise<Project[]> => {
+    let effectiveUsername = username;
+    if (!effectiveUsername) {
+      const me = await apiClient.get('/auth/me');
+      effectiveUsername = me.data?.username;
+    }
+    const { data } = await apiClient.get('/projects/chef', { params: { username: effectiveUsername } });
     return data;
   },
 

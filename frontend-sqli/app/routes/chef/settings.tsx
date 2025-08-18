@@ -1,4 +1,4 @@
-//app/routes/chef/settings.tsx
+// app/routes/chef/settings.tsx
 import { useEffect, useState } from 'react';
 import { Activity, Edit, Mail, ShieldCheck, User, Globe, BadgeCheck } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -79,17 +79,17 @@ export default function ChefSettings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="text-xs font-medium text-gray-500">Full Name</label>
-                  <input readOnly className="mt-1 w-full px-3 py-2 rounded-md bg-gray-50 border border-gray-200"
+                  <input readOnly className="mt-1 w-full px-3 py-2 rounded-md bg-white text-black border border-gray-300"
                     value={user.nom ? `${user.nom} ${user.prenom ?? ''}` : user.username} />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500">Job Title</label>
-                  <input readOnly className="mt-1 w-full px-3 py-2 rounded-md bg-gray-50 border border-gray-200"
+                  <input readOnly className="mt-1 w-full px-3 py-2 rounded-md bg-white text-black border border-gray-300"
                     value={user.jobTitle ?? ''} />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500">Gender</label>
-                  <input readOnly className="mt-1 w-full px-3 py-2 rounded-md bg-gray-50 border border-gray-200"
+                  <input readOnly className="mt-1 w-full px-3 py-2 rounded-md bg-white text-black border border-gray-300"
                     value={user.gender ?? ''} />
                 </div>
                 <div>
@@ -98,7 +98,7 @@ export default function ChefSettings() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500">Language</label>
-                  <input readOnly className="mt-1 w-full px-3 py-2 rounded-md bg-gray-50 border border-gray-200"
+                  <input readOnly className="mt-1 w-full px-3 py-2 rounded-md bg-white text-black border border-gray-300"
                     value={(user.language ?? 'fr').toUpperCase()} />
                 </div>
                 <div>
