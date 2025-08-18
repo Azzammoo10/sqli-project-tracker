@@ -359,28 +359,49 @@ public class ProjetServiceImpl implements ProjetService {
 
 
     public ProjectResponse mapToResponse(Project project) {
-        List<DeveloperResponse> developpeurList = project.getDeveloppeurs().stream()
+        List<DeveloperResponse> developpeurList = project.getDeveloppeurs() == null ? List.of()
+                : project.getDeveloppeurs().stream()
                 .map(dev -> new DeveloperResponse(
                         dev.getNom(),
                         dev.getEmail(),
                         dev.getUsername(),
                         dev.getJobTitle()
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
-        return new ProjectResponse(
-                project.getId(),
-                project.getTitre(),
-                project.getDescription(),
-                project.getClient().getNom(),
-                project.getProgression(),
-                project.getDateDebut(),
-                project.getDateFin(),
-                project.getStatut(),
-                project.isPublicLinkEnabled(),
-                project.getUuidPublic(),
-                developpeurList
-        );
+        // Client name null-safe
+        String clientName = project.getClient() == null ? null : project.getClient().getNom();
+
+        // Type enum + label lisible
+        TypeProjet type = project.getType(); // peut être null
+        String typeLabel = null;
+        if (type != null) {
+            switch (type) {
+                case Delivery -> typeLabel = "Delivery";
+                case TMA      -> typeLabel = "TMA";
+                case Interne  -> typeLabel = "Interne";
+            }
+        }
+
+        // UUID : attention si tu ne renvoies que 8 chars, ajuste la validation du DTO
+        String uuid = project.getUuidPublic();
+
+        ProjectResponse resp = new ProjectResponse();
+        resp.setId(project.getId());
+        resp.setTitre(project.getTitre());
+        resp.setDescription(project.getDescription());
+        resp.setClientName(clientName);
+        resp.setType(type);
+        resp.setTypeLabel(typeLabel);
+        resp.setProgression(project.getProgression());
+        resp.setDateDebut(project.getDateDebut());
+        resp.setDateFin(project.getDateFin());
+        resp.setStatut(project.getStatut()); // enum StatutProjet directement si c’est voulu
+        resp.setPublicLinkEnabled(project.isPublicLinkEnabled()); // champ renommé
+        resp.setUuidPublic(uuid);
+        resp.setDeveloppeurs(developpeurList);
+        return resp;
     }
 
 }
+

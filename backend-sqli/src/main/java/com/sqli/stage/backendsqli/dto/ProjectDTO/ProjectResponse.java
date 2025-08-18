@@ -1,6 +1,8 @@
 package com.sqli.stage.backendsqli.dto.ProjectDTO;
+
 import com.sqli.stage.backendsqli.dto.UserResponse;
 import com.sqli.stage.backendsqli.entity.Enums.StatutProjet;
+import com.sqli.stage.backendsqli.entity.Enums.TypeProjet; // <-- ajoute ton enum de type
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -28,6 +30,9 @@ public class ProjectResponse {
     @NotBlank(message = "Le nom du client est obligatoire")
     private String clientName;
 
+    // ✅ AJOUT : type enum + un label lisible pour l’UI
+    private TypeProjet type;         // DELIVERY | TMA | INTERNE (selon ton enum)
+    private String typeLabel;        // "Delivery" | "TMA" | "Interne"
 
     private BigDecimal progression;
 
@@ -42,11 +47,16 @@ public class ProjectResponse {
     @NotNull(message = "Le statut est obligatoire")
     private StatutProjet statut;
 
-    private boolean isPublicLinkEnabled;
+    // ✅ RENOMMER : éviter "isIsPublicLinkEnabled()" avec Lombok
+    private boolean publicLinkEnabled;
 
-    @Pattern(regexp = "^[a-f0-9\\-]{36}$", message = "Le UUID public doit être un identifiant valide")
+    // ⚠️ ton JSON montre des UUID courts (8 chars). Au choix :
+    // - soit tu envoies un vrai UUID 36 chars et tu gardes ce pattern
+    // - soit tu adaptes le pattern à 8 chars (ou enlèves la contrainte)
+    // @Pattern(regexp = "^[a-f0-9\\-]{36}$", message = "Le UUID public doit être un identifiant valide")
+    // Exemple si tu gardes des 8 chars:
+    // @Pattern(regexp = "^[a-f0-9]{8}$", message = "Le UUID public doit contenir 8 caractères hexadécimaux")
     private String uuidPublic;
-
 
     private List<DeveloperResponse> developpeurs;
 }

@@ -19,14 +19,15 @@ export interface Project {
 }
 
 export interface CreateProjectRequest {
-  titre: string;
-  description?: string;
-  type: Project['type'];
-  dateDebut: string;
-  dateFin?: string;
-  clientId: number;
-  developpeurIds?: number[];
+    titre: string;
+    description: string;            // tu la valides required dans le form, donc mets-la required ici
+    type: Project['type'];
+    dateDebut: string;
+    dateFin?: string;
+    clientId: number;
+    developpeurIds: number[];       // <-- requis (tableau vide si aucun)
 }
+
 
 export interface UpdateProjectRequest extends Partial<CreateProjectRequest> {
   statut?: Project['statut'];

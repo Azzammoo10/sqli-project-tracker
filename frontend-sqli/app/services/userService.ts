@@ -97,7 +97,7 @@ export const userService = {
   },
 
   getUsersByRole: async (role: Role): Promise<User[]> => {
-    const { data } = await apiClient.get(`/admin/users/by-role/${role}`);
+    const { data } = await apiClient.get(`/projects/users/by-role/${role}`);
     return data;
   },
 };

@@ -1,7 +1,11 @@
 package com.sqli.stage.backendsqli.controller;
 
 import com.sqli.stage.backendsqli.dto.ProjectDTO.*;
+import com.sqli.stage.backendsqli.dto.UserResponse;
+import com.sqli.stage.backendsqli.entity.Enums.Role;
+import com.sqli.stage.backendsqli.service.AdminService;
 import com.sqli.stage.backendsqli.service.ProjetService;
+import com.sqli.stage.backendsqli.service.UserService;
 import com.sqli.stage.backendsqli.utils.QRCodeGenerator;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +29,7 @@ import java.util.List;
 public class ProjetController {
 
     private final ProjetService projetService;
+    private final UserService userService;
 
     @PostMapping()
     @PreAuthorize("hasRole('CHEF_DE_PROJET')")
@@ -150,6 +155,12 @@ public class ProjetController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    @GetMapping("/users/by-role/{role}")
+    // @PreAuthorize("hasAnyRole('CHEF_DE_PROJET','ADMIN')")
+    public ResponseEntity<List<UserResponse>> getUsersByRole(@PathVariable Role role) {
+        return ResponseEntity.ok(userService.getUsersByRole(role));
     }
 
 
