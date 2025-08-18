@@ -30,7 +30,7 @@ public class AdminServiceImpl implements AdminService {
         String username = "";
         int attempts = 0;
         do {
-            String cleanNom = Normalizer.normalize(nom, Normalizer.Form.NFD)
+            String cleanNom = Normalizer.normalize(nom.split(" ")[1], Normalizer.Form.NFD)
                     .replaceAll("[^\\p{ASCII}]", "")
                     .replaceAll("[^a-zA-Z]", "")
                     .toLowerCase();

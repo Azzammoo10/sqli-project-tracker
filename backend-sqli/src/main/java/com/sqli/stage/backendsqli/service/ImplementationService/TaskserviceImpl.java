@@ -5,10 +5,7 @@ import com.sqli.stage.backendsqli.dto.TaskDTO.TaskFilterRequest;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskProgressResponse;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskRequest;
 import com.sqli.stage.backendsqli.dto.TaskDTO.TaskResponse;
-import com.sqli.stage.backendsqli.entity.Enums.EntityName;
-import com.sqli.stage.backendsqli.entity.Enums.Role;
-import com.sqli.stage.backendsqli.entity.Enums.StatutTache;
-import com.sqli.stage.backendsqli.entity.Enums.TypeOperation;
+import com.sqli.stage.backendsqli.entity.Enums.*;
 import com.sqli.stage.backendsqli.entity.Project;
 import com.sqli.stage.backendsqli.entity.Task;
 import com.sqli.stage.backendsqli.entity.User;
@@ -25,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -44,67 +42,99 @@ public class TaskserviceImpl implements Taskservice {
     private final ProjetService projetService;
 
     @Override
+    @Transactional
     public TaskResponse createTask(TaskRequest request) {
-        User chefProjet = getCurrentUser();
+        User current = getCurrentUser();
 
-        // Vérifier rôle
-        if (chefProjet.getRole() != Role.CHEF_DE_PROJET) {
-            throw new AccessdeniedException("Seuls les chefs de projet peuvent créer des tâches");
+        // Autorisations
+        if (current.getRole() != Role.CHEF_DE_PROJET && current.getRole() != Role.ADMIN) {
+            throw new AccessdeniedException("Seuls les chefs de projet ou admin peuvent créer des tâches.");
         }
 
-        // Récupérer le développeur
+        // Entrées requises
+        if (request.getProjectId() == null || request.getDeveloppeurId() == null) {
+            throw new IllegalArgumentException("Projet et développeur sont requis.");
+        }
+        if (request.getDateDebut() == null || request.getDateFin() == null) {
+            throw new IllegalArgumentException("Les dates de début et fin sont requises.");
+        }
+        if (request.getDateFin().isBefore(request.getDateDebut())) {
+            throw new IllegalArgumentException("La date de fin doit être postérieure ou égale à la date de début.");
+        }
+
+        // Récup entités
         User developpeur = userRepository.findById(request.getDeveloppeurId())
                 .orElseThrow(() -> new ResourceNotFoundException("Développeur non trouvé"));
-
-        // Récupérer le projet
         Project projet = projetRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Projet introuvable"));
 
-        // Vérifier ownership projet
-        if (!projet.getCreatedBy().getId().equals(chefProjet.getId())) {
-            throw new AccessdeniedException("Vous ne pouvez pas créer une tâche sur un projet que vous n'avez pas créé.");
+        // Vérifier ownership / responsabilité
+        // (préférable à createdBy: chefDeProjet est plus métier)
+        if (current.getRole() != Role.ADMIN) {
+            if (projet.getCreatedBy() == null || !projet.getCreatedBy().getId().equals(current.getId())) {
+                throw new AccessdeniedException("Vous n'êtes pas le chef du projet.");
+            }
         }
 
-        // Vérifier rôle du développeur
+        // Statut projet
+        if (projet.getStatut() == StatutProjet.TERMINE) {
+            throw new IllegalStateException("Impossible de créer une tâche sur un projet terminé.");
+        }
+
+        // Rôle dev
         if (developpeur.getRole() != Role.DEVELOPPEUR) {
-            throw new IllegalArgumentException("Seuls les développeurs peuvent recevoir des tâches");
+            throw new IllegalArgumentException("Seuls les développeurs peuvent recevoir des tâches.");
+        }
+        if (!developpeur.isEnabled()) {
+            throw new IllegalStateException("Le développeur n'est pas actif.");
         }
 
+        // Unicité titre dans le projet (optionnel mais utile)
+        if (taskRepoistory.existsByProjectIdAndTitreIgnoreCase(projet.getId(), request.getTitre().trim())) {
+            throw new IllegalArgumentException("Une tâche avec ce titre existe déjà sur ce projet.");
+        }
 
+        // Associer dev au projet si pas présent (et persister l'association)
+        if (!projet.getDeveloppeurs().contains(developpeur)) {
+            projet.getDeveloppeurs().add(developpeur);
+            projetRepository.save(projet);
+        }
 
-        // Création de la tâche (équivalent INSERT)
+        // Heures
+        Integer planned = request.getPlannedHours() != null ? Math.max(0, request.getPlannedHours()) : 0;
+        Integer effective = 0; // à la création
+        Integer remaining = Math.max(0, planned - effective);
+
+        // Valeurs par défaut
+        StatutTache statut = request.getStatut() != null ? request.getStatut() : StatutTache.NON_COMMENCE;
+
+        // Création
         Task task = new Task();
-        task.setTitre(request.getTitre());
+        task.setTitre(request.getTitre().trim());
         task.setDescription(request.getDescription());
         task.setDateDebut(request.getDateDebut());
         task.setDateFin(request.getDateFin());
-        task.setStatut(request.getStatut());
+        task.setStatut(statut);
         task.setPriorite(request.getPriorite());
-        task.setPlannedHours(request.getPlannedHours());
-        task.setEffectiveHours(0); // valeur par défaut
-        task.setRemainingHours(request.getPlannedHours()); // initialement = planifiées
+        task.setPlannedHours(planned);
+        task.setEffectiveHours(effective);
+        task.setRemainingHours(remaining);
         task.setDeveloppeur(developpeur);
         task.setProject(projet);
 
-        // Sauvegarde
-        Task savedTask = taskRepoistory.save(task);
+        Task saved = taskRepoistory.save(task);
 
-        // Vérifier affectation au projet
-        if (!projet.getDeveloppeurs().contains(developpeur)) {
-            projet.getDeveloppeurs().add(developpeur);
-        }
+        // Log après succès
+        historiqueService.logAction(new LogRequest(
+                TypeOperation.CREATION,
+                "Création tâche '" + saved.getTitre() + "' (ID " + saved.getId() + ")",
+                saved.getId(),
+                EntityName.TASK
+        ));
 
-        // Log historique
-        LogRequest logRequest = new LogRequest();
-        logRequest.setAction(TypeOperation.CREATION);
-        logRequest.setDescription("Création de la tâche '" + savedTask.getTitre() +
-                "' (ID: " + savedTask.getId() + ") par " + chefProjet.getUsername());
-        logRequest.setEntityId(savedTask.getId());
-        logRequest.setEntityName(EntityName.TASK);
-        historiqueService.logAction(logRequest);
-
-        return mapToReponse(savedTask);
+        return mapToReponse(saved);
     }
+
 
 
     @Override

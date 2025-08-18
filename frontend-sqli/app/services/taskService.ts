@@ -16,6 +16,18 @@ export type Task = {
   projectTitre?: string;
 };
 
+export type TaskCreatePayload = {
+    titre: string;
+    description?: string;
+    dateDebut: string;    // format "YYYY-MM-DD"
+    dateFin: string;      // format "YYYY-MM-DD"
+    statut?: 'NON_COMMENCE' | 'EN_COURS' | 'BLOQUE' | 'TERMINE'; // utilise NON_COMMENCE pour "à faire"
+    priorite?: 'BASSE' | 'MOYENNE' | 'ELEVEE';
+    plannedHours?: number;
+    projectId: number;
+    developpeurId: number;
+};
+
 export const taskService = {
   getAll: async (): Promise<Task[]> => {
     const { data } = await apiClient.get('/task');
@@ -33,6 +45,20 @@ export const taskService = {
     const { data } = await apiClient.get('/task/late');
     return data;
   },
+    create: async (payload: {
+        titre: string;
+        description: string | undefined;
+        dateDebut: string;
+        dateFin: string;
+        statut: "A_FAIRE" | "EN_COURS" | "TERMINE";
+        priorite: "BASSE" | "MOYENNE" | "HAUTE";
+        plannedHours: number;
+        projectId: number;
+        developpeurId: number
+    }): Promise<Task> => {
+        const { data } = await apiClient.post('/task', payload);
+        return data as Task;
+    },
 };
 
 export default taskService;

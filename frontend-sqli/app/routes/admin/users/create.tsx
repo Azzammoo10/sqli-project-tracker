@@ -12,8 +12,10 @@ import {
   Building2,
 } from 'lucide-react';
 import NavAdmin from '../../../components/NavAdmin';
-import ProtectedRoute from '../../../components/ProtectedRoute';
-import { authService } from '../../../services/api';
+import ProtectedRoute from '~/components/ProtectedRoute';
+import { authService } from '~/services/api';
+import PasswordInput from '../../../components/PasswordInput';
+
 import {
   userService,
   type CreateUserRequestBackend,
@@ -180,32 +182,25 @@ export default function CreateUser() {
                 </div>
 
                 {/* Mot de passe (requis) */}
-                <div>
-                  <label htmlFor="motDePasse" className="block text-sm font-semibold text-gray-800 mb-2">
-                    Mot de passe (min. 6) *
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Lock className="h-5 w-5 text-gray-500" />
-                    </div>
-                    <input
-                      id="motDePasse"
-                      name="motDePasse"
-                      type="password"
-                      value={form.motDePasse}
-                      onChange={onChange}
-                      placeholder="ex: 123456"
-                      required
-                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg
-                                 text-gray-900 placeholder:text-gray-500 focus:outline-none
-                                 focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent" />
+                  {/* Mot de passe (requis) */}
+                  <div>
+                      <label htmlFor="motDePasse" className="block text-sm font-semibold text-gray-800 mb-2">
+                          Mot de passe (min. 10 + aA0@) *
+                      </label>
+                      <PasswordInput
+                          id="motDePasse"
+                          name="motDePasse"
+                          value={form.motDePasse}
+                          onChange={(val) => setForm(prev => ({ ...prev, motDePasse: val }))}
+                          placeholder="Clique la baguette pour générer"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                          Raccourcis : 🪄 générer • 👁 afficher/masquer • 📋 copier.
+                      </p>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    La politique sera vérifiée côté serveur.
-                  </p>
-                </div>
 
-                {/* Rôle & Département */}
+
+                  {/* Rôle & Département */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="role" className="block text-sm font-semibold text-gray-800 mb-2">

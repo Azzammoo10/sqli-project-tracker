@@ -33,4 +33,6 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
 
     @Query("SELECT COUNT(t) FROM Task t WHERE t.statut = 'TERMINE' AND YEAR(t.dateFin) = :year AND MONTH(t.dateFin) = :month")
     int countCompletedTasksInMonth(@Param("year") int year, @Param("month") int month);
+
+    boolean existsByProjectIdAndTitreIgnoreCase(Integer id, String trim);
 }

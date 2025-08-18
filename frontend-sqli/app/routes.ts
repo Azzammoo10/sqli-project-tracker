@@ -18,6 +18,7 @@ export default [
   route("chef/projects", "routes/chef/projects.tsx"),
   route("chef/projects/create", "routes/chef/projects/create.tsx"),
   route("chef/tasks", "routes/chef/tasks.tsx"),
+  route("chef/tasks/create","routes/chef/taches/createTask.tsx"),
   route("chef/team", "routes/chef/team.tsx"),
   route("chef/analytics", "routes/chef/analytics.tsx"),
   route("chef/settings", "routes/chef/settings.tsx"),
