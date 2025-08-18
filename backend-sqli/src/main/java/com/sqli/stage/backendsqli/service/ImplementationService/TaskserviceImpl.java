@@ -203,8 +203,14 @@ public class TaskserviceImpl implements Taskservice {
 
     @Override
     public Map<StatutTache, Long> getTaskStats() {
-        return taskRepoistory.findAll().stream()
-                .collect(Collectors.groupingBy(Task::getStatut, Collectors.counting()));
+        User currentUser = getCurrentUser();
+        List<Task> source = switch (currentUser.getRole()) {
+            case ADMIN -> taskRepoistory.findAll();
+            case CHEF_DE_PROJET -> taskRepoistory.findByProjectCreatedById(currentUser.getId());
+            case DEVELOPPEUR -> taskRepoistory.findByDeveloppeurId(currentUser.getId());
+            default -> List.of();
+        };
+        return source.stream().collect(Collectors.groupingBy(Task::getStatut, Collectors.counting()));
     }
 
 
@@ -372,6 +378,8 @@ public class TaskserviceImpl implements Taskservice {
     }
 
     private TaskResponse mapToReponse(Task task){
+        String devUsername = task.getDeveloppeur() != null ? task.getDeveloppeur().getUsername() : null;
+        String projectTitre = task.getProject() != null ? task.getProject().getTitre() : null;
         return new TaskResponse(
                 task.getId(),
                 task.getTitre(),
@@ -383,8 +391,8 @@ public class TaskserviceImpl implements Taskservice {
                 task.getPlannedHours(),
                 task.getEffectiveHours(),
                 task.getRemainingHours(),
-                task.getDeveloppeur().getUsername(),
-                task.getProject().getTitre()
+                devUsername,
+                projectTitre
         );
     }
 

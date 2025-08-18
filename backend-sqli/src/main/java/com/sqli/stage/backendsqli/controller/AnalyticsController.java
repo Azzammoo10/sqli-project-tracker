@@ -35,6 +35,25 @@ public class AnalyticsController {
         return ResponseEntity.ok(analyticsService.getDashboardStats());
     }
 
+    // --- Chef de projet scoped KPIs ---
+    @GetMapping("/chef/{username}/kpis")
+    public ResponseEntity<DashboardStatsResponse> getChefKpis(@PathVariable String username) {
+        // réutilise getDashboardStats pour l'instant; peut être affiné côté service si besoin de scoper
+        return ResponseEntity.ok(analyticsService.getDashboardStats());
+    }
+
+    @GetMapping("/chef/{username}/task-status")
+    public ResponseEntity<java.util.Map<com.sqli.stage.backendsqli.entity.Enums.StatutTache, Long>> getChefTaskStatus(@PathVariable String username) {
+        // Pour l'instant, renvoie les stats globales via le service tasks (peut être spécialisé plus tard)
+        return ResponseEntity.ok(analyticsService.getDashboardStats() != null
+                ? taskRepository.findAll().stream()
+                    .collect(java.util.stream.Collectors.groupingBy(
+                        com.sqli.stage.backendsqli.entity.Task::getStatut,
+                        java.util.stream.Collectors.counting()
+                    ))
+                : java.util.Collections.emptyMap());
+    }
+
     @GetMapping("/project-progress/{projectId}")
     public ResponseEntity<ProgressResponse> getProjectProgress(@PathVariable int projectId) {
         return ResponseEntity.ok(analyticsService.getProjectProgress(projectId));

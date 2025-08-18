@@ -249,8 +249,13 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public List<UserResponse> getUsersByRole(Role role) {
-        return List.of();
+        return userRepository.findAll().stream()
+                .filter(u -> u.getRole() == role)
+                .map(UserResponse::from)   // conversion User -> UserResponse
+                .collect(Collectors.toList());
     }
+
+
 
     @Override
     public List<UserSkillResponse> getUserSkills(int userId) {

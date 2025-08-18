@@ -34,6 +34,15 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getAllUsers());
     }
 
+    // Exposer des listes par rôle (utilisables par Chef)
+    @PreAuthorize("hasAnyRole('ADMIN','CHEF_DE_PROJET')")
+    @GetMapping("/users/by-role/{role}")
+    public ResponseEntity<List<UserResponse>> getUsersByRole(@PathVariable Role role) {
+        // Réutilise le service existant: filtrage côté service ou ici si nécessaire
+        List<UserResponse> all = adminService.getAllUsers();
+        return ResponseEntity.ok(all.stream().filter(u -> u.getRole() == role).toList());
+    }
+
     // Get user By ID
     @GetMapping("/users/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable int id) {

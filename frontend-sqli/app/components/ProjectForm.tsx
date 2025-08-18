@@ -10,6 +10,8 @@ import {
   FolderOpen,
   Users
 } from 'lucide-react';
+// removed duplicate import of useEffect/useState
+import { userService, type User as AppUser } from '../services/userService';
 import { type CreateProjectRequest, type UpdateProjectRequest, type Project } from '../services/projectService';
 import toast from 'react-hot-toast';
 
@@ -32,6 +34,9 @@ export default function ProjectForm({ project, mode, onSubmit, loading = false }
     developpeurIds: []
   });
 
+  const [clients, setClients] = useState<AppUser[]>([]);
+  const [developers, setDevelopers] = useState<AppUser[]>([]);
+
   useEffect(() => {
     if (project && mode === 'edit') {
       setFormData({
@@ -45,6 +50,22 @@ export default function ProjectForm({ project, mode, onSubmit, loading = false }
       });
     }
   }, [project, mode]);
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const [clientsRes, devsRes] = await Promise.all([
+          userService.getUsersByRole('CLIENT'),
+          userService.getUsersByRole('DEVELOPPEUR'),
+        ]);
+        setClients(clientsRes);
+        setDevelopers(devsRes);
+      } catch (e) {
+        // silencieux
+      }
+    };
+    loadUsers();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -167,9 +188,9 @@ export default function ProjectForm({ project, mode, onSubmit, loading = false }
                 className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent bg-white text-black"
               >
                 <option value="">Sélectionner le Client</option>
-                <option value={1}>Client Demo 1</option>
-                <option value={2}>Client Demo 2</option>
-                <option value={3}>Client Demo 3</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.username}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -241,10 +262,9 @@ export default function ProjectForm({ project, mode, onSubmit, loading = false }
               }}
               className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent bg-white text-black"
             >
-              <option value={1}>Développeur 1</option>
-              <option value={2}>Développeur 2</option>
-              <option value={3}>Développeur 3</option>
-              <option value={4}>Développeur 4</option>
+              {developers.map(d => (
+                <option key={d.id} value={d.id}>{d.username}</option>
+              ))}
             </select>
             <p className="text-xs text-gray-500 mt-1">Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs développeurs</p>
           </div>

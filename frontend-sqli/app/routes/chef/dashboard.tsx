@@ -4,9 +4,9 @@ import { Activity, BarChart3, ClipboardList, FolderOpen, Users, Plus } from 'luc
 import NavChef from '../../components/NavChef';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import apiClient, { authService } from '../../services/api';
-import { projectService, type Project } from '../../services/projectService';
-import { dashboardService } from '../../services/dashboardService';
-import { taskService } from '../../services/taskService';
+import { projectService, type Project } from '~/services/projectService';
+import { dashboardService } from '~/services/dashboardService';
+import { taskService } from '~/services/taskService';
 import toast from 'react-hot-toast';
 
 export default function ChefDashboard() {
@@ -81,7 +81,7 @@ export default function ChefDashboard() {
     return (
       <div className="flex h-screen bg-gray-50">
         <NavChef user={user} onLogout={handleLogout} />
-        
+
         <div className="flex-1 overflow-auto">
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
@@ -94,42 +94,18 @@ export default function ChefDashboard() {
                 <button onClick={() => navigate('/chef/tasks')} className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-800">Créer une tâche</button>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-500">Projets Totaux</span>
-                  <FolderOpen className="w-4 h-4 text-[#4B2A7B]" />
-                </div>
-                <div className="text-2xl font-semibold">{stats?.totalProjects ?? '—'}</div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-500">Projets Actifs</span>
-                  <BarChart3 className="w-4 h-4 text-[#4B2A7B]" />
-                </div>
-                <div className="text-2xl font-semibold">{stats?.activeProjects ?? '—'}</div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-500">Terminés</span>
-                  <ClipboardList className="w-4 h-4 text-[#4B2A7B]" />
-                </div>
-                <div className="text-2xl font-semibold">{stats?.completedProjects ?? '—'}</div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-500">En Retard</span>
-                  <Activity className="w-4 h-4 text-[#4B2A7B]" />
-                </div>
-                <div className="text-2xl font-semibold">{stats?.lateProjects ?? '—'}</div>
-              </div>
+              <KpiCard title="Projets Totaux" value={stats?.totalProjects} icon={<FolderOpen className="w-4 h-4 text-[#4B2A7B]" />} />
+              <KpiCard title="Projets Actifs" value={stats?.activeProjects} icon={<BarChart3 className="w-4 h-4 text-[#4B2A7B]" />} />
+              <KpiCard title="Terminés" value={stats?.completedProjects} icon={<ClipboardList className="w-4 h-4 text-[#4B2A7B]" />} />
+              <KpiCard title="En Retard" value={stats?.lateProjects} icon={<Activity className="w-4 h-4 text-[#4B2A7B]" />} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Projets récents</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Projets récents</h2>
                   <button onClick={() => navigate('/chef/projects')} className="text-sm text-[#4B2A7B] hover:underline">Voir tout</button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -152,7 +128,7 @@ export default function ChefDashboard() {
                 </div>
               </div>
               <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold mb-4">Projets Build (suivi)</h2>
+                <h2 className="text-lg font-semibold mb-4 text-gray-900">Projets Build (suivi)</h2>
                 <div className="space-y-3">
                   {buildProjects?.slice(0, 6).map((p: any) => (
                     <div key={p.projectId} className="flex items-center justify-between">
@@ -175,7 +151,7 @@ export default function ChefDashboard() {
               </div>
 
               <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold mb-4">Équipe</h2>
+                <h2 className="text-lg font-semibold mb-4 text-gray-900">Équipe</h2>
                 <div className="space-y-3">
                   {team?.slice(0, 8).map((m: any, idx: number) => (
                     <div key={idx} className="flex items-center justify-between">
@@ -203,7 +179,7 @@ export default function ChefDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Tâches Développeur</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Tâches Développeur</h2>
                   <button onClick={() => navigate('/chef/tasks')} className="text-sm text-[#4B2A7B] hover:underline">Voir tout</button>
                 </div>
                 <div className="overflow-x-auto">
@@ -234,9 +210,9 @@ export default function ChefDashboard() {
                   </table>
                 </div>
               </div>
-            
+
             <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold mb-4">Progression des tâches terminées</h2>
+                <h2 className="text-lg font-semibold mb-4 text-gray-900">Progression des tâches terminées</h2>
                 <TrendChart data={trend} />
                 <div className="mt-8">
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Répartition des tâches par statut</h3>
@@ -266,6 +242,18 @@ function TrendChart({ data }: { data: Array<{ label: string; value: number }> })
           <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-xs text-gray-600">{d.label}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+function KpiCard({ title, value, icon }: { title: string; value?: number; icon: React.ReactNode }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-4 border">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm text-gray-700">{title}</span>
+        {icon}
+      </div>
+      <div className="text-2xl font-semibold text-gray-900">{value ?? '—'}</div>
     </div>
   );
 }

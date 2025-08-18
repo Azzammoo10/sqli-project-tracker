@@ -95,6 +95,14 @@ public class TaskController {
         return ResponseEntity.ok(stats);
     }
 
+    // Stats des tâches uniquement pour les projets du chef connecté
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    @GetMapping("/stats/me")
+    public ResponseEntity<Map<StatutTache, Long>> getMyTaskStats() {
+        Map<StatutTache, Long> stats = taskservice.getTaskStats(); // TODO: filtrer par createdBy courant dans l'implémentation si nécessaire
+        return ResponseEntity.ok(stats);
+    }
+
 
     @PreAuthorize("hasRole('CHEF_DE_PROJET')")
     @GetMapping("/late")
