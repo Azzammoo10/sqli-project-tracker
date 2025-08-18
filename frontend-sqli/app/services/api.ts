@@ -1,0 +1,86 @@
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:8080/api';
+
+// Configuration de base d'Axios
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Intercepteur pour ajouter le token JWT à chaque requête
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Intercepteur pour gérer les erreurs de réponse
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expiré ou invalide
+      localStorage.removeItem('token');
+      window.location.href = '/auth/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Types pour les réponses API
+export interface LoginRequest {
+  username: string;
+  motDePasse: string;
+}
+
+export interface LoginResponse {
+  message: string;
+  token: string;
+  username: string;
+  email: string;
+  role: string;
+  id: number;
+}
+
+export interface ContactRequest {
+  username: string;
+  email: string;
+  description: string;
+}
+
+// Services API
+export const authService = {
+  login: async (credentials: LoginRequest): Promise<LoginResponse> => {
+    const response = await apiClient.post('/auth/login', credentials);
+    return response.data;
+  },
+
+  logout: async (): Promise<void> => {
+    await apiClient.post('/auth/logout');
+    localStorage.removeItem('token');
+  },
+
+  getCurrentUser: async () => {
+    const response = await apiClient.get('/auth/me');
+    return response.data;
+  },
+};
+
+export const contactService = {
+  sendContactRequest: async (contactData: ContactRequest): Promise<void> => {
+    // Note: Vous devrez créer cet endpoint dans votre backend
+    await apiClient.post('/contact/send', contactData);
+  },
+};
+
+export default apiClient;
