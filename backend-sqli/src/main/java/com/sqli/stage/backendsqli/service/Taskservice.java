@@ -37,4 +37,10 @@ public interface Taskservice {
     // new Fonctionnaliter  ----------------------------------
     TaskProgressResponse getProgressByProject(int projectId);
     public TaskResponse markTaskAsBlocked(int taskId);
+
+    // Timer functionality
+    TaskResponse updateTaskHours(int taskId, double hours);
+    Map<String, Object> startTaskTimer(int taskId);
+    Map<String, Object> stopTaskTimer(int taskId);
+    Map<String, Object> getTaskTimerStatus(int taskId);
 }

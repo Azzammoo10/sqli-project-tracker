@@ -3,6 +3,7 @@ import { Activity } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavChef from '../../components/NavChef';
 import { authService } from '../../services/api';
+import { chefDashboardService } from '../../services/chefDashboardService';
 import toast from 'react-hot-toast';
 
 interface BuildProject {
@@ -18,19 +19,38 @@ export default function ChefAnalytics() {
   const [user, setUser] = useState<any>(null);
   const [build, setBuild] = useState<BuildProject[]>([]);
   const [tma, setTma] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
         const me = await authService.getCurrentUser();
         setUser(me);
-        const [buildRes, tmaRes] = await Promise.all([
-          fetch('http://localhost:8080/api/analytics/projects/build', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
-          fetch('http://localhost:8080/api/analytics/projects/tma', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+        
+        // Utiliser le service du dashboard pour récupérer les données
+        const [statsData, buildData, tmaData] = await Promise.all([
+          chefDashboardService.getDashboardStats(),
+          chefDashboardService.getProjectsOverview(),
+          chefDashboardService.getProjectsOverview() // Pour l'instant, utiliser les mêmes données
         ]);
-        setBuild(await buildRes.json());
-        setTma(await tmaRes.json());
+        
+        setStats(statsData);
+        setBuild(buildData.map((p: any) => ({
+          projectId: p.id,
+          titre: p.titre,
+          completionRate: p.progression || 0,
+          totalTasks: p.tasks?.length || 0,
+          completedTasks: p.tasks?.filter((t: any) => t.statut === 'TERMINE')?.length || 0
+        })));
+        setTma(tmaData.filter((p: any) => p.type === 'TMA').map((p: any) => ({
+          projectId: p.id,
+          titre: p.titre,
+          completionRate: p.progression || 0,
+          totalTasks: p.tasks?.length || 0,
+          completedTasks: p.tasks?.filter((t: any) => t.statut === 'TERMINE')?.length || 0
+        })));
       } catch (e) {
+        console.error('Erreur lors du chargement des analytics:', e);
         toast.error('Erreur lors du chargement des analytics');
       } finally {
         setLoading(false);
@@ -60,11 +80,34 @@ export default function ChefAnalytics() {
         <div className="flex-1 overflow-auto">
           <div className="p-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-6">Analytics</h1>
+            
+            {/* Statistiques générales */}
+            {stats && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-lg shadow p-4">
+                  <div className="text-sm text-gray-600">Projets Actifs</div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.activeProjects}</div>
+                </div>
+                <div className="bg-white rounded-lg shadow p-4">
+                  <div className="text-sm text-gray-600">Tâches en Cours</div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.pendingTasks}</div>
+                </div>
+                <div className="bg-white rounded-lg shadow p-4">
+                  <div className="text-sm text-gray-600">Taux de Réussite</div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.averageCompletionRate}%</div>
+                </div>
+                <div className="bg-white rounded-lg shadow p-4">
+                  <div className="text-sm text-gray-600">Équipe</div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.teamMembers}</div>
+                </div>
+              </div>
+            )}
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-lg font-semibold mb-4">Projets Build</h2>
                 <div className="space-y-3">
-                  {build.map((p) => (
+                  {build.filter(p => p.titre && p.completionRate !== undefined).map((p) => (
                     <div key={p.projectId} className="flex items-center justify-between">
                       <div>
                         <div className="font-medium text-gray-900">{p.titre}</div>
@@ -78,20 +121,28 @@ export default function ChefAnalytics() {
                       </div>
                     </div>
                   ))}
-                  {build.length === 0 && <p className="text-gray-500">Aucun projet</p>}
+                  {build.filter(p => p.titre && p.completionRate !== undefined).length === 0 && <p className="text-gray-500">Aucun projet</p>}
                 </div>
               </div>
 
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-lg font-semibold mb-4">Projets TMA</h2>
                 <div className="space-y-3">
-                  {tma.map((p, idx) => (
-                    <div key={idx} className="flex items-center justify-between">
-                      <div className="font-medium text-gray-900">{p.titre}</div>
-                      <div className="text-xs text-gray-600">{Math.round(p.completionRate ?? 0)}%</div>
+                  {tma.filter(p => p.titre && p.completionRate !== undefined).map((p) => (
+                    <div key={p.projectId} className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-gray-900">{p.titre}</div>
+                        <div className="text-xs text-gray-500">{p.completedTasks}/{p.totalTasks} tâches</div>
+                      </div>
+                      <div className="w-40">
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div className="h-2 rounded-full bg-[#4B2A7B]" style={{ width: `${Math.round(p.completionRate)}%` }} />
+                        </div>
+                        <div className="text-xs text-right text-gray-600">{Math.round(p.completionRate)}%</div>
+                      </div>
                     </div>
                   ))}
-                  {tma.length === 0 && <p className="text-gray-500">Aucun projet TMA</p>}
+                  {tma.filter(p => p.titre && p.completionRate !== undefined).length === 0 && <p className="text-gray-500">Aucun projet TMA</p>}
                 </div>
               </div>
             </div>

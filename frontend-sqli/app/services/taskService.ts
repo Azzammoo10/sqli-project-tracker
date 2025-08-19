@@ -30,35 +30,84 @@ export type TaskCreatePayload = {
 
 export const taskService = {
   getAll: async (): Promise<Task[]> => {
-    const { data } = await apiClient.get('/task');
+    const { data } = await apiClient.get('/tasks');
     return data;
   },
+
+  getById: async (id: number): Promise<Task> => {
+    const { data } = await apiClient.get(`/tasks/${id}`);
+    return data;
+  },
+
+  createTask: async (payload: TaskCreatePayload): Promise<Task> => {
+    const { data } = await apiClient.post('/tasks', payload);
+    return data;
+  },
+
+  update: async (id: number, payload: Partial<TaskCreatePayload>): Promise<Task> => {
+    const { data } = await apiClient.put(`/tasks/${id}`, payload);
+    return data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await apiClient.delete(`/tasks/${id}`);
+  },
+
   getByProject: async (projectId: number): Promise<Task[]> => {
-    const { data } = await apiClient.get(`/task/project/${projectId}`);
+    const { data } = await apiClient.get(`/tasks/project/${projectId}`);
     return data;
   },
-  getStats: async (): Promise<Record<string, number>> => {
-    const { data } = await apiClient.get('/task/stats/me');
+
+  getByUser: async (): Promise<Task[]> => {
+    const { data } = await apiClient.get('/tasks/my-tasks');
     return data;
   },
-  getLate: async (): Promise<Task[]> => {
-    const { data } = await apiClient.get('/task/late');
+
+  updateStatus: async (id: number, status: string): Promise<Task> => {
+    const { data } = await apiClient.put(`/tasks/${id}/status?status=${status}`);
     return data;
   },
-    create: async (payload: {
-        titre: string;
-        description: string | undefined;
-        dateDebut: string;
-        dateFin: string;
-        statut: "A_FAIRE" | "EN_COURS" | "TERMINE";
-        priorite: "BASSE" | "MOYENNE" | "HAUTE";
-        plannedHours: number;
-        projectId: number;
-        developpeurId: number
-    }): Promise<Task> => {
-        const { data } = await apiClient.post('/task', payload);
-        return data as Task;
-    },
+
+  assignTask: async (id: number, developerId: number): Promise<Task> => {
+    const { data } = await apiClient.put(`/tasks/${id}/assign?developerId=${developerId}`);
+    return data;
+  },
+
+  updateHours: async (id: number, hours: number): Promise<Task> => {
+    const { data } = await apiClient.put(`/tasks/${id}/hours?hours=${hours}`);
+    return data;
+  },
+
+  // Timer functionality
+  startTimer: async (id: number): Promise<any> => {
+    const { data } = await apiClient.post(`/tasks/${id}/timer/start`);
+    return data;
+  },
+
+  stopTimer: async (id: number): Promise<any> => {
+    const { data } = await apiClient.post(`/tasks/${id}/timer/stop`);
+    return data;
+  },
+
+  getTimerStatus: async (id: number): Promise<any> => {
+    const { data } = await apiClient.get(`/tasks/${id}/timer/status`);
+    return data;
+  },
+
+  getStats: async (): Promise<any> => {
+    const { data } = await apiClient.get('/tasks/stats');
+    return data;
+  },
+
+  search: async (keyword: string): Promise<Task[]> => {
+    const { data } = await apiClient.get(`/tasks/search?keyword=${encodeURIComponent(keyword)}`);
+    return data;
+  },
+
+  filter: async (filters: any): Promise<Task[]> => {
+    const { data } = await apiClient.post('/tasks/filter', filters);
+    return data;
+  }
 };
 
 export default taskService;

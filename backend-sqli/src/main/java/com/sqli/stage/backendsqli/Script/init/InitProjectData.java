@@ -23,10 +23,23 @@ public class InitProjectData {
     public void initProjects() {
         if (projetRepository.count() > 0) return;
 
-        create("Projet Alpha", "Développement d’une API REST",  true, TypeProjet.Delivery, StatutProjet.EN_COURS, d(2025, 8, 1), d(2025, 9, 30), 5, 1);
-        create("Projet Beta", "Refonte d’un portail client",  false, TypeProjet.Interne, StatutProjet.EN_COURS, d(2025, 8, 5), d(2025, 10, 15), 6, 1);
-        create("Projet Gamma", "Maintenance TMA",  true, TypeProjet.TMA, StatutProjet.EN_COURS, d(2025, 8, 10), d(2025, 11, 10), 6, 1);
-        create("Projet Delta", "Poc microservices", true, TypeProjet.Interne, StatutProjet.EN_COURS, d(2025, 7, 15), d(2025, 9, 15), 5, 1);
+        // Trouver Alice Manager (chef de projet)
+        User aliceManager = userRepository.findByRole(Role.CHEF_DE_PROJET).stream().findFirst()
+                .orElseThrow(() -> new RuntimeException("Aucun chef de projet trouvé"));
+
+        // Trouver les clients
+        User evaClient = userRepository.findByRole(Role.CLIENT).stream().findFirst()
+                .orElseThrow(() -> new RuntimeException("Aucun client trouvé"));
+
+        User fayClient = userRepository.findByRole(Role.CLIENT).stream()
+                .filter(u -> !u.getUsername().equals(evaClient.getUsername()))
+                .findFirst()
+                .orElse(evaClient);
+
+        create("Projet Alpha", "Développement d'une API REST", true, TypeProjet.Delivery, StatutProjet.EN_COURS, d(2025, 8, 1), d(2025, 9, 30), evaClient.getId(), aliceManager.getId());
+        create("Projet Beta", "Refonte d'un portail client", false, TypeProjet.Interne, StatutProjet.EN_COURS, d(2025, 8, 5), d(2025, 10, 15), fayClient.getId(), aliceManager.getId());
+        create("Projet Gamma", "Maintenance TMA", true, TypeProjet.TMA, StatutProjet.EN_COURS, d(2025, 8, 10), d(2025, 11, 10), evaClient.getId(), aliceManager.getId());
+        create("Projet Delta", "Poc microservices", true, TypeProjet.Interne, StatutProjet.EN_COURS, d(2025, 7, 15), d(2025, 9, 15), fayClient.getId(), aliceManager.getId());
     }
 
     private void create(String titre, String desc, boolean pub, TypeProjet type, StatutProjet statut, LocalDate debut, LocalDate fin, int clientId, int creatorId) {
@@ -51,7 +64,6 @@ public class InitProjectData {
     private String generateShortHexUUID() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 8);
     }
-
 
     private LocalDate d(int y, int m, int d) {
         return LocalDate.of(y, m, d);

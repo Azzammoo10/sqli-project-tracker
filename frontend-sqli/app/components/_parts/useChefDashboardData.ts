@@ -1,17 +1,52 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import apiClient, { authService } from '../../services/api';
-import { projectService } from '~/services/projectService';
-import { dashboardService } from '~/services/dashboardService';
-import { taskService } from '~/services/taskService';
+import {useEffect, useMemo, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import apiClient, {authService} from '../../services/api';
+import {projectService} from '~/services/projectService';
+import {dashboardService} from '~/services/dashboardService';
+import {taskService} from '~/services/taskService';
 import toast from 'react-hot-toast';
-import { Activity, BarChart3, ClipboardList, FolderOpen } from 'lucide-react';
+import {Activity, BarChart3, ClipboardList, FolderOpen} from 'lucide-react';
 
 const fmt = new Intl.NumberFormat('fr-FR');
 const fmtDate = (d?: string | null) =>
     d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 const pct = (n?: number) => `${Math.round(clamp01((n ?? 0) / 100) * 100)}%`;
+
+
+
+
+type TeamMember = { id: number | string; username: string; role: string; assignedProjects: number };
+
+const normalizeTeam = (rows: any[]): TeamMember[] =>
+    (rows ?? []).map((m: any) => {
+        const username =
+            m?.username ??
+            m?.nom ??
+            m?.name ??
+            m?.fullName ??
+            m?.user?.username ??
+            m?.user?.nom ??
+            (m?.email ? String(m.email).split('@')[0] : undefined) ??
+            '—';
+
+        const assignedProjects =
+            m?.assignedProjects ??
+            m?.projectsCount ??
+            m?.nbProjets ??
+            (Array.isArray(m?.projects) ? m.projects.length : undefined) ??
+            0;
+
+        const role = m?.role ?? m?.user?.role ?? 'DEVELOPPEUR';
+
+        return {
+            id: m?.id ?? m?.userId ?? m?.developpeurId ?? username,
+            username,
+            role,
+            assignedProjects: Number(assignedProjects || 0),
+        };
+    });
+
 
 export function useChefDashboardData() {
     const navigate = useNavigate();
@@ -32,7 +67,7 @@ export function useChefDashboardData() {
                 const userData = await authService.getCurrentUser();
                 setUser(userData);
 
-                const [s, build, teamDash, trendData, chefProjects, allTasks, tStats] = await Promise.all([
+                const [s, build, teamDashRaw, trendData, chefProjects, allTasks, tStats] = await Promise.all([
                     projectService.getProjectStats(),
                     apiClient.get('/analytics/projects/build').then(r => r.data),
                     apiClient.get('/analytics/dashboard/team').then(r => r.data),
@@ -44,7 +79,26 @@ export function useChefDashboardData() {
 
                 setStats(s);
                 setBuildProjects(build ?? []);
-                setTeam(teamDash ?? []);
+                let teamNorm = normalizeTeam(teamDashRaw);
+
+                 if ((!teamNorm || teamNorm.length === 0) && (chefProjects?.length ?? 0) > 0) {
+                     teamNorm = Array.from(
+                            new Map(
+                                (chefProjects ?? [])
+                                    .flatMap((p: any) => p.developpeurs ?? [])
+                                    .map((d: any) => [
+                                        d.id,
+                                        {
+                                            id: d.id,
+                                            username: d.username ?? d.nom ?? `dev#${d.id}`,
+                                            role: d.role ?? 'DEVELOPPEUR',
+                                            assignedProjects: 1,
+                                        },
+                                    ])
+                            ).values()
+                        );
+                    }
+                setTeam(teamNorm);
                 setTrend((trendData ?? []).slice(-12));
                 setRecentProjects((chefProjects ?? []).slice(0, 4));
                 setTasks((allTasks ?? []).slice(0, 5));

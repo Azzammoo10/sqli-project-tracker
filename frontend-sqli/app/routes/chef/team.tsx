@@ -5,6 +5,7 @@ import {
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavChef from '../../components/NavChef';
 import { authService } from '../../services/api';
+import { chefDashboardService } from '../../services/chefDashboardService';
 import toast from 'react-hot-toast';
 
 interface TeamMember {
@@ -28,14 +29,24 @@ export default function ChefTeam() {
       try {
         const me = await authService.getCurrentUser();
         setUser(me);
-        const res = await fetch(
-          'http://localhost:8080/api/analytics/dashboard/team',
-          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-        );
-        const data = await res.json();
-        setTeam(Array.isArray(data) ? data : []);
+        
+        // Utiliser le service du dashboard pour récupérer les données d'équipe
+        const teamData = await chefDashboardService.getTeamOverview();
+        
+        // Transformer les données pour correspondre à l'interface TeamMember
+        const transformedTeam = teamData.map((member: any) => ({
+          userId: member.id,
+          fullName: member.username,
+          totalTasks: (member.completedTasks || 0) + (member.pendingTasks || 0),
+          completedTasks: member.completedTasks || 0,
+          inProgressTasks: member.pendingTasks || 0,
+          blockedTasks: 0, // Pas de données pour les tâches bloquées pour l'instant
+          completionRate: member.totalTasks > 0 ? (member.completedTasks / member.totalTasks) * 100 : 0
+        }));
+        
+        setTeam(transformedTeam);
       } catch (e) {
-        console.error(e);
+        console.error('Erreur lors du chargement de l\'équipe:', e);
         toast.error("Erreur lors du chargement de l'équipe");
       } finally {
         setLoading(false);

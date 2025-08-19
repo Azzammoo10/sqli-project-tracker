@@ -347,7 +347,40 @@ public class ProjetServiceImpl implements ProjetService {
 
     @Override
     public List<ProjectResponse> getProjectsForCurrentUser() {
-        return List.of();
+        User currentUser = getCurrentUser();
+        
+        switch (currentUser.getRole()) {
+            case CHEF_DE_PROJET:
+                // Retourner les projets créés par le chef de projet
+                return projetRepository.findByCreatedByUsername(currentUser.getUsername())
+                        .stream()
+                        .map(this::mapToResponse)
+                        .collect(Collectors.toList());
+                        
+            case CLIENT:
+                // Retourner les projets où l'utilisateur est le client
+                return projetRepository.findByClientId(currentUser.getId())
+                        .stream()
+                        .map(this::mapToResponse)
+                        .collect(Collectors.toList());
+                        
+            case DEVELOPPEUR:
+                // Retourner les projets où l'utilisateur est assigné comme développeur
+                return projetRepository.findByDeveloppeurId(currentUser.getId())
+                        .stream()
+                        .map(this::mapToResponse)
+                        .collect(Collectors.toList());
+                        
+            case ADMIN:
+                // L'admin voit tous les projets
+                return projetRepository.findAll()
+                        .stream()
+                        .map(this::mapToResponse)
+                        .collect(Collectors.toList());
+                        
+            default:
+                return List.of();
+        }
     }
 
 

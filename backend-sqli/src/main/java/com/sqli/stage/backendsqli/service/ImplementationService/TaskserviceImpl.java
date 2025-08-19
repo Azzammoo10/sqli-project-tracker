@@ -30,6 +30,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.HashMap;
 
 @RequiredArgsConstructor
 @Service
@@ -168,6 +169,10 @@ public class TaskserviceImpl implements Taskservice {
         logRequest.setEntityId(updatedTask.getId());
         logRequest.setEntityName(EntityName.TASK);
         historiqueService.logAction(logRequest);
+
+        // ⬇️ Mise à jour immédiate de la progression projet
+        projetService.updateProjectProgress(updatedTask.getProject().getId());
+
         return mapToReponse(updatedTask);
     }
 
@@ -393,12 +398,151 @@ public class TaskserviceImpl implements Taskservice {
 
     @Override
     public TaskProgressResponse getProgressByProject(int projectId) {
-        return null;
+        Project project = projetRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projet introuvable"));
+        
+        long totalTasks = taskRepoistory.countByProjectId(projectId);
+        long completedTasks = taskRepoistory.countByProjectIdAndStatut(projectId, StatutTache.TERMINE);
+        long inProgressTasks = taskRepoistory.countByProjectIdAndStatut(projectId, StatutTache.EN_COURS);
+        long blockedTasks = taskRepoistory.countByProjectIdAndStatut(projectId, StatutTache.BLOQUE);
+        
+        double completionPercentage = totalTasks > 0 ? (completedTasks * 100.0) / totalTasks : 0.0;
+        
+        return TaskProgressResponse.builder()
+                .projectId(projectId)
+                .projectTitre(project.getTitre())
+                .completionPercentage(completionPercentage)
+                .completedTasks((int) completedTasks)
+                .totalTasks((int) totalTasks)
+                .inProgressTasks((int) inProgressTasks)
+                .blockedTasks((int) blockedTasks)
+                .build();
     }
 
     @Override
     public TaskResponse markTaskAsBlocked(int taskId) {
-        return null;
+        User current = getCurrentUser();
+
+        Task task = taskRepoistory.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tâche introuvable"));
+
+        // (Optionnel) sécurité: seul le dev assigné ou le chef de projet peut bloquer
+        if (!task.getDeveloppeur().getId().equals(current.getId())) {
+            throw new AccessdeniedException("Non autorisé à bloquer cette tâche.");
+        }
+
+        // déjà bloquée ? on sort idempotent
+        if (task.getStatut() == StatutTache.BLOQUE) {
+            return mapToReponse(task);
+        }
+
+        task.setStatut(StatutTache.BLOQUE);
+        taskRepoistory.save(task);
+
+        // ⬇️ Mise à jour immédiate de la progression projet
+        projetService.updateProjectProgress(task.getProject().getId());
+
+        return mapToReponse(task);
+    }
+
+    // Timer functionality
+    @Override
+    public TaskResponse updateTaskHours(int taskId, double hours) {
+        User current = getCurrentUser();
+        Task task = taskRepoistory.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tâche introuvable"));
+
+        // Vérifier que l'utilisateur est le développeur assigné
+        if (!task.getDeveloppeur().getId().equals(current.getId())) {
+            throw new AccessdeniedException("Non autorisé à modifier cette tâche.");
+        }
+
+        // Mettre à jour les heures effectives
+        int currentEffectiveHours = task.getEffectiveHours() != null ? task.getEffectiveHours() : 0;
+        int newEffectiveHours = currentEffectiveHours + (int) Math.round(hours);
+        task.setEffectiveHours(newEffectiveHours);
+
+        // Mettre à jour les heures restantes
+        int plannedHours = task.getPlannedHours() != null ? task.getPlannedHours() : 0;
+        int remainingHours = Math.max(0, plannedHours - newEffectiveHours);
+        task.setRemainingHours(remainingHours);
+
+        Task savedTask = taskRepoistory.save(task);
+
+        // Log de l'action
+        historiqueService.logAction(new LogRequest(
+                TypeOperation.MODIFICATION,
+                "Mise à jour des heures effectives pour la tâche '" + savedTask.getTitre() + "' (ID " + savedTask.getId() + ") par " + current.getUsername(),
+                savedTask.getId(),
+                EntityName.TASK
+        ));
+
+        return mapToReponse(savedTask);
+    }
+
+    @Override
+    public Map<String, Object> startTaskTimer(int taskId) {
+        User current = getCurrentUser();
+        Task task = taskRepoistory.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tâche introuvable"));
+
+        // Vérifier que l'utilisateur est le développeur assigné
+        if (!task.getDeveloppeur().getId().equals(current.getId())) {
+            throw new AccessdeniedException("Non autorisé à démarrer le timer pour cette tâche.");
+        }
+
+        // Pour l'instant, on simule le timer côté backend
+        // Dans une vraie implémentation, on stockerait le timestamp de début en base
+        Map<String, Object> response = new HashMap<>();
+        response.put("taskId", taskId);
+        response.put("status", "started");
+        response.put("startTime", System.currentTimeMillis());
+        response.put("message", "Timer démarré pour la tâche: " + task.getTitre());
+
+        return response;
+    }
+
+    @Override
+    public Map<String, Object> stopTaskTimer(int taskId) {
+        User current = getCurrentUser();
+        Task task = taskRepoistory.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tâche introuvable"));
+
+        // Vérifier que l'utilisateur est le développeur assigné
+        if (!task.getDeveloppeur().getId().equals(current.getId())) {
+            throw new AccessdeniedException("Non autorisé à arrêter le timer pour cette tâche.");
+        }
+
+        // Pour l'instant, on simule l'arrêt du timer
+        // Dans une vraie implémentation, on calculerait le temps écoulé
+        Map<String, Object> response = new HashMap<>();
+        response.put("taskId", taskId);
+        response.put("status", "stopped");
+        response.put("stopTime", System.currentTimeMillis());
+        response.put("message", "Timer arrêté pour la tâche: " + task.getTitre());
+
+        return response;
+    }
+
+    @Override
+    public Map<String, Object> getTaskTimerStatus(int taskId) {
+        User current = getCurrentUser();
+        Task task = taskRepoistory.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tâche introuvable"));
+
+        // Vérifier que l'utilisateur est le développeur assigné
+        if (!task.getDeveloppeur().getId().equals(current.getId())) {
+            throw new AccessdeniedException("Non autorisé à consulter le timer de cette tâche.");
+        }
+
+        // Pour l'instant, on retourne un statut par défaut
+        Map<String, Object> response = new HashMap<>();
+        response.put("taskId", taskId);
+        response.put("isRunning", false);
+        response.put("elapsedTime", 0);
+        response.put("message", "Statut du timer pour la tâche: " + task.getTitre());
+
+        return response;
     }
 
 

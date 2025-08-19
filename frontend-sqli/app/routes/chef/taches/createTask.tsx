@@ -1,21 +1,31 @@
-// src/pages/chef/CreateTask.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, ArrowLeft, Save, Calendar, FileText, Layers, ClipboardList } from 'lucide-react';
-import ProtectedRoute from '~/components/ProtectedRoute';
-import NavChef from '~/components/NavChef';
-import { authService } from '~/services/api';
-import { projectService } from '~/services/projectService';
-import { taskService } from '~/services/taskService';
+import { 
+  Activity, 
+  ArrowLeft, 
+  Save, 
+  Calendar, 
+  FileText, 
+  Layers, 
+  ClipboardList,
+  User,
+  Clock,
+  AlertTriangle
+} from 'lucide-react';
+import ProtectedRoute from '../../../components/ProtectedRoute';
+import NavChef from '../../../components/NavChef';
+import { authService } from '../../../services/api';
+import { projectService } from '../../../services/projectService';
+import { taskService } from '../../../services/taskService';
+import { userService } from '../../../services/userService';
 import toast from 'react-hot-toast';
-import DeveloperMultiSelect, {type DeveloperOption } from '~/components/DeveloperMultiSelect';
 
-type Statut = 'A_FAIRE' | 'EN_COURS' | 'TERMINE';
-type Priorite = 'BASSE' | 'MOYENNE' | 'HAUTE';
+type Statut = 'NON_COMMENCE' | 'EN_COURS' | 'BLOQUE' | 'TERMINE';
+type Priorite = 'BASSE' | 'MOYENNE' | 'ELEVEE';
 
 export default function CreateTask() {
     const navigate = useNavigate();
-    const [me, setMe] = useState<any>(null);
+    const [user, setUser] = useState<any>(null);
     const [submitting, setSubmitting] = useState(false);
 
     const [form, setForm] = useState({
@@ -23,30 +33,35 @@ export default function CreateTask() {
         description: '',
         dateDebut: '',
         dateFin: '',
-        statut: 'A_FAIRE' as Statut,
+        statut: 'NON_COMMENCE' as Statut,
         priorite: 'MOYENNE' as Priorite,
-        plannedHours: 0,
+        plannedHours: 8,
         projectId: '' as any,
+        developpeurId: '' as any,
     });
 
     const [projects, setProjects] = useState<any[]>([]);
-    const [devOptions, setDevOptions] = useState<DeveloperOption[]>([]);
-    const [selectedDevs, setSelectedDevs] = useState<number[]>([]); // multi UI, on prendra le 1er
+    const [developers, setDevelopers] = useState<any[]>([]);
 
     useEffect(() => {
         (async () => {
             try {
+                console.log('Chargement des données...');
                 const u = await authService.getCurrentUser();
-                setMe(u);
-                // projets du chef
+                setUser(u);
+                console.log('Utilisateur chargé:', u);
+                
+                // Projets du chef
                 const myProjects = await projectService.getProjectsByChef();
                 setProjects(myProjects ?? []);
-                // développeurs (à adapter à ton endpoint si besoin)
-                // ex: /api/users?role=DEVELOPPEUR
-                const res = await fetch('/api/users?role=DEVELOPPEUR', { headers: { 'Accept': 'application/json' } });
-                const devs = await res.json();
-                setDevOptions((devs ?? []).map((d: any) => ({ id: d.id, label: d.username ?? d.nom ?? `dev#${d.id}` })));
+                console.log('Projets chargés:', myProjects);
+                
+                // Développeurs
+                const devs = await userService.getUsersByRole('DEVELOPPEUR');
+                setDevelopers(devs ?? []);
+                console.log('Développeurs chargés:', devs);
             } catch (e) {
+                console.error('Erreur détaillée:', e);
                 toast.error('Erreur lors du chargement des données');
             }
         })();
@@ -56,35 +71,37 @@ export default function CreateTask() {
         const okTitre = form.titre.trim().length >= 3;
         const okDates = form.dateDebut && form.dateFin && new Date(form.dateFin) >= new Date(form.dateDebut);
         const okProject = !!form.projectId;
-        const okDev = selectedDevs.length >= 1;
+        const okDev = !!form.developpeurId;
         return okTitre && okDates && okProject && okDev;
-    }, [form, selectedDevs]);
+    }, [form]);
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!valid) {
-            toast.error('Champs requis invalides.');
-            return;
-        }
+        if (!valid || submitting) return;
+
         setSubmitting(true);
         try {
             const payload = {
                 titre: form.titre.trim(),
-                description: form.description?.trim() || undefined,
+                description: form.description.trim() || undefined,
                 dateDebut: form.dateDebut,
                 dateFin: form.dateFin,
                 statut: form.statut,
                 priorite: form.priorite,
-                plannedHours: Number(form.plannedHours) || 0,
+                plannedHours: form.plannedHours,
                 projectId: Number(form.projectId),
-                developpeurId: selectedDevs[0], // on prend le 1er sélectionné
+                developpeurId: Number(form.developpeurId),
+                effectiveHours: 0,
+                remainingHours: form.plannedHours,
+                progression: 0
             };
-            await taskService.create(payload);
-            toast.success('Tâche créée avec succès !');
+
+            await taskService.createTask(payload);
+            toast.success('Tâche créée avec succès');
             navigate('/chef/tasks');
-        } catch (err: any) {
-            const msg = err?.response?.data?.message || err?.message || "Erreur lors de la création";
-            toast.error(msg);
+        } catch (error: any) {
+            console.error('Erreur création tâche:', error);
+            toast.error(error?.response?.data?.message || 'Erreur lors de la création de la tâche');
         } finally {
             setSubmitting(false);
         }
@@ -92,29 +109,61 @@ export default function CreateTask() {
 
     const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setForm(prev => ({ ...prev, [name]: value }));
+        setForm(prev => ({
+            ...prev,
+            [name]: name === 'plannedHours' ? Number(value) : value,
+        }));
+    };
+
+    const handleLogout = async () => {
+        try {
+            await authService.logout();
+            navigate('/auth/login');
+            toast.success('Déconnexion réussie');
+        } catch {
+            toast.error('Erreur lors de la déconnexion');
+        }
     };
 
     return (
         <ProtectedRoute allowedRoles={['CHEF_DE_PROJET']}>
-            <div className="flex h-screen bg-gray-50">
-                <NavChef user={me} />
+            <div className="flex h-screen bg-gradient-to-b from-[#f6f4fb] to-[#fbfcfe]">
+                <NavChef user={user} onLogout={handleLogout} />
 
-                <div className="flex-1 overflow-auto">
+                <main className="flex-1 overflow-auto">
+                    {/* Header harmonisé (même style que les autres pages) */}
                     <div className="p-6">
-                        <button
-                            onClick={() => navigate('chef/tasks/create')}
-                            className="inline-flex items-center gap-2 text-[#4B2A7B] hover:text-[#5B3A8B] mb-4"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            <span>Retour à la liste des tâches</span>
-                        </button>
+                        <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
+                            <div
+                                className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
+                                style={{
+                                    background:
+                                        'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'
+                                }}
+                            />
+                            <div className="relative flex items-center justify-between gap-4">
+                                <button
+                                    onClick={() => navigate('/chef/tasks')}
+                                    className="inline-flex items-center gap-2 text-white/90 hover:text-white"
+                                >
+                                    <ArrowLeft className="h-4 w-4" />
+                                    <span className="text-sm">Retour</span>
+                                </button>
 
-                        <h1 className="text-2xl font-bold text-gray-900 mb-1">Créer une tâche</h1>
-                        <p className="text-gray-700 mb-6">Renseignez les informations ci-dessous, puis validez.</p>
+                                <div className="text-right">
+                                    <h1 className="text-2xl font-semibold tracking-tight">Créer une tâche</h1>
+                                    <p className="text-white/85">
+                                        Renseigne les informations puis enregistre
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                        <div className="max-w-2xl">
-                            <form onSubmit={submit} className="bg-white rounded-lg shadow p-6 space-y-6">
+                    {/* Carte/formulaire élargis et centrés */}
+                    <div className="px-6 pb-10">
+                        <div className="mx-auto max-w-4xl rounded-2xl border border-gray-200 bg-white shadow-sm p-6 lg:p-8">
+                            <form onSubmit={submit} className="space-y-6">
                                 {/* Titre */}
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-800 mb-2">Titre *</label>
@@ -125,7 +174,7 @@ export default function CreateTask() {
                                             value={form.titre}
                                             onChange={onChange}
                                             placeholder="Ex: Implémenter JWT"
-                                            className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                                            className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent focus:bg-white"
                                             required
                                         />
                                     </div>
@@ -140,7 +189,7 @@ export default function CreateTask() {
                                             name="projectId"
                                             value={form.projectId}
                                             onChange={onChange}
-                                            className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                                            className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent focus:bg-white"
                                             required
                                         >
                                             <option value="" disabled>— Sélectionner un projet —</option>
@@ -151,16 +200,26 @@ export default function CreateTask() {
                                     </div>
                                 </div>
 
-                                {/* Développeur via DeveloperMultiSelect */}
+                                {/* Développeur */}
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-800 mb-2">Développeur *</label>
-                                    <DeveloperMultiSelect
-                                        options={devOptions}
-                                        value={selectedDevs}
-                                        onChange={setSelectedDevs}
-                                        placeholder="Sélectionner le développeur…"
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Astuce : tu peux en sélectionner plusieurs, seul le premier sera envoyé.</p>
+                                    <div className="relative">
+                                        <User className="h-4 w-4 text-gray-500 absolute left-3 top-3" />
+                                        <select
+                                            name="developpeurId"
+                                            value={form.developpeurId}
+                                            onChange={onChange}
+                                            className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent focus:bg-white"
+                                            required
+                                        >
+                                            <option value="" disabled>— Sélectionner un développeur —</option>
+                                            {developers.map((dev: any) => (
+                                                <option key={dev.id} value={dev.id}>
+                                                    {dev.username || dev.nom || `Développeur #${dev.id}`}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
 
                                 {/* Dates */}
@@ -174,7 +233,7 @@ export default function CreateTask() {
                                                 name="dateDebut"
                                                 value={form.dateDebut}
                                                 onChange={onChange}
-                                                className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                                                className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent focus:bg-white"
                                                 required
                                             />
                                         </div>
@@ -188,7 +247,7 @@ export default function CreateTask() {
                                                 name="dateFin"
                                                 value={form.dateFin}
                                                 onChange={onChange}
-                                                className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                                                className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent focus:bg-white"
                                                 required
                                             />
                                         </div>
@@ -199,43 +258,54 @@ export default function CreateTask() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-800 mb-2">Statut</label>
-                                        <select
-                                            name="statut"
-                                            value={form.statut}
-                                            onChange={onChange}
-                                            className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                                        >
-                                            <option value="A_FAIRE">À faire</option>
-                                            <option value="EN_COURS">En cours</option>
-                                            <option value="TERMINE">Terminé</option>
-                                        </select>
+                                        <div className="relative">
+                                            <Clock className="h-4 w-4 text-gray-500 absolute left-3 top-3" />
+                                            <select
+                                                name="statut"
+                                                value={form.statut}
+                                                onChange={onChange}
+                                                className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent focus:bg-white"
+                                            >
+                                                <option value="NON_COMMENCE">Non commencé</option>
+                                                <option value="EN_COURS">En cours</option>
+                                                <option value="BLOQUE">Bloqué</option>
+                                                <option value="TERMINE">Terminé</option>
+                                            </select>
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-800 mb-2">Priorité</label>
-                                        <select
-                                            name="priorite"
-                                            value={form.priorite}
-                                            onChange={onChange}
-                                            className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                                        >
-                                            <option value="BASSE">Basse</option>
-                                            <option value="MOYENNE">Moyenne</option>
-                                            <option value="HAUTE">Haute</option>
-                                        </select>
+                                        <div className="relative">
+                                            <AlertTriangle className="h-4 w-4 text-gray-500 absolute left-3 top-3" />
+                                            <select
+                                                name="priorite"
+                                                value={form.priorite}
+                                                onChange={onChange}
+                                                className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent focus:bg-white"
+                                            >
+                                                <option value="BASSE">Basse</option>
+                                                <option value="MOYENNE">Moyenne</option>
+                                                <option value="ELEVEE">Élevée</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Heures planifiées */}
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-800 mb-2">Heures planifiées</label>
-                                    <input
-                                        type="number"
-                                        name="plannedHours"
-                                        value={form.plannedHours}
-                                        onChange={onChange}
-                                        min={0}
-                                        className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                                    />
+                                    <div className="relative">
+                                        <Clock className="h-4 w-4 text-gray-500 absolute left-3 top-3" />
+                                        <input
+                                            type="number"
+                                            name="plannedHours"
+                                            value={form.plannedHours}
+                                            onChange={onChange}
+                                            min={0}
+                                            placeholder="8"
+                                            className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent focus:bg-white"
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Description */}
@@ -249,7 +319,7 @@ export default function CreateTask() {
                                             onChange={onChange}
                                             rows={4}
                                             placeholder="Détails de la tâche…"
-                                            className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                                            className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent focus:bg-white"
                                         />
                                     </div>
                                 </div>
@@ -267,7 +337,7 @@ export default function CreateTask() {
                                         type="submit"
                                         disabled={submitting || !valid}
                                         className={`px-6 py-3 rounded-lg flex items-center gap-2 transition-colors
-                      ${submitting || !valid
+                          ${submitting || !valid
                                             ? 'bg-[#4B2A7B]/60 text-white cursor-not-allowed'
                                             : 'bg-[#4B2A7B] hover:bg-[#5B3A8B] text-white focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:ring-offset-2'}`}
                                     >
@@ -286,9 +356,8 @@ export default function CreateTask() {
                                 </div>
                             </form>
                         </div>
-
                     </div>
-                </div>
+                </main>
             </div>
         </ProtectedRoute>
     );

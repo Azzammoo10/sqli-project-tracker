@@ -19,8 +19,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -54,8 +55,6 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .lateProjects(lateProjects)
                 .build();
     }
-
-
 
     @Override
     public WorkloadResponse getWorkloadForUser(int userId) {
@@ -102,6 +101,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         return data;
     }
+
     @Override
     public List<TeamDashboardResponse> getTeamDashboard() {
         List<User> devs = userRepository.findByRole(Role.DEVELOPPEUR);
@@ -130,7 +130,6 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return result;
     }
 
-
     @Override
     public List<TmaProjectDashboardResponse> getTmaDashboard() {
         List<Project> projects = projectRepository.findTmaProjects();
@@ -156,5 +155,305 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return result;
     }
 
+    // Nouvelles méthodes pour le dashboard chef de projet
 
+    @Override
+    public Map<String, Object> getChefDashboardStats() {
+        // Récupérer le chef de projet connecté
+        String currentUsername = getCurrentUsername();
+        User currentChef = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Chef de projet non trouvé"));
+        
+        LocalDate today = LocalDate.now();
+        
+        // Filtrer les projets créés par ce chef de projet
+        List<Project> chefProjects = projectRepository.findByCreatedByUsername(currentUsername);
+        
+        long totalProjects = chefProjects.size();
+        long activeProjects = chefProjects.stream()
+                .filter(p -> p.getStatut() == StatutProjet.EN_COURS)
+                .count();
+        long completedProjects = chefProjects.stream()
+                .filter(p -> p.getStatut() == StatutProjet.TERMINE)
+                .count();
+        long overdueProjects = chefProjects.stream()
+                .filter(p -> p.getDateFin() != null && p.getDateFin().isBefore(today) && p.getStatut() != StatutProjet.TERMINE)
+                .count();
+
+        // Filtrer les tâches des projets de ce chef
+        List<Integer> projectIds = chefProjects.stream().map(Project::getId).toList();
+        long totalTasks = 0;
+        long completedTasks = 0;
+        long pendingTasks = 0;
+        
+        if (!projectIds.isEmpty()) {
+            totalTasks = taskRepository.countByProjectIdIn(projectIds);
+            completedTasks = taskRepository.countByProjectIdInAndStatut(projectIds, StatutTache.TERMINE);
+            pendingTasks = taskRepository.countByProjectIdInAndStatut(projectIds, StatutTache.EN_COURS);
+        }
+        
+        // Compter les développeurs assignés aux projets de ce chef
+        Set<User> assignedDevelopers = new HashSet<>();
+        for (Project project : chefProjects) {
+            if (project.getDeveloppeurs() != null) {
+                assignedDevelopers.addAll(project.getDeveloppeurs());
+            }
+        }
+        long teamMembers = assignedDevelopers.size();
+        
+        // Calcul du taux de réussite moyen des projets de ce chef
+        double averageCompletionRate = chefProjects.stream()
+                .mapToDouble(p -> p.getProgression() != null ? p.getProgression().doubleValue() : 0.0)
+                .average()
+                .orElse(0.0);
+
+        // Calcul de la croissance mensuelle (simulation basée sur les projets récents)
+        double monthlyGrowth = chefProjects.stream()
+                .filter(p -> p.getDateDebut() != null && p.getDateDebut().isAfter(today.minusMonths(1)))
+                .count() * 10.0; // Simulation
+        
+        // Tâches complétées cette semaine (simulation)
+        long weeklyTasksCompleted = completedTasks > 0 ? Math.min(completedTasks, 15) : 0;
+        
+        // Échéances à venir (7 jours) (simulation)
+        long upcomingDeadlines = chefProjects.stream()
+                .filter(p -> p.getDateFin() != null && 
+                           p.getDateFin().isAfter(today) && 
+                           p.getDateFin().isBefore(today.plusDays(7)))
+                .count();
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalProjects", totalProjects);
+        stats.put("activeProjects", activeProjects);
+        stats.put("completedProjects", completedProjects);
+        stats.put("overdueProjects", overdueProjects);
+        stats.put("totalTasks", totalTasks);
+        stats.put("completedTasks", completedTasks);
+        stats.put("pendingTasks", pendingTasks);
+        stats.put("teamMembers", teamMembers);
+        stats.put("averageCompletionRate", Math.round(averageCompletionRate));
+        stats.put("monthlyGrowth", Math.round(monthlyGrowth));
+        stats.put("weeklyTasksCompleted", weeklyTasksCompleted);
+        stats.put("upcomingDeadlines", upcomingDeadlines);
+
+        return stats;
+    }
+
+    @Override
+    public List<Map<String, Object>> getRecentActivity() {
+        // Pour l'instant, retourner une liste vide pour un nouveau chef de projet
+        return new ArrayList<>();
+    }
+
+    @Override
+    public List<ProgressResponse> getProjectProgress() {
+        String currentUsername = getCurrentUsername();
+        List<Project> chefProjects = projectRepository.findByCreatedByUsername(currentUsername);
+        
+        return chefProjects.stream()
+                .map(p -> ProgressResponse.builder()
+                        .projectId(p.getId())
+                        .completionPercentage(p.getProgression() != null ? p.getProgression().doubleValue() : 0.0)
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ChartData> getTaskStatusDistribution() {
+        String currentUsername = getCurrentUsername();
+        List<Project> chefProjects = projectRepository.findByCreatedByUsername(currentUsername);
+        List<Integer> projectIds = chefProjects.stream().map(Project::getId).toList();
+        
+        if (projectIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        long nonCommence = taskRepository.countByProjectIdInAndStatut(projectIds, StatutTache.NON_COMMENCE);
+        long enCours = taskRepository.countByProjectIdInAndStatut(projectIds, StatutTache.EN_COURS);
+        long bloque = taskRepository.countByProjectIdInAndStatut(projectIds, StatutTache.BLOQUE);
+        long termine = taskRepository.countByProjectIdInAndStatut(projectIds, StatutTache.TERMINE);
+        
+        List<ChartData> data = new ArrayList<>();
+        if (nonCommence > 0) data.add(ChartData.builder().label("Non commencé").value((int)nonCommence).build());
+        if (enCours > 0) data.add(ChartData.builder().label("En cours").value((int)enCours).build());
+        if (bloque > 0) data.add(ChartData.builder().label("Bloqué").value((int)bloque).build());
+        if (termine > 0) data.add(ChartData.builder().label("Terminé").value((int)termine).build());
+        
+        return data;
+    }
+
+    @Override
+    public List<WorkloadResponse> getWorkloadAnalysis() {
+        String currentUsername = getCurrentUsername();
+        List<Project> chefProjects = projectRepository.findByCreatedByUsername(currentUsername);
+        
+        // Récupérer tous les développeurs assignés aux projets de ce chef
+        Set<User> assignedDevelopers = new HashSet<>();
+        for (Project project : chefProjects) {
+            if (project.getDeveloppeurs() != null) {
+                assignedDevelopers.addAll(project.getDeveloppeurs());
+            }
+        }
+        
+        return assignedDevelopers.stream()
+                .map(dev -> {
+                    int assigned = taskRepository.countByDeveloppeurId(dev.getId());
+                    int completed = taskRepository.countByDeveloppeurIdAndStatut(dev.getId(), StatutTache.TERMINE);
+                    int inProgress = taskRepository.countByDeveloppeurIdAndStatut(dev.getId(), StatutTache.EN_COURS);
+                    int blocked = taskRepository.countByDeveloppeurIdAndStatut(dev.getId(), StatutTache.BLOQUE);
+                    
+                    return WorkloadResponse.builder()
+                            .userId(dev.getId())
+                            .assignedTasks(assigned)
+                            .completedTasks(completed)
+                            .inProgressTasks(inProgress)
+                            .blockedTasks(blocked)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Map<String, Object>> getTeamOverview() {
+        String currentUsername = getCurrentUsername();
+        List<Project> chefProjects = projectRepository.findByCreatedByUsername(currentUsername);
+        
+        // Récupérer tous les développeurs assignés aux projets de ce chef
+        Set<User> assignedDevelopers = new HashSet<>();
+        for (Project project : chefProjects) {
+            if (project.getDeveloppeurs() != null) {
+                assignedDevelopers.addAll(project.getDeveloppeurs());
+            }
+        }
+        
+        return assignedDevelopers.stream()
+                .map(dev -> {
+                    Map<String, Object> member = new HashMap<>();
+                    member.put("id", dev.getId());
+                    member.put("username", dev.getUsername());
+                    member.put("email", dev.getEmail());
+                    member.put("role", dev.getRole());
+                    member.put("jobTitle", dev.getJobTitle());
+                    member.put("department", dev.getDepartment());
+                    
+                    // Compter les projets assignés à ce développeur
+                    long assignedProjects = chefProjects.stream()
+                            .filter(p -> p.getDeveloppeurs() != null && p.getDeveloppeurs().contains(dev))
+                            .count();
+                    member.put("assignedProjects", assignedProjects);
+                    
+                    // Compter les tâches
+                    int completedTasks = taskRepository.countByDeveloppeurIdAndStatut(dev.getId(), StatutTache.TERMINE);
+                    int pendingTasks = taskRepository.countByDeveloppeurIdAndStatut(dev.getId(), StatutTache.EN_COURS);
+                    member.put("completedTasks", completedTasks);
+                    member.put("pendingTasks", pendingTasks);
+                    
+                    return member;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Map<String, Object>> getUpcomingDeadlines(int days) {
+        String currentUsername = getCurrentUsername();
+        List<Project> chefProjects = projectRepository.findByCreatedByUsername(currentUsername);
+        LocalDate today = LocalDate.now();
+        LocalDate futureDate = today.plusDays(days);
+        
+        return chefProjects.stream()
+                .filter(p -> p.getDateFin() != null && 
+                           p.getDateFin().isAfter(today) && 
+                           p.getDateFin().isBefore(futureDate))
+                .map(p -> {
+                    Map<String, Object> deadline = new HashMap<>();
+                    deadline.put("id", p.getId());
+                    deadline.put("titre", p.getTitre());
+                    deadline.put("dateFin", p.getDateFin().toString());
+                    deadline.put("type", "project");
+                    return deadline;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Map<String, Object> getTeamPerformance() {
+        // Pour l'instant, retourner des données vides pour un nouveau chef de projet
+        Map<String, Object> performance = new HashMap<>();
+        performance.put("averageTaskCompletionTime", 0);
+        performance.put("onTimeDeliveryRate", 0);
+        performance.put("teamProductivity", 0);
+        performance.put("topPerformers", new ArrayList<>());
+        return performance;
+    }
+
+    @Override
+    public List<Map<String, Object>> getOverdueProjects() {
+        String currentUsername = getCurrentUsername();
+        List<Project> chefProjects = projectRepository.findByCreatedByUsername(currentUsername);
+        LocalDate today = LocalDate.now();
+        
+        return chefProjects.stream()
+                .filter(p -> p.getDateFin() != null && 
+                           p.getDateFin().isBefore(today) && 
+                           p.getStatut() != StatutProjet.TERMINE)
+                .map(p -> {
+                    Map<String, Object> overdue = new HashMap<>();
+                    overdue.put("id", p.getId());
+                    overdue.put("titre", p.getTitre());
+                    overdue.put("dateFin", p.getDateFin().toString());
+                    overdue.put("daysOverdue", today.toEpochDay() - p.getDateFin().toEpochDay());
+                    return overdue;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Map<String, Object>> getOverdueTasks() {
+        String currentUsername = getCurrentUsername();
+        List<Project> chefProjects = projectRepository.findByCreatedByUsername(currentUsername);
+        List<Integer> projectIds = chefProjects.stream().map(Project::getId).toList();
+        LocalDate today = LocalDate.now();
+        
+        if (projectIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // Cette méthode nécessiterait une requête personnalisée dans TaskRepository
+        // Pour l'instant, retourner une liste vide
+        return new ArrayList<>();
+    }
+
+    @Override
+    public List<ChartData> getCompletionRateData() {
+        return getCompletionRateOverTime();
+    }
+
+    @Override
+    public List<Map<String, Object>> getBuildProjects() {
+        String currentUsername = getCurrentUsername();
+        List<Project> chefProjects = projectRepository.findByCreatedByUsername(currentUsername);
+        
+        return chefProjects.stream()
+                .filter(p -> p.getType() == com.sqli.stage.backendsqli.entity.Enums.TypeProjet.Delivery)
+                .map(p -> {
+                    Map<String, Object> build = new HashMap<>();
+                    build.put("projectId", p.getId());
+                    build.put("titre", p.getTitre());
+                    build.put("completionRate", p.getProgression() != null ? p.getProgression().doubleValue() : 0.0);
+                    build.put("totalTasks", taskRepository.countByProjectId(p.getId()));
+                    build.put("completedTasks", taskRepository.countByProjectIdAndStatut(p.getId(), StatutTache.TERMINE));
+                    return build;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Map<String, Object>> getDashboardTeam() {
+        return getTeamOverview();
+    }
+
+    private String getCurrentUsername() {
+        return org.springframework.security.core.context.SecurityContextHolder.getContext()
+                .getAuthentication().getName();
+    }
 }

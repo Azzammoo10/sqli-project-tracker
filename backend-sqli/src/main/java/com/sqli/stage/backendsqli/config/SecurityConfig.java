@@ -34,6 +34,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/projects/public/**").permitAll()
+                        .requestMatchers("/api/admin/users/by-role/**").hasAnyRole("ADMIN", "CHEF_DE_PROJET")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN") // nécessite ROLE_ADMIN côté user
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // préflight
                         .anyRequest().authenticated()

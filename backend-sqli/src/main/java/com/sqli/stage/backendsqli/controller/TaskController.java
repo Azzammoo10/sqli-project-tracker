@@ -1,14 +1,10 @@
 package com.sqli.stage.backendsqli.controller;
 
-import com.sqli.stage.backendsqli.dto.TaskDTO.TaskFilterRequest;
-import com.sqli.stage.backendsqli.dto.TaskDTO.TaskRequest;
-import com.sqli.stage.backendsqli.dto.TaskDTO.TaskResponse;
+import com.sqli.stage.backendsqli.dto.TaskDTO.*;
 import com.sqli.stage.backendsqli.entity.Enums.StatutTache;
 import com.sqli.stage.backendsqli.service.Taskservice;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -16,164 +12,212 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
 @RestController
-@RequestMapping("/api/task")
+@RequestMapping("/api/tasks")
 @RequiredArgsConstructor
 public class TaskController {
-    private final Taskservice taskservice;
 
-    @PostMapping()
+    private final Taskservice taskService;
+
+    // Endpoint pour obtenir les tâches prioritaires du chef de projet
+    @GetMapping("/chef/priority")
     @PreAuthorize("hasRole('CHEF_DE_PROJET')")
-    public ResponseEntity<TaskResponse> createTask(@RequestBody TaskRequest request) {
-        TaskResponse response = taskservice.createTask(request);
-        log.info("Tâche créée avec succès avec l'ID : {}", response.getId());
-        return ResponseEntity.ok(response);
+    public ResponseEntity<List<TaskResponse>> getPriorityTasks() {
+        // Pour l'instant, retourner toutes les tâches
+        return ResponseEntity.ok(taskService.getAllTasks());
     }
 
+    // Endpoint pour obtenir les tâches en retard
+    @GetMapping("/chef/overdue")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<List<TaskResponse>> getOverdueTasks() {
+        return ResponseEntity.ok(taskService.getLateTasks());
+    }
+
+    // Endpoint pour obtenir toutes les tâches
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'CHEF_DE_PROJET', 'DEVELOPPEUR')")
+    public ResponseEntity<List<TaskResponse>> getAllTasks() {
+        return ResponseEntity.ok(taskService.getAllTasks());
+    }
+
+    // Endpoint pour obtenir les tâches de l'utilisateur connecté
+    @GetMapping("/my-tasks")
+    @PreAuthorize("hasAnyRole('CHEF_DE_PROJET', 'DEVELOPPEUR')")
+    public ResponseEntity<List<TaskResponse>> getMyTasks() {
+        return ResponseEntity.ok(taskService.getTasksForCurrentUser());
+    }
+
+    // Endpoint pour obtenir une tâche par ID
+    @GetMapping("/{id}")
+    public ResponseEntity<TaskResponse> getTaskById(@PathVariable int id) {
+        return ResponseEntity.ok(taskService.getTaskById(id));
+    }
+
+    // Endpoint pour créer une tâche
+    @PostMapping
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody TaskRequest request) {
+        return ResponseEntity.ok(taskService.createTask(request));
+    }
+
+    // Endpoint pour mettre à jour une tâche
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('CHEF_DE_PROJET')")
-    public ResponseEntity<TaskResponse> updateTask(@PathVariable int id, @RequestBody TaskRequest request) {
-        TaskResponse response = taskservice.updateTask(id, request);
-        log.info("Tâche avec l'ID : {} modifiée avec succès", id);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<TaskResponse> updateTask(@PathVariable int id, @Valid @RequestBody TaskRequest request) {
+        return ResponseEntity.ok(taskService.updateTask(id, request));
     }
 
+    // Endpoint pour supprimer une tâche
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('CHEF_DE_PROJET')")
     public ResponseEntity<Void> deleteTask(@PathVariable int id) {
-        taskservice.deleteTask(id);
-        log.info("Tâche avec l'ID : {} supprimée avec succès", id);
+        taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping("/{id}")
-    public ResponseEntity<TaskResponse> getTaskById(@PathVariable int id) {
-        TaskResponse response = taskservice.getTaskById(id);
-        log.info("Détails de la tâche avec l'ID : {} récupérés avec succès", id);
-        return ResponseEntity.ok(response);
-    }
-
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping("/search")
-    public ResponseEntity<List<TaskResponse>> searchTasks(@RequestParam String keyword) {
-        List<TaskResponse> response = taskservice.searchTasksByKeyword(keyword);
-        log.info("Recherche des tâches effectuée avec succès pour le mot-clé '{}'. Nombre de résultats trouvés : {}", keyword, response.size());
-        return ResponseEntity.ok(response);
-    }
-
-    @PreAuthorize("hasAnyRole('ADMIN', 'CHEF_DE_PROJET', 'DEVELOPPEUR')")
-    @GetMapping
-    public ResponseEntity<List<TaskResponse>> getAllTasks() {
-        List<TaskResponse> tasks = taskservice.getAllTasks();
-        log.info("Récupération de toutes les tâches réussie. Nombre de tâches trouvées : {}", tasks.size());
-        return ResponseEntity.ok(tasks);
-    }
-
-    @PreAuthorize("isAuthenticated()")
+    // Endpoint pour obtenir les tâches par projet
     @GetMapping("/project/{projectId}")
     public ResponseEntity<List<TaskResponse>> getTasksByProject(@PathVariable int projectId) {
-        List<TaskResponse> responses = taskservice.getTasksByProject(projectId);
-        log.info("Récupération des tâches pour le projet avec l'ID {} réussie. Nombre de tâches trouvées : {}", projectId, responses.size());
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(taskService.getTasksByProject(projectId));
     }
 
-    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
-    @GetMapping("/developer/{developpeurId}")
-    public ResponseEntity<List<TaskResponse>> getTasksByDeveloper(@PathVariable int developpeurId) {
-        List<TaskResponse> responses = taskservice.getTasksByUser(developpeurId);
-        log.info("Récupération des tâches pour le développeur avec l'ID {} réussie. Nombre de tâches trouvées : {}", developpeurId, responses.size());
-        return ResponseEntity.ok(responses);
+    // Endpoint pour obtenir les tâches par développeur
+    @GetMapping("/developer/{developerId}")
+    public ResponseEntity<List<TaskResponse>> getTasksByDeveloper(@PathVariable int developerId) {
+        return ResponseEntity.ok(taskService.getTasksByUser(developerId));
     }
 
-    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
-    @GetMapping("/stats")
-    public ResponseEntity<Map<StatutTache, Long>> getTaskStats() {
-        Map<StatutTache, Long> stats = taskservice.getTaskStats();
-        log.info("Récupération des statistiques des tâches réussie. Détails : {}", stats);
-        return ResponseEntity.ok(stats);
-    }
-
-    // Stats des tâches uniquement pour les projets du chef connecté
-    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
-    @GetMapping("/stats/me")
-    public ResponseEntity<Map<StatutTache, Long>> getMyTaskStats() {
-        Map<StatutTache, Long> stats = taskservice.getTaskStats(); // TODO: filtrer par createdBy courant dans l'implémentation si nécessaire
-        return ResponseEntity.ok(stats);
-    }
-
-
-    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
-    @GetMapping("/late")
-    public ResponseEntity<List<TaskResponse>> getLateTasks() {
-        List<TaskResponse> responses = taskservice.getLateTasks();
-        log.info("Récupération des tâches en retard réussie. Nombre de tâches trouvées : {}", responses.size());
-        return ResponseEntity.ok(responses);
-    }
-
-
-    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
-    @GetMapping("/count/{projectId}")
-    public ResponseEntity<Long> countTasksByProject(@PathVariable int projectId) {
-        Long count = taskservice.countTasksByProject(projectId);
-        log.info("Nombre de tâches pour le projet avec l'ID {} récupéré avec succès : {}", projectId, count);
-        return ResponseEntity.ok(count);
-    }
-
-    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    // Endpoint pour obtenir les tâches par statut
     @GetMapping("/status/{status}")
     public ResponseEntity<List<TaskResponse>> getTasksByStatus(@PathVariable StatutTache status) {
-        List<TaskResponse> responses = taskservice.getTasksByStatus(status);
-        log.info("Récupération des tâches avec le statut '{}' réussie. Nombre de tâches trouvées : {}", status, responses.size());
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(taskService.getTasksByStatus(status));
     }
 
-    @PreAuthorize("hasRole('DEVELOPPEUR')")
-    @GetMapping("/me")
-    public ResponseEntity<List<TaskResponse>> getTasksForCurrentUser() {
-        List<TaskResponse> responses = taskservice.getTasksForCurrentUser();
-        log.info("Récupération des tâches de l'utilisateur actuel réussie. Nombre de tâches trouvées : {}", responses.size());
-        return ResponseEntity.ok(responses);
-    }
-
-
-    @PreAuthorize("hasRole('DEVELOPPEUR')")
-    @GetMapping("/me/planning")
-    public ResponseEntity<List<TaskResponse>> getPlanningForCurrentUser() {
-        List<TaskResponse> responses = taskservice.getPlanningForCurrentUser();
-        log.info("Récupération du planning pour l'utilisateur actuel réussie. Nombre de tâches trouvées : {}", responses.size());
-        return ResponseEntity.ok(responses);
-    }
-
-
-    @PreAuthorize("hasRole('DEVELOPPEUR')")
-    @GetMapping("/me/workload")
-    public ResponseEntity<Map<StatutTache, Long>> getWorkloadForCurrentUser() {
-        Map<StatutTache, Long> stats = taskservice.getWorkloadForCurrentUser();
-        log.info("Récupération de la charge de travail pour l'utilisateur actuel réussie. Détails : {}", stats);
-        return ResponseEntity.ok(stats);
-    }
-
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping("/paged")
-    public ResponseEntity<Page<TaskResponse>> getAllTasksPaged(Pageable pageable) {
-        Page<TaskResponse> responses = taskservice.getAllTasksPaged(pageable);
-        log.info("Récupération paginée des tâches réussie. Nombre total de pages : {}", responses.getTotalPages());
-        return ResponseEntity.ok(responses);
-    }
-
-    @PreAuthorize("isAuthenticated()")
+    // Endpoint pour filtrer les tâches
     @PostMapping("/filter")
-    public ResponseEntity<List<TaskResponse>> filterTasks(@RequestBody TaskFilterRequest filter) {
-        List<TaskResponse> responses = taskservice.filterTasks(filter);
-        log.info("Filtrage des tâches effectué avec succès. Critères : {}. Nombre de tâches trouvées : {}", filter, responses.size());
-        return ResponseEntity.ok(responses);
+    public ResponseEntity<List<TaskResponse>> filterTasks(@RequestBody TaskFilterRequest request) {
+        return ResponseEntity.ok(taskService.filterTasks(request));
     }
 
+    // Endpoint pour obtenir les statistiques des tâches
+    @GetMapping("/stats")
+    public ResponseEntity<Map<StatutTache, Long>> getTaskStats() {
+        return ResponseEntity.ok(taskService.getTaskStats());
+    }
+
+    // Endpoint pour obtenir la progression des tâches
+    @GetMapping("/progress")
+    public ResponseEntity<Map<String, Object>> getTaskProgress() {
+        // Pour l'instant, retourner un objet vide
+        return ResponseEntity.ok(Map.of());
+    }
+
+    // Endpoint pour obtenir les tâches par projet avec réponse détaillée
+    @GetMapping("/project/{projectId}/detailed")
+    public ResponseEntity<List<TaskResponse>> getTasksByProjectDetailed(@PathVariable int projectId) {
+        return ResponseEntity.ok(taskService.getTasksByProject(projectId));
+    }
+
+    // Endpoint pour assigner une tâche à un développeur
+    @PutMapping("/{id}/assign")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<TaskResponse> assignTask(@PathVariable int id, @RequestParam int developerId) {
+        // Pour l'instant, retourner la tâche sans modification
+        return ResponseEntity.ok(taskService.getTaskById(id));
+    }
+
+    // Endpoint pour changer le statut d'une tâche
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('CHEF_DE_PROJET', 'DEVELOPPEUR')")
+    public ResponseEntity<TaskResponse> updateTaskStatus(@PathVariable int id, @RequestParam StatutTache status) {
+        TaskResponse task;
+        switch (status) {
+            case TERMINE:
+                task = taskService.markTaskAsFinished(id);
+                break;
+            case EN_COURS:
+                task = taskService.markTaskAsInProgress(id);
+                break;
+            case BLOQUE:
+                task = taskService.markTaskAsBlocked(id);
+                break;
+            default:
+                task = taskService.getTaskById(id);
+        }
+        return ResponseEntity.ok(task);
+    }
+
+    // Endpoint pour mettre à jour les heures effectives
+    @PutMapping("/{id}/hours")
     @PreAuthorize("hasRole('DEVELOPPEUR')")
-    @PutMapping("/{taskId}/markAsFinished")
-    public ResponseEntity<TaskResponse> markTaskAsFinished(@PathVariable int taskId) {
-        return ResponseEntity.ok(taskservice.markTaskAsFinished(taskId));
+    public ResponseEntity<TaskResponse> updateTaskHours(@PathVariable int id, @RequestParam double hours) {
+        TaskResponse task = taskService.updateTaskHours(id, hours);
+        return ResponseEntity.ok(task);
+    }
+
+    // Endpoint pour démarrer le timer d'une tâche
+    @PostMapping("/{id}/timer/start")
+    @PreAuthorize("hasRole('DEVELOPPEUR')")
+    public ResponseEntity<Map<String, Object>> startTaskTimer(@PathVariable int id) {
+        Map<String, Object> response = taskService.startTaskTimer(id);
+        return ResponseEntity.ok(response);
+    }
+
+    // Endpoint pour arrêter le timer d'une tâche
+    @PostMapping("/{id}/timer/stop")
+    @PreAuthorize("hasRole('DEVELOPPEUR')")
+    public ResponseEntity<Map<String, Object>> stopTaskTimer(@PathVariable int id) {
+        Map<String, Object> response = taskService.stopTaskTimer(id);
+        return ResponseEntity.ok(response);
+    }
+
+    // Endpoint pour obtenir le statut du timer d'une tâche
+    @GetMapping("/{id}/timer/status")
+    @PreAuthorize("hasRole('DEVELOPPEUR')")
+    public ResponseEntity<Map<String, Object>> getTaskTimerStatus(@PathVariable int id) {
+        Map<String, Object> response = taskService.getTaskTimerStatus(id);
+        return ResponseEntity.ok(response);
+    }
+
+    // Endpoint pour obtenir le planning de l'utilisateur actuel
+    @GetMapping("/me/planning")
+    @PreAuthorize("hasRole('DEVELOPPEUR')")
+    public ResponseEntity<List<TaskResponse>> getMyPlanning() {
+        return ResponseEntity.ok(taskService.getPlanningForCurrentUser());
+    }
+
+    // Endpoint pour obtenir la charge de travail de l'utilisateur actuel
+    @GetMapping("/me/workload")
+    @PreAuthorize("hasRole('DEVELOPPEUR')")
+    public ResponseEntity<Map<StatutTache, Long>> getMyWorkload() {
+        return ResponseEntity.ok(taskService.getWorkloadForCurrentUser());
+    }
+
+    // Endpoint pour rechercher des tâches
+    @GetMapping("/search")
+    public ResponseEntity<List<TaskResponse>> searchTasks(@RequestParam String keyword) {
+        return ResponseEntity.ok(taskService.searchTasksByKeyword(keyword));
+    }
+
+    // Endpoint pour obtenir la progression d'un projet
+    @GetMapping("/project/{projectId}/progress")
+    public ResponseEntity<TaskProgressResponse> getProjectProgress(@PathVariable int projectId) {
+        return ResponseEntity.ok(taskService.getProgressByProject(projectId));
+    }
+
+    // Endpoint pour obtenir les tâches paginées
+    @GetMapping("/paged")
+    public ResponseEntity<Map<String, Object>> getTasksPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        // Pour l'instant, retourner toutes les tâches
+        List<TaskResponse> tasks = taskService.getAllTasks();
+        return ResponseEntity.ok(Map.of(
+            "content", tasks,
+            "totalElements", tasks.size(),
+            "totalPages", 1,
+            "currentPage", 0
+        ));
     }
 }

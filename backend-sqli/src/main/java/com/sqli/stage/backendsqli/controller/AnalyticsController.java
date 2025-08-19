@@ -3,22 +3,25 @@ package com.sqli.stage.backendsqli.controller;
 import com.sqli.stage.backendsqli.dto.AnalyticDTO.ChartData;
 import com.sqli.stage.backendsqli.dto.AnalyticDTO.ProgressResponse;
 import com.sqli.stage.backendsqli.dto.AnalyticDTO.WorkloadResponse;
-import com.sqli.stage.backendsqli.dto.ProjectDTO.BuildProjectDashboardResponse;
-import com.sqli.stage.backendsqli.dto.ProjectDTO.DashboardStatsResponse;
-import com.sqli.stage.backendsqli.dto.ProjectDTO.TeamDashboardResponse;
-import com.sqli.stage.backendsqli.dto.ProjectDTO.TmaProjectDashboardResponse;
-import com.sqli.stage.backendsqli.entity.Enums.StatutTache;
-import com.sqli.stage.backendsqli.entity.Project;
 import com.sqli.stage.backendsqli.service.AnalyticsService;
 import lombok.RequiredArgsConstructor;
-import com.sqli.stage.backendsqli.repository.*;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.sqli.stage.backendsqli.entity.Project;
+import com.sqli.stage.backendsqli.entity.Enums.StatutTache;
+import com.sqli.stage.backendsqli.entity.Task;
+import com.sqli.stage.backendsqli.repository.ProjetRepository;
+import com.sqli.stage.backendsqli.repository.TaskRepository;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/analytics")
@@ -26,79 +29,139 @@ import java.util.List;
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
-    private final ProjetRepository projetRepository;
+    private final ProjetRepository projectRepository;
     private final TaskRepository taskRepository;
 
-
-    @GetMapping("/overview")
-    public ResponseEntity<DashboardStatsResponse> getOverview() {
-        return ResponseEntity.ok(analyticsService.getDashboardStats());
+    // Endpoint pour les statistiques du dashboard chef de projet
+    @GetMapping("/chef/dashboard-stats")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<Map<String, Object>> getChefDashboardStats() {
+        return ResponseEntity.ok(analyticsService.getChefDashboardStats());
     }
 
-    // --- Chef de projet scoped KPIs ---
-    @GetMapping("/chef/{username}/kpis")
-    public ResponseEntity<DashboardStatsResponse> getChefKpis(@PathVariable String username) {
-        // réutilise getDashboardStats pour l'instant; peut être affiné côté service si besoin de scoper
-        return ResponseEntity.ok(analyticsService.getDashboardStats());
+    // Endpoint pour l'activité récente
+    @GetMapping("/chef/recent-activity")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<List<Map<String, Object>>> getRecentActivity() {
+        return ResponseEntity.ok(analyticsService.getRecentActivity());
     }
 
-    @GetMapping("/chef/{username}/task-status")
-    public ResponseEntity<java.util.Map<com.sqli.stage.backendsqli.entity.Enums.StatutTache, Long>> getChefTaskStatus(@PathVariable String username) {
-        // Pour l'instant, renvoie les stats globales via le service tasks (peut être spécialisé plus tard)
-        return ResponseEntity.ok(analyticsService.getDashboardStats() != null
-                ? taskRepository.findAll().stream()
-                    .collect(java.util.stream.Collectors.groupingBy(
-                        com.sqli.stage.backendsqli.entity.Task::getStatut,
-                        java.util.stream.Collectors.counting()
-                    ))
-                : java.util.Collections.emptyMap());
+    // Endpoint pour la progression des projets
+    @GetMapping("/chef/project-progress")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<List<ProgressResponse>> getProjectProgress() {
+        return ResponseEntity.ok(analyticsService.getProjectProgress());
     }
 
-    @GetMapping("/project-progress/{projectId}")
-    public ResponseEntity<ProgressResponse> getProjectProgress(@PathVariable int projectId) {
-        return ResponseEntity.ok(analyticsService.getProjectProgress(projectId));
+    // Endpoint pour la répartition des statuts de tâches
+    @GetMapping("/chef/task-status-distribution")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<List<ChartData>> getTaskStatusDistribution() {
+        return ResponseEntity.ok(analyticsService.getTaskStatusDistribution());
     }
 
-    @GetMapping("/workload/{userId}")
-    public ResponseEntity<WorkloadResponse> getUserWorkload(@PathVariable int userId) {
-        return ResponseEntity.ok(analyticsService.getWorkloadForUser(userId));
+    // Endpoint pour l'analyse de charge de travail
+    @GetMapping("/chef/workload-analysis")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<List<WorkloadResponse>> getWorkloadAnalysis() {
+        return ResponseEntity.ok(analyticsService.getWorkloadAnalysis());
     }
 
+    // Endpoint pour l'équipe du chef de projet
+    @GetMapping("/chef/team-overview")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<List<Map<String, Object>>> getTeamOverview() {
+        return ResponseEntity.ok(analyticsService.getTeamOverview());
+    }
+
+    // Endpoint pour les échéances à venir
+    @GetMapping("/chef/upcoming-deadlines")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<List<Map<String, Object>>> getUpcomingDeadlines(
+            @RequestParam(defaultValue = "7") int days) {
+        return ResponseEntity.ok(analyticsService.getUpcomingDeadlines(days));
+    }
+
+    // Endpoint pour la performance de l'équipe
+    @GetMapping("/chef/team-performance")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<Map<String, Object>> getTeamPerformance() {
+        return ResponseEntity.ok(analyticsService.getTeamPerformance());
+    }
+
+    // Endpoint pour les projets en retard
+    @GetMapping("/chef/overdue-projects")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<List<Map<String, Object>>> getOverdueProjects() {
+        return ResponseEntity.ok(analyticsService.getOverdueProjects());
+    }
+
+    // Endpoint pour les tâches en retard
+    @GetMapping("/chef/overdue-tasks")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<List<Map<String, Object>>> getOverdueTasks() {
+        return ResponseEntity.ok(analyticsService.getOverdueTasks());
+    }
+
+    // Endpoint pour les données de tendance (completion rate)
     @GetMapping("/completion-rate")
     public ResponseEntity<List<ChartData>> getCompletionRate() {
-        return ResponseEntity.ok(analyticsService.getCompletionRateOverTime());
+        return ResponseEntity.ok(analyticsService.getCompletionRateData());
     }
 
+    // Endpoint pour les projets build (existant)
     @GetMapping("/projects/build")
-    public ResponseEntity<List<BuildProjectDashboardResponse>> getBuildProjectsDashboard() {
-        List<Project> projects = projetRepository.findBuildProjects();
-
-        List<BuildProjectDashboardResponse> response = projects.stream().map(p -> {
-            int total = taskRepository.countByProjectId(p.getId()).intValue();
-            int done = taskRepository.countByProjectIdAndStatut(p.getId(), StatutTache.TERMINE);
-            double rate = total > 0 ? (done * 100.0) / total : 0;
-
-            return BuildProjectDashboardResponse.builder()
-                    .projectId(p.getId())
-                    .titre(p.getTitre())
-                    .completionRate(rate)
-                    .totalTasks(total)
-                    .completedTasks(done)
-                    .build();
-        }).toList();
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<List<Map<String, Object>>> getBuildProjects() {
+        return ResponseEntity.ok(analyticsService.getBuildProjects());
     }
+
+    // Endpoint pour le dashboard équipe (existant)
     @GetMapping("/dashboard/team")
-    public ResponseEntity<List<TeamDashboardResponse>> getTeamDashboard() {
-        return ResponseEntity.ok(analyticsService.getTeamDashboard());
+    public ResponseEntity<List<Map<String, Object>>> getDashboardTeam() {
+        return ResponseEntity.ok(analyticsService.getDashboardTeam());
     }
 
-
-    @GetMapping("/projects/tma")
-    public ResponseEntity<List<TmaProjectDashboardResponse>> getTmaProjectsDashboard() {
-        return ResponseEntity.ok(analyticsService.getTmaDashboard());
+    @GetMapping("/chef/debug-data")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<Map<String, Object>> getDebugData() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        
+        Map<String, Object> debugData = new HashMap<>();
+        debugData.put("currentUser", username);
+        
+        // Récupérer les projets du chef connecté
+        List<Project> chefProjects = projectRepository.findByCreatedByUsername(username);
+        debugData.put("totalProjects", chefProjects.size());
+        debugData.put("projects", chefProjects.stream().map(p -> Map.of(
+            "id", p.getId(),
+            "titre", p.getTitre(),
+            "statut", p.getStatut(),
+            "progression", p.getProgression()
+        )).collect(Collectors.toList()));
+        
+        // Récupérer toutes les tâches de ces projets
+        List<Integer> projectIds = chefProjects.stream().map(Project::getId).toList();
+        if (!projectIds.isEmpty()) {
+            List<Task> allTasks = taskRepository.findByProjectIdIn(projectIds);
+            debugData.put("totalTasks", allTasks.size());
+            debugData.put("tasks", allTasks.stream().map(t -> Map.of(
+                "id", t.getId(),
+                "titre", t.getTitre(),
+                "statut", t.getStatut(),
+                "projectId", t.getProject().getId()
+            )).collect(Collectors.toList()));
+            
+            // Compter par statut
+            Map<StatutTache, Long> taskStatusCount = allTasks.stream()
+                .collect(Collectors.groupingBy(Task::getStatut, Collectors.counting()));
+            debugData.put("taskStatusCount", taskStatusCount);
+        } else {
+            debugData.put("totalTasks", 0);
+            debugData.put("tasks", new ArrayList<>());
+            debugData.put("taskStatusCount", new HashMap<>());
+        }
+        
+        return ResponseEntity.ok(debugData);
     }
-
-
 }

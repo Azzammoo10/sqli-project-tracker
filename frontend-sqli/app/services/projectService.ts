@@ -50,18 +50,25 @@ export const projectService = {
 
   // CHEF
   getProjectsByChef: async (username?: string): Promise<Project[]> => {
-    let effectiveUsername = username;
-    if (!effectiveUsername) {
-      const me = await apiClient.get('/auth/me');
-      effectiveUsername = me.data?.username;
-    }
-    const { data } = await apiClient.get('/projects/chef', { params: { username: effectiveUsername } });
+    const { data } = await apiClient.get('/projects/chef/overview');
     return data;
   },
 
   // CLIENT
   getProjectsByClient: async (username: string): Promise<Project[]> => {
     const { data } = await apiClient.get('/projects/client', { params: { username } });
+    return data;
+  },
+
+  // DÉVELOPPEUR - Projets assignés à l'utilisateur connecté
+  getProjectsForCurrentUser: async (): Promise<Project[]> => {
+    const { data } = await apiClient.get('/projects/my-projects');
+    return data;
+  },
+
+  // DÉVELOPPEUR - Alias pour la compatibilité
+  getProjectsByDeveloper: async (): Promise<Project[]> => {
+    const { data } = await apiClient.get('/projects/my-projects');
     return data;
   },
 
@@ -86,7 +93,7 @@ export const projectService = {
 
   assignDevelopers: async (projectId: number, developerIds: number[]) => {
     // ton BE attend PUT /projects/{id}/assign-developers avec body { developerIds }
-    const { data } = await apiClient.put(`/projects/${projectId}/assign-developers`, { developerIds });
+    const { data } = await apiClient.put(`/projects/${projectId}/assign-developers`, developerIds);
     return data as Project;
   },
 
@@ -95,13 +102,19 @@ export const projectService = {
     return data as number; // renvoie BigDecimal côté BE
   },
 
+  // Nouvelle méthode pour recalculer la progression de tous les projets
+  recomputeAllProgress: async () => {
+    const { data } = await apiClient.post('/projects/recompute-all-progress');
+    return data;
+  },
+
   getProjectStats: async (): Promise<ProjectStats> => {
     const { data } = await apiClient.get('/projects/stats');
     return data;
   },
 
   searchProjects: async (keyword: string): Promise<Project[]> => {
-    const { data } = await apiClient.get('/projects/search', { params: { keyword } });
+    const { data } = await apiClient.get('/projects/search', { params: { q: keyword } });
     return data;
   },
 
