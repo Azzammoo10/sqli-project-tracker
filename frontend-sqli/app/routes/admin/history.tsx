@@ -25,7 +25,6 @@ export default function AdminHistory() {
   const [all, setAll] = useState<HistoryEntry[]>([]);
   const [q, setQ] = useState('');
 
-  // --- Filtres (tu peux réactiver Entité, dates, etc. si tu veux) ---
   const [actions, setActions] = useState<TypeOperation[]>([]);
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -181,182 +180,192 @@ export default function AdminHistory() {
     }
 
     return (
-      <div className="flex h-screen bg-gradient-to-b from-[#f5f0ff] to-[#f9fafb]">
+      <div className="flex h-screen bg-gradient-to-b from-[#f6f4fb] to-[#fbfcfe]">
         <NavAdmin user={user} onLogout={logout} />
         <div className="flex-1 overflow-auto">
-          {/* Header gradient */}
-          <div className="px-6 pt-6">
-            <div className="rounded-2xl bg-gradient-to-r from-[#4B2A7B] to-[#7E56D9] text-white p-5 shadow-sm">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div>
-                  <h1 className="text-2xl font-bold">Historique des Actions</h1>
-                  <p className="text-white/80">Suivi des opérations sur les entités du système</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
-                    Total: <b>{all.length}</b>
-                  </span>
-                  <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
-                    Affichés: <b>{filtered.length}</b>
-                  </span>
-                  <button
-                    onClick={resetAll}
-                    className="inline-flex items-center gap-2 text-sm bg-white/10 hover:bg-white/20 transition px-3 py-1.5 rounded-full"
-                    title="Réinitialiser recherche & filtres"
-                  >
-                    <RotateCcw className="h-4 w-4" /> Réinitialiser
-                  </button>
+          {/* Header pleine largeur */}
+          <div className="p-6">
+            <div className="w-full">
+              <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
+                  style={{
+                    background: 'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'
+                  }}
+                />
+                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div>
+                    <h1 className="text-2xl font-semibold tracking-tight">Historique des Actions</h1>
+                    <p className="text-white/85">Suivi des opérations sur les entités du système</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
+                      Total: <b>{all.length}</b>
+                    </span>
+                    <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
+                      Affichés: <b>{filtered.length}</b>
+                    </span>
+                    <button
+                      onClick={resetAll}
+                      className="inline-flex items-center gap-2 text-sm bg-white/10 hover:bg-white/20 transition px-3 py-1.5 rounded-full"
+                      title="Réinitialiser recherche & filtres"
+                    >
+                      <RotateCcw className="h-4 w-4" /> Réinitialiser
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Contenu */}
-          <div className="p-6 max-w-7xl mx-auto">
-            {/* Barre de recherche + filtres */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-5">
-              <div className="flex flex-col md:flex-row gap-4 md:items-center">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <input
-                    autoFocus
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder="Rechercher… (action, entité, username, nom, détails)"
-                    className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 bg-white
-                               text-gray-900 placeholder:text-gray-500 transition
-                               focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent"
-                  />
-                  {q && (
-                    <button
-                      onClick={() => setQ('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-gray-100"
-                      aria-label="Effacer la recherche"
-                    >
-                      <X className="h-4 w-4 text-gray-500" />
-                    </button>
-                  )}
-                </div>
+          {/* Contenu pleine largeur */}
+          <div className="p-6">
+            <div className="w-full">
+              {/* Barre de recherche + filtres */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-5">
+                <div className="flex flex-col md:flex-row gap-4 md:items-center">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <input
+                      autoFocus
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      placeholder="Rechercher… (action, entité, username, nom, détails)"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 bg-white
+                                 text-gray-900 placeholder:text-gray-500 transition
+                                 focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent"
+                    />
+                    {q && (
+                      <button
+                        onClick={() => setQ('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-gray-100"
+                        aria-label="Effacer la recherche"
+                      >
+                        <X className="h-4 w-4 text-gray-500" />
+                      </button>
+                    )}
+                  </div>
 
-                {/* Filtres actions (chips) */}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setActions([])}
-                    className={`px-3 py-1.5 text-xs rounded-full border transition ${
-                      actions.length === 0
-                        ? 'bg-[#4B2A7B] text-white border-[#4B2A7B] shadow-sm'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    Toutes
-                  </button>
-                  {ALL_ACTIONS.map(a => (
+                  {/* Filtres actions (chips) */}
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      key={a}
-                      onClick={() => setActions(prev => toggleIn(prev, a))}
+                      onClick={() => setActions([])}
                       className={`px-3 py-1.5 text-xs rounded-full border transition ${
-                        actions.includes(a)
+                        actions.length === 0
                           ? 'bg-[#4B2A7B] text-white border-[#4B2A7B] shadow-sm'
                           : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                       }`}
                     >
-                      {pretty(a)}
+                      Toutes
                     </button>
-                  ))}
-                  {actions.length > 0 && (
-                    <button
-                      onClick={() => setActions([])}
-                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-full border border-gray-300 bg-white hover:bg-gray-50"
-                      title="Réinitialiser les filtres d'action"
-                    >
-                      <FilterX className="h-4 w-4" /> Effacer
-                    </button>
-                  )}
+                    {ALL_ACTIONS.map(a => (
+                      <button
+                        key={a}
+                        onClick={() => setActions(prev => toggleIn(prev, a))}
+                        className={`px-3 py-1.5 text-xs rounded-full border transition ${
+                          actions.includes(a)
+                            ? 'bg-[#4B2A7B] text-white border-[#4B2A7B] shadow-sm'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pretty(a)}
+                      </button>
+                    ))}
+                    {actions.length > 0 && (
+                      <button
+                        onClick={() => setActions([])}
+                        className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-full border border-gray-300 bg-white hover:bg-gray-200 text-black"
+                        title="Réinitialiser les filtres d'action"
+                      >
+                        <FilterX className="h-4 w-4 text-black" /> Effacer
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Tableau */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead className="bg-gray-50 sticky top-0 z-10">
-                    <tr className="text-left">
-                      <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
-                      <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Entité</th>
-                      <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Utilisateur</th>
-                      <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Détails</th>
-                      <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {current.map((e, i) => (
-                      <tr
-                        key={`${e.dateHeure}-${e.entityId}-${i}`}
-                        className={`${actionAccent(e.action)} hover:bg-gray-50 transition`}
-                      >
-                        <td className="px-6 py-4 align-top whitespace-nowrap">
-                          <span className={actionBadge(e.action)}>{pretty(e.action)}</span>
-                        </td>
-                        <td className="px-6 py-4 align-top whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                              {entityIcon(e.entityName)}
-                            </div>
-                            <span className="text-sm text-gray-900">{pretty(e.entityName)}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 align-top whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="h-8 w-8 rounded-full bg-[#4B2A7B] flex items-center justify-center shadow-sm">
-                              <User className="h-4 w-4 text-white" />
-                            </div>
-                            <div className="ml-3">
-                              <div className="text-sm font-medium text-gray-900">{e.userUsername}</div>
-                              <div className="text-xs text-gray-500">{e.userNom}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 align-top">
-                          <div className="text-sm text-gray-900 max-w-md line-clamp-2" title={e.description}>
-                            {e.description}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 align-top whitespace-nowrap text-sm text-gray-600">
-                          <div className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>{new Date(e.dateHeure).toLocaleString()}</span>
-                          </div>
-                        </td>
+              {/* Tableau */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr className="text-left">
+                        <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
+                        <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Entité</th>
+                        <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Utilisateur</th>
+                        <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Détails</th>
+                        <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
                       </tr>
-                    ))}
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {current.map((e, i) => (
+                        <tr
+                          key={`${e.dateHeure}-${e.entityId}-${i}`}
+                          className={`${actionAccent(e.action)} hover:bg-gray-50 transition`}
+                        >
+                          <td className="px-6 py-4 align-top whitespace-nowrap">
+                            <span className={actionBadge(e.action)}>{pretty(e.action)}</span>
+                          </td>
+                          <td className="px-6 py-4 align-top whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
+                                {entityIcon(e.entityName)}
+                              </div>
+                              <span className="text-sm text-gray-900">{pretty(e.entityName)}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 align-top whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="h-8 w-8 rounded-full bg-[#4B2A7B] flex items-center justify-center shadow-sm">
+                                <User className="h-4 w-4 text-white" />
+                              </div>
+                              <div className="ml-3">
+                                <div className="text-sm font-medium text-gray-900">{e.userUsername}</div>
+                                <div className="text-xs text-gray-500">{e.userNom}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 align-top">
+                            <div className="text-sm text-gray-900 max-w-md line-clamp-2" title={e.description}>
+                              {e.description}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 align-top whitespace-nowrap text-sm text-gray-600">
+                            <div className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-1">
+                              <Calendar className="h-4 w-4" />
+                              <span>{new Date(e.dateHeure).toLocaleString()}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
 
-                    {current.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-16">
-                          <div className="flex flex-col items-center justify-center text-center gap-3">
-                            <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
-                              <Search className="h-6 w-6 text-gray-500" />
+                      {current.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-16">
+                            <div className="flex flex-col items-center justify-center text-center gap-3">
+                              <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+                                <Search className="h-6 w-6 text-gray-500" />
+                              </div>
+                              <div className="text-gray-900 font-medium">Aucun élément à afficher</div>
+                              <div className="text-gray-500 text-sm max-w-md">
+                                Affine ta recherche ou réinitialise les filtres pour voir plus de résultats.
+                              </div>
+                              <button
+                                onClick={resetAll}
+                                className="mt-2 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#4B2A7B] text-white hover:brightness-110 shadow-sm"
+                              >
+                                <RotateCcw className="h-4 w-4" /> Réinitialiser
+                              </button>
                             </div>
-                            <div className="text-gray-900 font-medium">Aucun élément à afficher</div>
-                            <div className="text-gray-500 text-sm max-w-md">
-                              Affine ta recherche ou réinitialise les filtres pour voir plus de résultats.
-                            </div>
-                            <button
-                              onClick={resetAll}
-                              className="mt-2 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#4B2A7B] text-white hover:brightness-110 shadow-sm"
-                            >
-                              <RotateCcw className="h-4 w-4" /> Réinitialiser
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <Pagination />
               </div>
-
-              <Pagination />
             </div>
           </div>
         </div>

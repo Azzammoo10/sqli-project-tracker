@@ -1,13 +1,7 @@
-// app/routes/admin/users.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Search,
-  Plus,
-  Trash2,
-  Edit,     
-  User,
-  Activity
+  Search, Plus, Trash2, Edit, User, Activity, RotateCcw, FilterX
 } from 'lucide-react';
 import NavAdmin from '../../components/NavAdmin';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -15,50 +9,58 @@ import { authService } from '../../services/api';
 import { userService, type User as UserType } from '../../services/userService';
 import toast from 'react-hot-toast';
 
+const ROLE_ORDER = ['ADMIN', 'CHEF_DE_PROJET', 'DEVELOPPEUR', 'CLIENT', 'STAGIAIRE'] as const;
+type RoleFilter = 'ALL' | (typeof ROLE_ORDER)[number];
+
+const roleChipClass = (active: boolean) =>
+  `px-3 py-1.5 text-xs rounded-full border transition ${
+    active
+      ? 'bg-[#4B2A7B] text-white border-[#4B2A7B] shadow-sm'
+      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+  }`;
+
+const roleBadge = (role: string) => {
+  switch (role) {
+    case 'ADMIN': return 'bg-red-100 text-red-800';
+    case 'CHEF_DE_PROJET': return 'bg-blue-100 text-blue-800';
+    case 'DEVELOPPEUR': return 'bg-green-100 text-green-800';
+    case 'CLIENT': return 'bg-purple-100 text-purple-800';
+    case 'STAGIAIRE': return 'bg-yellow-100 text-yellow-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
+
 export default function AdminUsers() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserType[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<UserType[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [user, setUser] = useState<any>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [usersPerPage] = useState(10);
+
+  // Harmonisation UI
+  const [q, setQ] = useState('');
+  const [role, setRole] = useState<RoleFilter>('ALL');
+
+  // Pagination harmonisée (fenêtre de 10)
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
-    const loadData = async () => {
+    (async () => {
       try {
-        const userData = await authService.getCurrentUser();
-        setUser(userData);
-
-        const allUsers = await userService.getAllUsers();
-        setUsers(allUsers);
-        setFilteredUsers(allUsers);
+        const me = await authService.getCurrentUser();
+        setUser(me);
+        const all = await userService.getAllUsers();
+        setUsers(all ?? []);
       } catch (error: any) {
         console.error('Erreur lors du chargement des utilisateurs:', error);
         toast.error('Erreur lors du chargement des utilisateurs');
       } finally {
         setLoading(false);
       }
-    };
-    loadData();
+    })();
   }, []);
 
-  // 🔎 recherche
-  useEffect(() => {
-    const q = searchQuery.toLowerCase();
-    const filtered = users.filter(u =>
-      (u.username ?? '').toLowerCase().includes(q) ||
-      (u.email ?? '').toLowerCase().includes(q) ||
-      (u.role ?? '').toLowerCase().includes(q) ||
-      (u.nom ?? '').toLowerCase().includes(q) ||
-      (u.prenom ?? '').toLowerCase().includes(q)
-    );
-    setFilteredUsers(filtered);
-    setCurrentPage(1);
-  }, [searchQuery, users]);
-
-  const handleLogout = async () => {
+  const onLogout = async () => {
     try {
       await authService.logout();
       navigate('/auth/login');
@@ -68,143 +70,208 @@ export default function AdminUsers() {
     }
   };
 
-  const handleDeleteUser = async (userId: number) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
-      try {
-        await userService.deleteUser(userId);
-        setUsers(prev => prev.filter(u => u.id !== userId));
-        toast.success('Utilisateur supprimé avec succès');
-      } catch (error: any) {
-        console.error('Erreur lors de la suppression:', error);
-        toast.error("Erreur lors de la suppression de l'utilisateur");
-      }
+  const onDelete = async (userId: number) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
+    try {
+      await userService.deleteUser(userId);
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      toast.success('Utilisateur supprimé avec succès');
+    } catch (error: any) {
+      console.error('Erreur lors de la suppression:', error);
+      toast.error("Erreur lors de la suppression de l'utilisateur");
     }
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'ADMIN': return 'bg-red-100 text-red-800';
-      case 'CHEF_DE_PROJET': return 'bg-blue-100 text-blue-800';
-      case 'DEVELOPPEUR': return 'bg-green-100 text-green-800';
-      case 'CLIENT': return 'bg-purple-100 text-purple-800';
-      case 'STAGIAIRE': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const resetAll = () => {
+    setQ('');
+    setRole('ALL');
+    setPage(1);
   };
 
-  // Pagination
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  // Filtre + recherche
+  const filtered = useMemo(() => {
+    const k = q.trim().toLowerCase();
+    return users.filter(u => {
+      const matchQ = !k
+        ? true
+        : (u.username ?? '').toLowerCase().includes(k) ||
+          (u.email ?? '').toLowerCase().includes(k) ||
+          (u.nom ?? '').toLowerCase().includes(k) ||
+          (u.prenom ?? '').toLowerCase().includes(k) ||
+          (u.role ?? '').toLowerCase().includes(k);
 
-  const DashboardContent = () => {
-    if (loading) {
-      return (
-        <div className="flex h-screen">
-          <NavAdmin user={user} onLogout={handleLogout} />
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <Activity className="h-8 w-8 animate-spin text-[#4B2A7B] mx-auto mb-4" />
-              <p className="text-gray-600">Chargement des utilisateurs...</p>
-            </div>
+      const matchRole = role === 'ALL' ? true : (u.role === role);
+      return matchQ && matchRole;
+    });
+  }, [users, q, role]);
+
+  // Pagination (fenêtre de 5 pages affichées)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const start = (page - 1) * pageSize;
+  const end = Math.min(start + pageSize, filtered.length);
+  const current = filtered.slice(start, end);
+
+  useEffect(() => { setPage(1); }, [q, role]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [totalPages, page]);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen">
+        <NavAdmin user={user} onLogout={onLogout} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Activity className="h-8 w-8 animate-spin text-[#4B2A7B] mx-auto mb-4" />
+            <p className="text-gray-600">Chargement des utilisateurs…</p>
           </div>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
-    return (
-      <div className="flex h-screen bg-gray-50">
-        <NavAdmin user={user} onLogout={handleLogout} />
-
+  return (
+    <ProtectedRoute allowedRoles={['ADMIN']}>
+      <div className="flex h-screen bg-gradient-to-b from-[#f6f4fb] to-[#fbfcfe]">
+        <NavAdmin user={user} onLogout={onLogout} />
         <div className="flex-1 overflow-auto">
+          {/* Header harmonisé */}
           <div className="p-6">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">Manage Equipe</h1>
-              <p className="text-gray-600">Filter, sort, and access detailed user profiles</p>
-            </div>
-
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <div className="relative flex-1 max-w-md">
-                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  autoFocus
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 bg-white
-                 text-gray-900 placeholder:text-gray-500
-                 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+            <div className="w-full">
+              <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
+                  style={{
+                    background:
+                      'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'
+                  }}
                 />
+                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <User className="h-6 w-6 text-white/90" />
+                    <div>
+                      <h1 className="text-2xl font-semibold tracking-tight">Gestion des Utilisateurs</h1>
+                      <p className="text-white/85">Filtre, recherche et accès aux profils</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
+                      Total: <b>{users.length}</b>
+                    </span>
+                    <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
+                      Affichés: <b>{filtered.length}</b>
+                    </span>
+                    <button
+                      onClick={resetAll}
+                      className="inline-flex items-center gap-2 text-sm bg-white/10 hover:bg-white/20 transition px-3 py-1.5 rounded-full"
+                      title="Réinitialiser"
+                    >
+                      <RotateCcw className="h-4 w-4" /> Réinitialiser
+                    </button>
+                  </div>
+                </div>
               </div>
+            </div>
+          </div>
 
-              <button
-                onClick={() => navigate('/admin/users/create')}
-                className="bg-[#4B2A7B] text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-[#5B3A8B] transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                <span> Add new user</span>
-              </button>
+          {/* Recherche + filtres (chips) */}
+          <div className="px-6">
+            <div className="w-full bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-5">
+              <div className="flex flex-col md:flex-row gap-4 md:items-center">
+                <div className="relative flex-1 max-w-xl">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher… (nom, username, email, rôle)"
+                    autoFocus
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 bg-white
+                               text-gray-900 placeholder:text-gray-500
+                               focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button className={roleChipClass(role === 'ALL')} onClick={() => setRole('ALL')}>
+                    Tous
+                  </button>
+                  {ROLE_ORDER.map(r => (
+                    <button
+                      key={r}
+                      className={roleChipClass(role === r)}
+                      onClick={() => setRole(r)}
+                    >
+                      {r.replace('_', ' ')}
+                    </button>
+                  ))}
+                  {(role !== 'ALL' || q) && (
+                    <button
+                      onClick={resetAll}
+                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-full border border-gray-300 bg-white hover:bg-gray-200 text-black"
+                      title="Effacer filtres"
+                    >
+                      <FilterX className="h-4 w-4 text-black" /> Effacer
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => navigate('/admin/users/create')}
+                  className="bg-[#4B2A7B] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:brightness-110 transition"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Ajouter un utilisateur</span>
+                </button>
+              </div>
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NAME</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">JOB TITLE</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">EMAIL ADDRESS</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">USERNAME</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ROLE</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                <table className="min-w-full">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr className="text-left">
+                      <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Nom</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Job Title</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Username</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Rôle</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {currentUsers.map((u) => (
-                      <tr key={u.id} className="hover:bg-gray-50">
+                  <tbody className="divide-y divide-gray-100">
+                    {current.map((u) => (
+                      <tr key={u.id} className="hover:bg-gray-50 transition">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              <div className="h-10 w-10 rounded-full bg-[#4B2A7B] flex items-center justify-center">
-                                <User className="h-6 w-6 text-white" />
-                              </div>
+                            <div className="h-10 w-10 rounded-full bg-[#4B2A7B] flex items-center justify-center shadow-sm">
+                              <User className="h-6 w-6 text-white" />
                             </div>
-                            <div className="ml-4">
+                            <div className="ml-3">
                               <div className="text-sm font-medium text-gray-900">
                                 {u.prenom && u.nom ? `${u.prenom} ${u.nom}` : (u.username ?? '—')}
                               </div>
-                              <div className="text-sm text-gray-500">
-                                {u.dateCreation ? new Date(u.dateCreation).toLocaleDateString() : 'N/A'}
+                              <div className="text-xs text-gray-500">
+                                {u.dateCreation ? new Date(u.dateCreation).toLocaleDateString() : '—'}
                               </div>
                             </div>
                           </div>
                         </td>
-
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {u.role.replace('_', ' ')}
+                          {u.role?.replace('_', ' ') ?? '—'}
                         </td>
-
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {u.email}
+                          {u.email ?? '—'}
                         </td>
-
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {u.username ?? '—'}
                         </td>
-
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(u.role)}`}>
-                            {u.role.replace('_', ' ')}
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${roleBadge(u.role)}`}>
+                            {u.role?.replace('_', ' ') ?? '—'}
                           </span>
                         </td>
-
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center space-x-2">
-                            {/* ✏️ Modifier */}
+                          <div className="flex items-center gap-2">
                             <button
                               onClick={() => navigate(`/admin/users/${u.id}/edit`)}
                               className="text-[#4B2A7B] hover:text-[#5B3A8B]"
@@ -212,10 +279,8 @@ export default function AdminUsers() {
                             >
                               <Edit className="h-4 w-4" />
                             </button>
-
-                            {/* 🗑️ Supprimer */}
                             <button
-                              onClick={() => handleDeleteUser(u.id)}
+                              onClick={() => onDelete(u.id)}
                               className="text-red-600 hover:text-red-800"
                               title="Supprimer"
                             >
@@ -225,70 +290,70 @@ export default function AdminUsers() {
                         </td>
                       </tr>
                     ))}
+
+                    {current.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-16">
+                          <div className="flex flex-col items-center justify-center text-center gap-3">
+                            <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+                              <Search className="h-6 w-6 text-gray-500" />
+                            </div>
+                            <div className="text-gray-900 font-medium">Aucun utilisateur à afficher</div>
+                            <div className="text-gray-500 text-sm max-w-md">
+                              Ajustez la recherche ou réinitialisez les filtres.
+                            </div>
+                            <button
+                              onClick={resetAll}
+                              className="mt-2 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#4B2A7B] text-white hover:brightness-110 shadow-sm"
+                            >
+                              <RotateCcw className="h-4 w-4" /> Réinitialiser
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                  <div className="flex-1 flex justify-between sm:hidden">
-                    <button
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                      className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      Next
-                    </button>
+              {/* Pagination harmonisée */}
+              {filtered.length > 0 && (
+                <div className="bg-white px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-200">
+                  <div className="text-sm text-gray-600">
+                    Éléments <span className="font-medium">{filtered.length === 0 ? 0 : start + 1}</span>–<span className="font-medium">{end}</span> sur <span className="font-medium">{filtered.length}</span>
                   </div>
-                  <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm text-gray-700">
-                        Showing <span className="font-medium">{indexOfFirstUser + 1}</span> to{' '}
-                        <span className="font-medium">
-                          {Math.min(indexOfLastUser, filteredUsers.length)}
-                        </span>{' '}
-                        of <span className="font-medium">{filteredUsers.length}</span> results
-                      </p>
-                    </div>
-                    <div>
-                      <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="inline-flex items-center gap-1 px-3 py-2 border rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Précédent
+                    </button>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const startPage = Math.max(1, Math.min(page - 2, totalPages - 4));
+                      const p = startPage + i;
+                      return p <= totalPages ? (
                         <button
-                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                          disabled={currentPage === 1}
-                          className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                          key={p}
+                          onClick={() => setPage(p)}
+                          className={`px-3 py-2 border text-sm rounded-md transition ${
+                            p === page
+                              ? 'bg-[#4B2A7B] border-[#4B2A7B] text-white shadow-sm'
+                              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                          }`}
                         >
-                          Previous
+                          {p}
                         </button>
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                          <button
-                            key={page}
-                            onClick={() => setCurrentPage(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
-                                ? 'z-10 bg-[#4B2A7B] border-[#4B2A7B] text-white'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        ))}
-                        <button
-                          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                          disabled={currentPage === totalPages}
-                          className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                        >
-                          Next
-                        </button>
-                      </nav>
-                    </div>
+                      ) : null;
+                    })}
+                    <button
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="inline-flex items-center gap-1 px-3 py-2 border rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Suivant
+                    </button>
                   </div>
                 </div>
               )}
@@ -296,12 +361,6 @@ export default function AdminUsers() {
           </div>
         </div>
       </div>
-    );
-  };
-
-  return (
-    <ProtectedRoute allowedRoles={['ADMIN']}>
-      <DashboardContent />
     </ProtectedRoute>
   );
 }

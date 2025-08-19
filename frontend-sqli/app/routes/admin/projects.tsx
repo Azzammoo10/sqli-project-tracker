@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity } from 'lucide-react';
+import { Activity, Search, RotateCcw, FolderOpen } from 'lucide-react';
 import NavAdmin from '../../components/NavAdmin';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { authService } from '../../services/api';
@@ -14,32 +14,31 @@ export default function AdminProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [user, setUser] = useState<any>(null);
 
+  // 🔎 Recherche (sur les champs existants du type Project)
+  const [q, setQ] = useState('');
+
   useEffect(() => {
-    const loadData = async () => {
+    (async () => {
       try {
-        const userData = await authService.getCurrentUser();
-        setUser(userData);
-        
+        const me = await authService.getCurrentUser();
+        setUser(me);
         const allProjects = await projectService.getAllProjects();
-        setProjects(allProjects);
-        console.log('Projects loaded for admin:', allProjects);
+        setProjects(allProjects ?? []);
       } catch (error: any) {
         console.error('Erreur lors du chargement des projets:', error);
         toast.error('Erreur lors du chargement des projets');
       } finally {
         setLoading(false);
       }
-    };
-
-    loadData();
+    })();
   }, []);
 
-  const handleLogout = async () => {
+  const onLogout = async () => {
     try {
       await authService.logout();
       navigate('/auth/login');
       toast.success('Déconnexion réussie');
-    } catch (error) {
+    } catch {
       toast.error('Erreur lors de la déconnexion');
     }
   };
@@ -47,7 +46,7 @@ export default function AdminProjects() {
   const handleTogglePublicLink = async (projectId: number) => {
     try {
       const updatedProject = await projectService.togglePublicLink(projectId);
-      setProjects(projects.map(p => p.id === projectId ? updatedProject : p));
+      setProjects(prev => prev.map(p => (p.id === projectId ? updatedProject : p)));
       toast.success('Lien public mis à jour');
     } catch (error: any) {
       console.error('Erreur lors de la mise à jour du lien public:', error);
@@ -55,14 +54,31 @@ export default function AdminProjects() {
     }
   };
 
+  const resetAll = () => setQ('');
+
+  // ✅ Filtrage cohérent avec Project
+  const filtered = useMemo(() => {
+    const k = q.trim().toLowerCase();
+    if (!k) return projects;
+    return projects.filter(p => {
+      const inTitre = (p.titre ?? '').toLowerCase().includes(k);
+      const inDesc = (p.description ?? '').toLowerCase().includes(k);
+      const inType = (p.type ?? '').toLowerCase().includes(k);
+      const inStatut = (p.statut ?? '').toLowerCase().includes(k);
+      const inClient = (p.client?.username ?? '').toLowerCase().includes(k);
+      const inChef = (p.createdBy?.username ?? '').toLowerCase().includes(k);
+      return inTitre || inDesc || inType || inStatut || inClient || inChef;
+    });
+  }, [q, projects]);
+
   if (loading) {
     return (
       <div className="flex h-screen">
-        <NavAdmin user={user} onLogout={handleLogout} />
+        <NavAdmin user={user} onLogout={onLogout} />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Activity className="h-8 w-8 animate-spin text-[#4B2A7B] mx-auto mb-4" />
-            <p className="text-gray-600">Chargement des projets...</p>
+            <p className="text-gray-600">Chargement des projets…</p>
           </div>
         </div>
       </div>
@@ -71,22 +87,52 @@ export default function AdminProjects() {
 
   return (
     <ProtectedRoute allowedRoles={['ADMIN']}>
-      <div className="flex h-screen bg-gray-50">
-        <NavAdmin user={user} onLogout={handleLogout} />
-        
+      <div className="flex h-screen bg-gradient-to-b from-[#f6f4fb] to-[#fbfcfe]">
+        <NavAdmin user={user} onLogout={onLogout} />
         <div className="flex-1 overflow-auto">
+          {/* Header harmonisé */}
           <div className="p-6">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">Gestion des Projets</h1>
-              <p className="text-gray-600">Gérez tous les projets de l'organisation</p>
+            <div className="w-full">
+              <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
+                  style={{
+                    background:
+                      'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'
+                  }}
+                />
+                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <FolderOpen className="h-6 w-6 text-white/90" />
+                    <div>
+                      <h1 className="text-2xl font-semibold tracking-tight">Gestion des Projets</h1>
+                      <p className="text-white/85">Gérez tous les projets de l’organisation</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
+                      Total: <b>{projects.length}</b>
+                    </span>
+                    <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
+                      Affichés: <b>{filtered.length}</b>
+                    </span>
+                    
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <ProjectsTable
-              projects={projects}
-              userRole="ADMIN"
-              onTogglePublicLink={handleTogglePublicLink}
-              loading={loading}
-            />
+          <div className="px-6">
+            {/* Tableau des projets – on passe la liste filtrée */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <ProjectsTable
+                projects={filtered}
+                userRole="ADMIN"
+                onTogglePublicLink={handleTogglePublicLink}
+                loading={false}
+              />
+            </div>
           </div>
         </div>
       </div>
