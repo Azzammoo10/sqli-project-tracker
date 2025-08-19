@@ -1,6 +1,4 @@
-// app/routes/admin/users/edit.tsx
 import { useEffect, useMemo, useState } from 'react';
-
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   User as UserIcon,
@@ -24,7 +22,6 @@ import {
   type UpdateUserRequest,
 } from '../../../services/userService';
 import toast from 'react-hot-toast';
-
 
 export default function EditUser() {
   const navigate = useNavigate();
@@ -136,9 +133,9 @@ export default function EditUser() {
   if (loading) {
     return (
       <ProtectedRoute allowedRoles={['ADMIN']}>
-        <div className="flex h-screen bg-gray-50">
+        <div className="flex h-screen bg-gradient-to-b from-[#f6f4fb] to-[#fbfcfe]">
           <NavAdmin user={me} onLogout={logout} />
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 grid place-items-center">
             <div className="text-center">
               <Activity className="h-8 w-8 animate-spin text-[#4B2A7B] mx-auto mb-3" />
               <p className="text-gray-700">Chargement de l’utilisateur…</p>
@@ -151,169 +148,174 @@ export default function EditUser() {
 
   return (
     <ProtectedRoute allowedRoles={['ADMIN']}>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen bg-gradient-to-b from-[#f6f4fb] to-[#fbfcfe]">
         <NavAdmin user={me} onLogout={logout} />
 
         <div className="flex-1 overflow-auto">
+          {/* HEADER pleine largeur et harmonisé */}
           <div className="p-6">
-            <div className="mb-6">
-              <button
-                onClick={() => navigate('/admin/users')}
-                className="inline-flex items-center gap-2 text-[#4B2A7B] hover:text-[#5B3A8B] mb-4"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Retour à la liste des utilisateurs</span>
-              </button>
-
-              <h1 className="text-2xl font-bold text-gray-900">Modifier l’utilisateur</h1>
-              <p className="text-gray-700">Ajustez les informations puis enregistrez.</p>
+            <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
+              <div
+                className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
+                style={{
+                  background:
+                    'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'
+                }}
+              />
+              <div className="relative flex items-center justify-between gap-4">
+                <button
+                  onClick={() => navigate('/admin/users')}
+                  className="inline-flex items-center gap-2 text-white/90 hover:text-white"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="text-sm">Retour</span>
+                </button>
+                <div className="text-right">
+                  <h1 className="text-2xl font-semibold">Modifier l’utilisateur</h1>
+                  <p className="text-white/85">Ajuste les informations, puis enregistre</p>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <div className="max-w-2xl">
-              <form onSubmit={submit} className="bg-white rounded-lg shadow p-6 space-y-6">
-                {/* Nom (requis) */}
-                <div>
-                  <label htmlFor="nom" className="block text-sm font-semibold text-gray-800 mb-2">
-                    Nom complet *
+          {/* FORM élargi et moderne */}
+          <div className="px-6 pb-28">
+            <form
+              onSubmit={submit}
+              className="relative mx-auto max-w-6xl rounded-2xl border border-gray-200 bg-white shadow-sm p-6 lg:p-8"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Nom */}
+                <div className="lg:col-span-2">
+                  <label htmlFor="nom" className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    Nom complet <span className="text-rose-600">*</span>
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <UserIcon className="h-5 w-5 text-gray-500" />
-                    </div>
+                    <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <input
                       id="nom"
                       name="nom"
                       value={form.nom}
                       onChange={onChange}
-                      placeholder="Ex: Aya Ouahi"
                       required
-                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg
-                                 text-gray-900 placeholder:text-gray-500 focus:outline-none
-                                 focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                      placeholder="Ex : Aya Ouahi"
+                      className="w-full pl-10 pr-3 py-3 rounded-lg bg-white border border-gray-300
+                                 text-gray-900 placeholder:text-gray-500
+                                 focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent"
                     />
                   </div>
                 </div>
 
-                {/* Email (requis) */}
+                {/* Email */}
                 <div>
-                  <label htmlFor="email" className="block text-sm font-semibold text-gray-800 mb-2">
-                    Email *
+                  <label htmlFor="email" className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    Email <span className="text-rose-600">*</span>
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Mail className="h-5 w-5 text-gray-500" />
-                    </div>
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <input
                       id="email"
                       name="email"
                       type="email"
                       value={form.email}
                       onChange={onChange}
-                      placeholder="exemple@domaine.com"
                       required
-                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg
-                                 text-gray-900 placeholder:text-gray-500 focus:outline-none
-                                 focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                      placeholder="exemple@domaine.com"
+                      className="w-full pl-10 pr-3 py-3 rounded-lg bg-white border border-gray-300
+                                 text-gray-900 placeholder:text-gray-500
+                                 focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent"
                     />
                   </div>
                 </div>
 
-                {/* Rôle & Département */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="role" className="block text-sm font-semibold text-gray-800 mb-2">
-                      Rôle *
-                    </label>
+                {/* Rôle */}
+                <div>
+                  <label htmlFor="role" className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    Rôle <span className="text-rose-600">*</span>
+                  </label>
+                  <select
+                    id="role"
+                    name="role"
+                    value={form.role}
+                    onChange={onChange}
+                    required
+                    className="w-full px-3 py-3 rounded-lg bg-white border border-gray-300 text-gray-900
+                               focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent"
+                  >
+                    <option value="CLIENT">Client</option>
+                    <option value="DEVELOPPEUR">Développeur</option>
+                    <option value="CHEF_DE_PROJET">Chef de projet</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="STAGIAIRE">Stagiaire</option>
+                  </select>
+                </div>
+
+                {/* Département */}
+                <div>
+                  <label htmlFor="department" className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    Département
+                  </label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <select
-                      id="role"
-                      name="role"
-                      value={form.role}
+                      id="department"
+                      name="department"
+                      value={form.department}
                       onChange={onChange}
-                      required
-                      className="block w-full px-3 py-3 border border-gray-300 rounded-lg
-                                 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                      className="w-full pl-10 pr-3 py-3 rounded-lg bg-white border border-gray-300 text-gray-900
+                                 focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent"
                     >
-                      <option value="CLIENT">Client</option>
-                      <option value="DEVELOPPEUR">Développeur</option>
-                      <option value="CHEF_DE_PROJET">Chef de projet</option>
-                      <option value="ADMIN">Admin</option>
-                      <option value="STAGIAIRE">Stagiaire</option>
+                      <option value="ADMINISTRATION">Administration</option>
+                      <option value="DEVELOPPEMENT">Développement</option>
+                      <option value="EXTERNE">Externe</option>
+                      <option value="MANAGEMENT">Management</option>
                     </select>
                   </div>
-
-                  <div>
-                    <label htmlFor="department" className="block text-sm font-semibold text-gray-800 mb-2">
-                      Département
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Building2 className="h-5 w-5 text-gray-500" />
-                      </div>
-                      <select
-                        id="department"
-                        name="department"
-                        value={form.department}
-                        onChange={onChange}
-                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg
-                                   text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                      >
-                        <option value="ADMINISTRATION">Administration</option>
-                        <option value="DEVELOPPEMENT">Développement</option>
-                        <option value="EXTERNE">Externe</option>
-                        <option value="MANAGEMENT">Management</option>
-                      </select>
-                    </div>
-                  </div>
                 </div>
 
-                {/* Poste & Téléphone (optionnels) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="jobTitle" className="block text-sm font-semibold text-gray-800 mb-2">
-                      Intitulé de poste
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Briefcase className="h-5 w-5 text-gray-500" />
-                      </div>
-                      <input
-                        id="jobTitle"
-                        name="jobTitle"
-                        value={form.jobTitle}
-                        onChange={onChange}
-                        placeholder="Ex: Chef de projet"
-                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg
-                                   text-gray-900 placeholder:text-gray-500 focus:outline-none
-                                   focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="phone" className="block text-sm font-semibold text-gray-800 mb-2">
-                      Téléphone
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Phone className="h-5 w-5 text-gray-500" />
-                      </div>
-                      <input
-                        id="phone"
-                        name="phone"
-                        value={form.phone}
-                        onChange={onChange}
-                        placeholder="+212 6 12 34 56 78"
-                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg
-                                   text-gray-900 placeholder:text-gray-500 focus:outline-none
-                                   focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Statut actif */}
+                {/* Job title */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  <label htmlFor="jobTitle" className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    Intitulé de poste
+                  </label>
+                  <div className="relative">
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      id="jobTitle"
+                      name="jobTitle"
+                      value={form.jobTitle}
+                      onChange={onChange}
+                      placeholder="Ex : Chef de projet"
+                      className="w-full pl-10 pr-3 py-3 rounded-lg bg-white border border-gray-300
+                                 text-gray-900 placeholder:text-gray-500
+                                 focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-semibold text-gray-900 mb-1.5">
+                    Téléphone
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      id="phone"
+                      name="phone"
+                      value={form.phone}
+                      onChange={onChange}
+                      placeholder="+212 6 12 34 56 78"
+                      className="w-full pl-10 pr-3 py-3 rounded-lg bg-white border border-gray-300
+                                 text-gray-900 placeholder:text-gray-500
+                                 focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                {/* Statut */}
+                <div className="lg:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-900 mb-1.5">
                     Statut
                   </label>
                   <button
@@ -328,23 +330,25 @@ export default function EditUser() {
                     {form.actif ? 'Actif' : 'Inactif'}
                   </button>
                 </div>
+              </div>
 
-                {/* Actions */}
-                <div className="flex justify-end gap-3 pt-6">
+              {/* ACTION BAR sticky en bas */}
+              <div className="sticky bottom-0 -mx-6 -mb-6 lg:-mx-8 lg:-mb-8">
+                <div className="flex justify-end gap-3 border-t border-gray-200 bg-white/80 backdrop-blur px-6 lg:px-8 py-4 rounded-b-2xl">
                   <button
                     type="button"
                     onClick={() => navigate('/admin/users')}
-                    className="px-6 py-3 border border-gray-300 text-gray-900 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="px-6 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-50"
                   >
                     Annuler
                   </button>
                   <button
                     type="submit"
                     disabled={submitting || !valid}
-                    className={`px-6 py-3 rounded-lg flex items-center gap-2 transition-colors
+                    className={`px-6 py-3 rounded-lg flex items-center gap-2
                       ${submitting || !valid
                         ? 'bg-[#4B2A7B]/60 text-white cursor-not-allowed'
-                        : 'bg-[#4B2A7B] hover:bg-[#5B3A8B] text-white focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:ring-offset-2'}`}
+                        : 'bg-[#4B2A7B] hover:bg-[#5B3A8B] text-white'}`}
                   >
                     {submitting ? (
                       <>
@@ -359,8 +363,8 @@ export default function EditUser() {
                     )}
                   </button>
                 </div>
-              </form>
-            </div>
+              </div>
+            </form>
           </div>
         </div>
       </div>
