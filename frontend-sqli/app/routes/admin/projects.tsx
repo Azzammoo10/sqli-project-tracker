@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Search, RotateCcw, FolderOpen } from 'lucide-react';
+import { Activity, FolderOpen } from 'lucide-react';
 import NavAdmin from '../../components/NavAdmin';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { authService } from '../../services/api';
@@ -13,8 +13,6 @@ export default function AdminProjects() {
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<Project[]>([]);
   const [user, setUser] = useState<any>(null);
-
-  // 🔎 Recherche (sur les champs existants du type Project)
   const [q, setQ] = useState('');
 
   useEffect(() => {
@@ -22,8 +20,8 @@ export default function AdminProjects() {
       try {
         const me = await authService.getCurrentUser();
         setUser(me);
-        const allProjects = await projectService.getAllProjects();
-        setProjects(allProjects ?? []);
+        const all = await projectService.getAllProjects();
+        setProjects(all ?? []);
       } catch (error: any) {
         console.error('Erreur lors du chargement des projets:', error);
         toast.error('Erreur lors du chargement des projets');
@@ -43,29 +41,17 @@ export default function AdminProjects() {
     }
   };
 
-  const handleTogglePublicLink = async (projectId: number) => {
-    try {
-      const updatedProject = await projectService.togglePublicLink(projectId);
-      setProjects(prev => prev.map(p => (p.id === projectId ? updatedProject : p)));
-      toast.success('Lien public mis à jour');
-    } catch (error: any) {
-      console.error('Erreur lors de la mise à jour du lien public:', error);
-      toast.error('Erreur lors de la mise à jour du lien public');
-    }
-  };
-
-  const resetAll = () => setQ('');
-
-  // ✅ Filtrage cohérent avec Project
   const filtered = useMemo(() => {
     const k = q.trim().toLowerCase();
     if (!k) return projects;
     return projects.filter(p => {
       const inTitre = (p.titre ?? '').toLowerCase().includes(k);
       const inDesc = (p.description ?? '').toLowerCase().includes(k);
-      const inType = (p.type ?? '').toLowerCase().includes(k);
-      const inStatut = (p.statut ?? '').toLowerCase().includes(k);
-      const inClient = (p.client?.username ?? '').toLowerCase().includes(k);
+      const inType = String((p as any).type ?? '').toLowerCase().includes(k);
+      const inStatut = String(p.statut ?? '').toLowerCase().includes(k);
+      const inClient = ((p as any).clientName ?? p.client?.username ?? '')
+        .toLowerCase()
+        .includes(k);
       const inChef = (p.createdBy?.username ?? '').toLowerCase().includes(k);
       return inTitre || inDesc || inType || inStatut || inClient || inChef;
     });
@@ -90,16 +76,13 @@ export default function AdminProjects() {
       <div className="flex h-screen bg-gradient-to-b from-[#f6f4fb] to-[#fbfcfe]">
         <NavAdmin user={user} onLogout={onLogout} />
         <div className="flex-1 overflow-auto">
-          {/* Header harmonisé */}
+          {/* Header */}
           <div className="p-6">
             <div className="w-full">
               <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
                 <div
                   className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
-                  style={{
-                    background:
-                      'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'
-                  }}
+                  style={{ background: 'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)' }}
                 />
                 <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                   <div className="flex items-center gap-2">
@@ -110,28 +93,23 @@ export default function AdminProjects() {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    
                     <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
                       Total: <b>{projects.length}</b>
                     </span>
                     <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
                       Affichés: <b>{filtered.length}</b>
                     </span>
-                    
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Tableau */}
           <div className="px-6">
-            {/* Tableau des projets – on passe la liste filtrée */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <ProjectsTable
-                projects={filtered}
-                userRole="ADMIN"
-                onTogglePublicLink={handleTogglePublicLink}
-                loading={false}
-              />
+              <ProjectsTable projects={filtered} userRole="ADMIN" loading={false} />
             </div>
           </div>
         </div>

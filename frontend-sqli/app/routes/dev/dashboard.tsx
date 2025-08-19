@@ -11,7 +11,6 @@ import {
   Square,
   Activity,
   Target,
-  TrendingUp,
   FolderOpen,
   Settings,
   RefreshCw
@@ -40,18 +39,14 @@ export default function DevDashboard() {
   const [activeTimer, setActiveTimer] = useState<number | null>(null);
   const [timerSeconds, setTimerSeconds] = useState<number>(0);
 
-  // Chargement des données
   useEffect(() => {
     loadDashboardData();
   }, []);
 
-  // Timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (activeTimer !== null) {
-      interval = setInterval(() => {
-        setTimerSeconds(prev => prev + 1);
-      }, 1000);
+      interval = setInterval(() => setTimerSeconds((p) => p + 1), 1000);
     }
     return () => clearInterval(interval);
   }, [activeTimer]);
@@ -59,33 +54,27 @@ export default function DevDashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
-        const userData = await authService.getCurrentUser();
-        setUser(userData);
+      const userData = await authService.getCurrentUser();
+      setUser(userData);
 
-      // Charger les tâches du développeur
       const userTasks = await taskService.getByUser();
       setTasks(userTasks);
 
-      // Charger les projets assignés
       const userProjects = await projectService.getProjectsForCurrentUser();
       setProjects(userProjects);
 
-      // Pour l'instant, simuler les membres d'équipe
-      // TODO: Implémenter l'endpoint pour récupérer les membres d'équipe
       setTeamMembers([
         { id: 1, username: 'Alice Dev', role: 'Développeur', currentTask: 'Implémenter JWT' },
         { id: 2, username: 'Bob Dev', role: 'Développeur', currentTask: 'Tests unitaires' },
         { id: 3, username: 'Charlie Dev', role: 'Développeur', currentTask: 'Documentation' }
       ]);
-
-      } catch (error: any) {
+    } catch (error: any) {
       console.error('Erreur lors du chargement:', error);
-        toast.error('Erreur lors du chargement des données');
-      } finally {
-        setLoading(false);
-      }
-    };
+      toast.error('Erreur lors du chargement des données');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -102,7 +91,7 @@ export default function DevDashboard() {
       setActiveTimer(taskId);
       setTimerSeconds(0);
       toast.success('Timer démarré');
-    } catch (error) {
+    } catch {
       toast.error('Erreur lors du démarrage du timer');
     }
   };
@@ -110,30 +99,21 @@ export default function DevDashboard() {
   const stopTimer = async (taskId: number) => {
     try {
       setActiveTimer(null);
-      const hoursSpent = timerSeconds / 3600; // convertir en heures
-      
-      // Mettre à jour les heures effectives
+      const hoursSpent = timerSeconds / 3600;
       await taskService.updateHours(taskId, hoursSpent);
-      
       toast.success(`Timer arrêté. Temps enregistré: ${formatTime(timerSeconds)}`);
       setTimerSeconds(0);
-      
-      // Recharger les données
       await loadDashboardData();
-    } catch (error) {
-      toast.error('Erreur lors de l\'arrêt du timer');
+    } catch {
+      toast.error("Erreur lors de l'arrêt du timer");
     }
   };
 
   const formatTime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
   };
 
   const getStatusColor = (status: string) => {
@@ -155,16 +135,11 @@ export default function DevDashboard() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
-    if (loading) {
-      return (
+  if (loading) {
+    return (
       <ProtectedRoute allowedRoles={['DEVELOPPEUR']}>
         <div className="flex h-screen bg-gray-50">
           <NavDev user={user} onLogout={handleLogout} />
@@ -196,50 +171,55 @@ export default function DevDashboard() {
           </main>
         </div>
       </ProtectedRoute>
-      );
-    }
+    );
+  }
 
-    return (
+  return (
     <ProtectedRoute allowedRoles={['DEVELOPPEUR']}>
       <div className="flex h-screen bg-gray-50">
         <NavDev user={user} onLogout={handleLogout} />
-        
+
         <main className="flex-1 overflow-auto">
-          {/* Header */}
-          <div className="bg-white border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Tableau de bord</h1>
-                <p className="text-sm text-gray-600">
-                  Bienvenue, {user?.username} • Dernière mise à jour: {new Date().toLocaleTimeString('fr-FR')}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={loadDashboardData}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                  title="Actualiser"
-                >
-                  <RefreshCw className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => navigate('/dev/settings')}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#4B2A7B] text-white rounded-lg hover:bg-[#5B3A8B] transition-colors"
-                >
-                  <Settings className="w-4 h-4" />
-                  Paramètres
-                </button>
+          {/* Banner harmonisée */}
+          <div className="p-6">
+            <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
+              <div
+                className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
+                style={{ background: 'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)' }}
+              />
+              <div className="relative flex items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight">Tableau de bord</h1>
+                  <p className="text-white/85">
+                    Bienvenue, {user?.username} • {new Date().toLocaleTimeString('fr-FR')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={loadDashboardData}
+                    className="inline-flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/15 px-3 py-2 text-sm"
+                    title="Actualiser"
+                  >
+                    <RefreshCw className="w-4 h-4" /> Actualiser
+                  </button>
+                  <button
+                    onClick={() => navigate('/dev/settings')}
+                    className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm text-[#4B2A7B] hover:bg-white/90"
+                  >
+                    <Settings className="w-4 h-4" /> Paramètres
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-            {/* KPIs Cards */}
+          <div className="max-w-7xl mx-auto px-6 pb-8 space-y-8">
+            {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Tâches Assignées</p>
+                    <p className="text-sm font-medium text-gray-600">Tâches assignées</p>
                     <p className="text-3xl font-bold text-gray-900">{tasks.length}</p>
                     <p className="text-xs text-blue-600 flex items-center gap-1 mt-1">
                       <Activity className="w-3 h-3" />
@@ -255,11 +235,15 @@ export default function DevDashboard() {
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Projets Actifs</p>
+                    <p className="text-sm font-medium text-gray-600">Projets actifs</p>
                     <p className="text-3xl font-bold text-gray-900">{projects.length}</p>
                     <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
                       <Target className="w-3 h-3" />
-                      Moyenne: {projects.length > 0 ? Math.round(projects.reduce((acc, p) => acc + p.progression, 0) / projects.length) : 0}%
+                      Moyenne:{' '}
+                      {projects.length > 0
+                        ? Math.round(projects.reduce((acc, p) => acc + p.progression, 0) / projects.length)
+                        : 0}
+                      %
                     </p>
                   </div>
                   <div className="p-3 bg-green-50 rounded-lg">
@@ -285,7 +269,7 @@ export default function DevDashboard() {
               </div>
             </div>
 
-            {/* Main Content Grid */}
+            {/* Grille principale */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Mes Tâches */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -316,7 +300,7 @@ export default function DevDashboard() {
                               </span>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center justify-between mb-3">
                             <div className="text-sm text-gray-600">
                               <span className="font-medium">Projet:</span> {task.projectTitre}
@@ -331,9 +315,7 @@ export default function DevDashboard() {
                               <span className="font-medium">Heures:</span> {task.effectiveHours || 0}h / {task.plannedHours}h
                             </div>
                             {activeTimer === task.id && (
-                              <div className="text-sm font-mono text-[#4B2A7B]">
-                                {formatTime(timerSeconds)}
-                              </div>
+                              <div className="text-sm font-mono text-[#4B2A7B]">{formatTime(timerSeconds)}</div>
                             )}
                           </div>
 
@@ -390,7 +372,7 @@ export default function DevDashboard() {
                     </button>
                   </div>
                 </div>
-          <div className="p-6">
+                <div className="p-6">
                   {projects.length > 0 ? (
                     <div className="space-y-4">
                       {projects.slice(0, 5).map((project) => (
@@ -401,11 +383,9 @@ export default function DevDashboard() {
                               project.statut === 'EN_COURS' ? 'bg-blue-100 text-blue-800' :
                               project.statut === 'TERMINE' ? 'bg-green-100 text-green-800' :
                               'bg-gray-100 text-gray-800'
-                            }`}>
-                              {project.statut}
-                            </span>
+                            }`}>{project.statut}</span>
                           </div>
-                          
+
                           <div className="mb-3">
                             <div className="flex items-center justify-between text-sm mb-1">
                               <span className="text-gray-600">Progression</span>
@@ -415,7 +395,7 @@ export default function DevDashboard() {
                               <div
                                 className="bg-[#4B2A7B] h-2 rounded-full transition-all duration-300"
                                 style={{ width: `${project.progression}%` }}
-                              ></div>
+                              />
                             </div>
                           </div>
 
@@ -452,18 +432,18 @@ export default function DevDashboard() {
               <div className="p-6">
                 {teamMembers.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {teamMembers.map((member) => (
-                      <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-medium">
-                          {member.username.slice(0, 2).toUpperCase()}
+                    {teamMembers.map((m) => (
+                      <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-200 to-indigo-200 border text-xs font-semibold text-[#4B2A7B] grid place-items-center">
+                          {m.username.slice(0, 2).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-900 text-sm truncate">{member.username}</h4>
-                          <p className="text-xs text-gray-600">{member.role}</p>
-                          {member.currentTask && (
+                          <h4 className="font-medium text-gray-900 text-sm truncate">{m.username}</h4>
+                          <p className="text-xs text-gray-600">{m.role}</p>
+                          {m.currentTask && (
                             <p className="text-xs text-[#4B2A7B] mt-1">
                               <Activity className="w-3 h-3 inline mr-1" />
-                              {member.currentTask}
+                              {m.currentTask}
                             </p>
                           )}
                         </div>

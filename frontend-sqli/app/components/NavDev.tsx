@@ -1,163 +1,106 @@
-import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   FolderOpen,
-  Clock,
+  CheckSquare,
   Users,
+  BarChart3,
   Settings,
   LogOut,
-  Menu,
-  X,
   User
 } from 'lucide-react';
 
 interface NavDevProps {
-  user: any;
-  onLogout: () => void;
+  user?: {
+    username: string;
+    email?: string;
+  };
+  onLogout?: () => void;
 }
 
 export default function NavDev({ user, onLogout }: NavDevProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dev/dashboard', icon: LayoutDashboard },
-    { name: 'Mes Projets', href: '/dev/projects', icon: FolderOpen },
-    { name: 'Mes Tâches', href: '/dev/tasks', icon: Clock },
-    { name: 'Mon Équipe', href: '/dev/team', icon: Users },
-    { name: 'Paramètres', href: '/dev/settings', icon: Settings },
+  const navItems = [
+    { path: '/dev/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/dev/projects', icon: FolderOpen, label: 'Mes Projets' },
+    { path: '/dev/tasks', icon: CheckSquare, label: 'Tâches' },
+    { path: '/dev/team', icon: Users, label: 'Équipe' },
+    { path: '/dev/analytics', icon: BarChart3, label: 'Analytics' },
+    { path: '/dev/settings', icon: Settings, label: 'Paramètres' },
   ];
 
-  const isActive = (href: string) => {
-    return location.pathname === href;
-  };
+  const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="bg-[#4B2A7B] text-white w-64 min-h-screen flex flex-col">
-      {/* Header */}
-      <div className="p-6 border-b border-[#5B3A8B]">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-            <User className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-lg">Développeur</h2>
-            <p className="text-sm text-white/80">{user?.username}</p>
-          </div>
+    <aside className="w-64 min-h-screen flex flex-col bg-[#3c274a] text-white relative">
+      {/* Header (même esprit que NavChef) */}
+      <div className="p-6 border-b border-[#5B3A8B] flex flex-col items-center text-center">
+        <div className="w-14 h-14 bg-white/10 rounded-full grid place-items-center mb-3 ring-1 ring-white/15">
+          <User className="h-7 w-7 text-white/90" />
         </div>
+        <h1 className="text-white font-semibold text-lg">SQLI Dev</h1>
+        <p className="text-gray-300 text-xs">Espace développeur</p>
       </div>
 
-      {/* Navigation Links */}
-      <div className="flex-1 p-4">
-        <ul className="space-y-2">
-          {navigation.map((item) => {
-            const Icon = item.icon;
+      {/* Menu */}
+      <nav className="flex-1 p-3">
+        <ul className="space-y-1">
+          {navItems.map(({ path, icon: Icon, label }) => {
+            const active = isActive(path);
             return (
-              <li key={item.name}>
+              <li key={path}>
                 <Link
-                  to={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive(item.href)
-                      ? 'bg-white/20 text-white'
-                      : 'text-white/80 hover:bg-white/10 hover:text-white'
-                  }`}
-                  onClick={() => setIsOpen(false)}
+                  to={path}
+                  className={[
+                    'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 transition',
+                    active
+                      ? 'bg-white text-[#4B2A7B]'
+                      : 'text-white/90 hover:text-white hover:bg-white/10'
+                  ].join(' ')}
                 >
-                  <Icon className="w-5 h-5" />
-                  {item.name}
+                  <span
+                    className={[
+                      'absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-md transition',
+                      active ? 'bg-[#a894e5]' : 'bg-transparent group-hover:bg-white/40'
+                    ].join(' ')}
+                  />
+                  <span
+                    className={[
+                      'shrink-0 rounded-md p-1.5 grid place-items-center transition',
+                      active ? 'bg-[#efeaff]' : 'bg-white/10 group-hover:bg-white/15'
+                    ].join(' ')}
+                  >
+                    <Icon className={active ? 'h-4 w-4 text-[#4B2A7B]' : 'h-4 w-4'} />
+                  </span>
+                  <span className="text-sm font-medium">{label}</span>
                 </Link>
               </li>
             );
           })}
         </ul>
-      </div>
+      </nav>
 
-      {/* Logout */}
-      <div className="p-4 border-t border-[#5B3A8B]">
+      {/* Profil / Logout */}
+      <div className="mt-auto p-4 border-t border-white/10">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="h-10 w-10 rounded-full bg-white text-[#4B2A7B] grid place-items-center shadow-sm">
+            <User className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{user?.username || 'Développeur'}</p>
+            <p className="text-[11px] text-white/75 truncate">{user?.email || 'dev@sqli.com'}</p>
+          </div>
+          <span className="ml-auto h-2.5 w-2.5 rounded-full bg-sky-400 ring-2 ring-sky-200/30" />
+        </div>
         <button
           onClick={onLogout}
-          className="flex items-center gap-3 px-4 py-3 w-full text-left text-white/80 hover:bg-white/10 hover:text-white rounded-lg transition-colors"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm bg-white/10 hover:bg-white/15 transition"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="h-4 w-4" />
           Déconnexion
         </button>
       </div>
-
-      {/* Mobile menu button */}
-      <div className="lg:hidden absolute top-4 right-4">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
-        >
-          {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-      </div>
-
-      {/* Mobile menu overlay */}
-      {isOpen && (
-        <div className="lg:hidden fixed inset-0 z-50">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
-          <div className="fixed left-0 top-0 h-full w-64 bg-[#4B2A7B] z-50">
-            {/* Mobile header */}
-            <div className="p-6 border-b border-[#5B3A8B]">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                    <User className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="font-semibold text-lg">Développeur</h2>
-                    <p className="text-sm text-white/80">{user?.username}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-
-            {/* Mobile navigation */}
-            <div className="p-4">
-              <ul className="space-y-2">
-                {navigation.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <li key={item.name}>
-                      <Link
-                        to={item.href}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                          isActive(item.href)
-                            ? 'bg-white/20 text-white'
-                            : 'text-white/80 hover:bg-white/10 hover:text-white'
-                        }`}
-                        onClick={() => setIsOpen(false)}
-                      >
-                        <Icon className="w-5 h-5" />
-                        {item.name}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-
-            {/* Mobile logout */}
-            <div className="p-4 border-t border-[#5B3A8B]">
-              <button
-                onClick={onLogout}
-                className="flex items-center gap-3 px-4 py-3 w-full text-left text-white/80 hover:bg-white/10 hover:text-white rounded-lg transition-colors"
-              >
-                <LogOut className="w-5 h-5" />
-                Déconnexion
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </nav>
+    </aside>
   );
 }

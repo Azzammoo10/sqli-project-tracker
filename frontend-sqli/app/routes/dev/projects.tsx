@@ -28,25 +28,17 @@ export default function DevProjects() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  useEffect(() => {
-    loadProjects();
-  }, []);
+  useEffect(() => { loadProjects(); }, []);
 
-  // Filter effect
   useEffect(() => {
     let filtered = projects;
-
     if (searchTerm) {
-      filtered = filtered.filter(project =>
-        project.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.description.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(p =>
+        p.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-
-    if (statusFilter) {
-      filtered = filtered.filter(project => project.statut === statusFilter);
-    }
-
+    if (statusFilter) filtered = filtered.filter(p => p.statut === statusFilter);
     setFilteredProjects(filtered);
   }, [projects, searchTerm, statusFilter]);
 
@@ -55,7 +47,6 @@ export default function DevProjects() {
       setLoading(true);
       const userData = await authService.getCurrentUser();
       setUser(userData);
-
       const userProjects = await projectService.getProjectsForCurrentUser();
       setProjects(userProjects);
     } catch (error: any) {
@@ -96,14 +87,8 @@ export default function DevProjects() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'Non définie';
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
+  const formatDate = (d?: string) =>
+    d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Non définie';
 
   const isOverdue = (dateFin: string, statut: string) => {
     if (statut === 'TERMINE') return false;
@@ -140,52 +125,51 @@ export default function DevProjects() {
     <ProtectedRoute allowedRoles={['DEVELOPPEUR']}>
       <div className="flex h-screen bg-gray-50">
         <NavDev user={user} onLogout={handleLogout} />
-        
+
         <main className="flex-1 overflow-auto">
-          {/* Header */}
-          <div className="bg-white border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Mes Projets</h1>
-                <p className="text-sm text-gray-600">
-                  Projets auxquels vous êtes assigné
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
+          {/* Banner harmonisée */}
+          <div className="p-6">
+            <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
+              <div
+                className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
+                style={{ background: 'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)' }}
+              />
+              <div className="relative flex items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight">Mes Projets</h1>
+                  <p className="text-white/85">Projets auxquels vous êtes assigné</p>
+                </div>
                 <button
                   onClick={loadProjects}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/15 px-3 py-2 text-sm"
                   title="Actualiser"
                 >
-                  <RefreshCw className="w-5 h-5" />
+                  <RefreshCw className="w-4 h-4" /> Actualiser
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="max-w-7xl mx-auto px-6 py-8">
-            {/* Filters */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="max-w-7xl mx-auto px-6 pb-8">
+            {/* Filtres */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Search */}
                 <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                  <Search className="not-first:w-4 h-4 absolute left-3 top-3 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Rechercher un projet..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                    className="text-gray-800 w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
                   />
                 </div>
-
-                {/* Status Filter */}
                 <div className="relative">
                   <Filter className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent text-gray-800"
                   >
                     <option value="">Tous les statuts</option>
                     <option value="PLANIFIE">Planifié</option>
@@ -197,13 +181,13 @@ export default function DevProjects() {
               </div>
             </div>
 
-            {/* Projects List */}
+            {/* Liste projets */}
             {filteredProjects.length > 0 ? (
               <div className="space-y-6">
                 {filteredProjects.map((project) => (
                   <div
                     key={project.id}
-                    className={`bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow ${
+                    className={`bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition-shadow ${
                       isOverdue(project.dateFin || '', project.statut) ? 'border-l-4 border-l-red-500' : 'border-gray-200'
                     }`}
                   >
@@ -218,11 +202,11 @@ export default function DevProjects() {
                           )}
                         </div>
                         <p className="text-gray-600 mb-3">{project.description}</p>
-                        
+
                         <div className="flex items-center gap-6 text-sm text-gray-600">
                           <div className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
-                            <span>Échéance: {formatDate(project.dateFin || '')}</span>
+                            <span>Échéance: {formatDate(project.dateFin)}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Users className="w-4 h-4" />
@@ -238,7 +222,7 @@ export default function DevProjects() {
                       </div>
                     </div>
 
-                    {/* Progress Bar */}
+                    {/* Progression */}
                     <div className="mb-4">
                       <div className="flex items-center justify-between text-sm mb-2">
                         <span className="text-gray-600">Progression</span>
@@ -250,11 +234,11 @@ export default function DevProjects() {
                             project.progression >= 100 ? 'bg-green-500' : 'bg-[#4B2A7B]'
                           }`}
                           style={{ width: `${Math.min(project.progression, 100)}%` }}
-                        ></div>
+                        />
                       </div>
                     </div>
 
-                    {/* Project Stats */}
+                    {/* Stats rapides */}
                     <div className="grid grid-cols-3 gap-4 mb-4">
                       <div className="text-center p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center justify-center gap-1 text-[#4B2A7B] mb-1">
@@ -283,7 +267,7 @@ export default function DevProjects() {
                       <div className="flex items-center gap-2">
                         {getStatusIcon(project.statut)}
                         <span className="text-sm text-gray-600">
-                          Dernière mise à jour: {formatDate(project.lastUpdated || '')}
+                          Dernière mise à jour: {formatDate(project.lastUpdated)}
                         </span>
                       </div>
                       <button
@@ -298,23 +282,19 @@ export default function DevProjects() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
                 <FolderOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   {searchTerm || statusFilter ? 'Aucun projet trouvé' : 'Aucun projet assigné'}
                 </h3>
                 <p className="text-gray-600">
-                  {searchTerm || statusFilter 
+                  {searchTerm || statusFilter
                     ? 'Essayez de modifier vos filtres de recherche'
-                    : 'Vous n\'êtes pas encore assigné à des projets'
-                  }
+                    : "Vous n'êtes pas encore assigné à des projets"}
                 </p>
                 {(searchTerm || statusFilter) && (
                   <button
-                    onClick={() => {
-                      setSearchTerm('');
-                      setStatusFilter('');
-                    }}
+                    onClick={() => { setSearchTerm(''); setStatusFilter(''); }}
                     className="mt-4 px-4 py-2 bg-[#4B2A7B] text-white rounded-lg hover:bg-[#5B3A8B] transition-colors"
                   >
                     Effacer les filtres
