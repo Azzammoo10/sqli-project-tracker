@@ -26,6 +26,7 @@ public interface AnalyticsService {
     List<ChartData> getTaskStatusDistribution();
     List<WorkloadResponse> getWorkloadAnalysis();
     List<Map<String, Object>> getTeamOverview();
+    List<Map<String, Object>> getDetailedTeamOverview();
     List<Map<String, Object>> getUpcomingDeadlines(int days);
     Map<String, Object> getTeamPerformance();
     List<Map<String, Object>> getOverdueProjects();

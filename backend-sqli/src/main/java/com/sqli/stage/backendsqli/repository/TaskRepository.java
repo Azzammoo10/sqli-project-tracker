@@ -45,4 +45,11 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
 
     @Query("SELECT t FROM Task t WHERE t.project.id IN :projectIds")
     List<Task> findByProjectIdIn(@Param("projectIds") List<Integer> projectIds);
+    
+    // Nouvelles méthodes pour compter les tâches par développeur ET par projet
+    @Query("SELECT COUNT(t) FROM Task t WHERE t.developpeur.id = :developpeurId AND t.project.id IN :projectIds")
+    int countByDeveloppeurIdAndProjectIdIn(@Param("developpeurId") int developpeurId, @Param("projectIds") List<Integer> projectIds);
+    
+    @Query("SELECT COUNT(t) FROM Task t WHERE t.developpeur.id = :developpeurId AND t.project.id IN :projectIds AND t.statut = :statut")
+    int countByDeveloppeurIdAndProjectIdInAndStatut(@Param("developpeurId") int developpeurId, @Param("projectIds") List<Integer> projectIds, @Param("statut") StatutTache statut);
 }

@@ -14,6 +14,18 @@ export type Task = {
   remainingHours?: number;
   developpeurUsername?: string;
   projectTitre?: string;
+  // Nouveaux champs pour la compatibilité avec le backend
+  project?: {
+    id: number;
+    titre: string;
+    description?: string;
+  };
+  developpeur?: {
+    id: number;
+    username: string;
+    email?: string;
+  };
+  progression?: number;
 };
 
 export type TaskCreatePayload = {
@@ -96,6 +108,17 @@ export const taskService = {
 
   getStats: async (): Promise<any> => {
     const { data } = await apiClient.get('/tasks/stats');
+    return data;
+  },
+
+  // Nouvelles méthodes pour le dashboard développeur
+  getTasksForCurrentUser: async (): Promise<Task[]> => {
+    const { data } = await apiClient.get('/tasks/my-tasks');
+    return data;
+  },
+
+  updateTaskStatus: async (id: number, status: string): Promise<Task> => {
+    const { data } = await apiClient.put(`/tasks/${id}/status?status=${status}`);
     return data;
   },
 

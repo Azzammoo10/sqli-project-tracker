@@ -1,49 +1,63 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Users,
   Mail,
   Phone,
   MapPin,
   Calendar,
-  Activity,
+  FolderOpen,
+  CheckCircle,
   Clock,
-  Target,
-  RefreshCw,
-  User
+  AlertTriangle,
+  TrendingUp,
+  Search,
+  Filter
 } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavDev from '../../components/NavDev';
 import { authService } from '../../services/api';
-import { projectService } from '../../services/projectService';
+import { projectService, type Project } from '../../services/projectService';
 import toast from 'react-hot-toast';
 
 interface TeamMember {
   id: number;
   username: string;
   email: string;
-  role: string;
   jobTitle?: string;
   department?: string;
-  assignedProjects: number;
+  phone?: string;
+  projects: Project[];
+  totalTasks: number;
   completedTasks: number;
-  pendingTasks: number;
-  availability: number;
-  lastActivity: string;
-  currentProject?: string;
-  sharedProjects?: string[];
+  inProgressTasks: number;
+  blockedTasks: number;
+  completionRate: number;
 }
 
 export default function DevTeam() {
-  const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [myProjects, setMyProjects] = useState<any[]>([]);
+  const [filteredMembers, setFilteredMembers] = useState<TeamMember[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+
+  useEffect(() => { loadTeamData(); }, []);
 
   useEffect(() => {
-    loadTeamData();
-  }, []);
+    let filtered = teamMembers;
+    if (searchTerm) {
+      filtered = filtered.filter(member =>
+        member.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    if (departmentFilter) {
+      filtered = filtered.filter(member => member.department === departmentFilter);
+    }
+    setFilteredMembers(filtered);
+  }, [teamMembers, searchTerm, departmentFilter]);
 
   const loadTeamData = async () => {
     try {
@@ -51,141 +65,95 @@ export default function DevTeam() {
       
       const userData = await authService.getCurrentUser();
       setUser(userData);
-
-      // Charger mes projets pour identifier l'équipe
+      
+      // Récupérer les projets du développeur
       const userProjects = await projectService.getProjectsForCurrentUser();
-      setMyProjects(userProjects);
-
-      // Pour l'instant, simuler les données d'équipe
-      // TODO: Implémenter l'endpoint pour récupérer les vrais membres d'équipe
-      const mockTeamMembers: TeamMember[] = [
-        {
-          id: 1,
-          username: 'Alice Martin',
-          email: 'alice.martin@sqli.com',
-          role: 'DEVELOPPEUR',
-          jobTitle: 'Développeur Senior',
-          department: 'IT',
-          assignedProjects: 2,
-          completedTasks: 15,
-          pendingTasks: 3,
-          availability: 85,
-          lastActivity: '2024-01-15T10:30:00',
-          currentProject: 'Plateforme E-commerce',
-          sharedProjects: ['Plateforme E-commerce', 'API Mobile']
-        },
-        {
-          id: 2,
-          username: 'Bob Dupont',
-          email: 'bob.dupont@sqli.com',
-          role: 'DEVELOPPEUR',
-          jobTitle: 'Développeur Full Stack',
-          department: 'IT',
-          assignedProjects: 3,
-          completedTasks: 12,
-          pendingTasks: 5,
-          availability: 70,
-          lastActivity: '2024-01-15T09:15:00',
-          currentProject: 'API Mobile',
-          sharedProjects: ['API Mobile', 'Dashboard Analytics']
-        },
-        {
-          id: 3,
-          username: 'Charlie Wilson',
-          email: 'charlie.wilson@sqli.com',
-          role: 'DEVELOPPEUR',
-          jobTitle: 'Développeur Frontend',
-          department: 'IT',
-          assignedProjects: 1,
-          completedTasks: 8,
-          pendingTasks: 4,
-          availability: 90,
-          lastActivity: '2024-01-15T11:45:00',
-          currentProject: 'Dashboard Analytics',
-          sharedProjects: ['Dashboard Analytics']
-        },
-        {
-          id: 4,
-          username: 'Diana Chen',
-          email: 'diana.chen@sqli.com',
-          role: 'CHEF_DE_PROJET',
-          jobTitle: 'Chef de Projet IT',
-          department: 'Management',
-          assignedProjects: 5,
-          completedTasks: 25,
-          pendingTasks: 8,
-          availability: 95,
-          lastActivity: '2024-01-15T12:00:00',
-          currentProject: 'Supervision Projets',
-          sharedProjects: ['Plateforme E-commerce', 'API Mobile', 'Dashboard Analytics']
+      
+      // Extraire tous les développeurs uniques des projets
+      const allDevelopers = new Map<number, TeamMember>();
+      
+      userProjects.forEach(project => {
+        if (project.developpeurs) {
+          project.developpeurs.forEach(dev => {
+            if (dev.id !== userData.id) { // Exclure l'utilisateur actuel
+              if (!allDevelopers.has(dev.id)) {
+                allDevelopers.set(dev.id, {
+                  id: dev.id,
+                  username: dev.username,
+                  email: dev.email,
+                  jobTitle: 'Développeur',
+                  department: 'IT',
+                  phone: '',
+                  projects: [],
+                  totalTasks: 0,
+                  completedTasks: 0,
+                  inProgressTasks: 0,
+                  blockedTasks: 0,
+                  completionRate: 0
+                });
+              }
+              allDevelopers.get(dev.id)!.projects.push(project);
+            }
+          });
         }
-      ];
-
-      setTeamMembers(mockTeamMembers);
-
+      });
+      
+      // Calculer les statistiques pour chaque membre
+      const membersWithStats = Array.from(allDevelopers.values()).map(member => {
+        const totalTasks = member.projects.reduce((sum, project) => sum + (project.totalTasks || 0), 0);
+        const completedTasks = member.projects.reduce((sum, project) => sum + (project.completedTasks || 0), 0);
+        const inProgressTasks = member.projects.reduce((sum, project) => sum + (project.inProgressTasks || 0), 0);
+        const blockedTasks = totalTasks - completedTasks - inProgressTasks;
+        const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        
+        return {
+          ...member,
+          totalTasks,
+          completedTasks,
+          inProgressTasks,
+          blockedTasks,
+          completionRate
+        };
+      });
+      
+      setTeamMembers(membersWithStats);
+      setFilteredMembers(membersWithStats);
+      
     } catch (error: any) {
-      console.error('Erreur lors du chargement de l\'équipe:', error);
-      toast.error('Erreur lors du chargement des données d\'équipe');
+      console.error('❌ Erreur lors du chargement de l\'équipe:', error);
+      toast.error(`Erreur lors du chargement de l'équipe: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await authService.logout();
-      navigate('/auth/login');
-      toast.success('Déconnexion réussie');
-    } catch {
-      toast.error('Erreur lors de la déconnexion');
-    }
+  const getCompletionRateColor = (rate: number) => {
+    if (rate >= 80) return 'text-green-600';
+    if (rate >= 60) return 'text-yellow-600';
+    if (rate >= 40) return 'text-orange-600';
+    return 'text-red-600';
   };
 
-  const formatLastActivity = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-
-    if (diffInMinutes < 60) {
-      return `Il y a ${diffInMinutes} min`;
-    } else if (diffInMinutes < 1440) {
-      const hours = Math.floor(diffInMinutes / 60);
-      return `Il y a ${hours}h`;
-    } else {
-      const days = Math.floor(diffInMinutes / 1440);
-      return `Il y a ${days}j`;
-    }
-  };
-
-  const getAvailabilityColor = (availability: number) => {
-    if (availability >= 80) return 'text-green-600 bg-green-100';
-    if (availability >= 60) return 'text-yellow-600 bg-yellow-100';
-    return 'text-red-600 bg-red-100';
-  };
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'CHEF_DE_PROJET': return 'bg-purple-100 text-purple-800';
-      case 'DEVELOPPEUR': return 'bg-blue-100 text-blue-800';
-      case 'CLIENT': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const getCompletionRateIcon = (rate: number) => {
+    if (rate >= 80) return <CheckCircle className="w-4 h-4" />;
+    if (rate >= 60) return <TrendingUp className="w-4 h-4" />;
+    if (rate >= 40) return <Clock className="w-4 h-4" />;
+    return <AlertTriangle className="w-4 h-4" />;
   };
 
   if (loading) {
     return (
       <ProtectedRoute allowedRoles={['DEVELOPPEUR']}>
         <div className="flex h-screen bg-gray-50">
-          <NavDev user={user} onLogout={handleLogout} />
+          <NavDev user={user} onLogout={() => {}} />
           <main className="flex-1 overflow-auto">
             <div className="max-w-7xl mx-auto px-6 py-8">
               <div className="animate-pulse space-y-6">
                 <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[...Array(6)].map((_, i) => (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
                     <div key={i} className="bg-white rounded-lg p-6 shadow-sm">
-                      <div className="h-16 w-16 bg-gray-200 rounded-full mb-4"></div>
-                      <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
                       <div className="h-4 bg-gray-200 rounded w-1/2"></div>
                     </div>
                   ))}
@@ -201,193 +169,144 @@ export default function DevTeam() {
   return (
     <ProtectedRoute allowedRoles={['DEVELOPPEUR']}>
       <div className="flex h-screen bg-gray-50">
-        <NavDev user={user} onLogout={handleLogout} />
-        
+        <NavDev user={user} onLogout={() => {}} />
+
         <main className="flex-1 overflow-auto">
-          {/* Header */}
-          <div className="bg-white border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Mon Équipe</h1>
-                <p className="text-sm text-gray-600">
-                  Collaborateurs travaillant sur vos projets
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={loadTeamData}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                  title="Actualiser"
-                >
-                  <RefreshCw className="w-5 h-5" />
-                </button>
+          {/* Banner harmonisée */}
+          <div className="p-6">
+            <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
+              <div
+                className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
+                style={{ background: 'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)' }}
+              />
+              <div className="relative flex items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight">Mon Équipe</h1>
+                  <p className="text-white/85">Développeurs travaillant sur vos projets</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-white/10 rounded-full text-sm">
+                    {filteredMembers.length} membre{filteredMembers.length > 1 ? 's' : ''}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="max-w-7xl mx-auto px-6 py-8">
-            {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Membres d'équipe</p>
-                    <p className="text-2xl font-bold text-gray-900">{teamMembers.length}</p>
-                  </div>
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <Users className="w-6 h-6 text-blue-600" />
-                  </div>
+          <div className="max-w-7xl mx-auto px-6 pb-8">
+            {/* Filtres */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher un membre..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="text-gray-800 w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                  />
                 </div>
-              </div>
-
-              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Projets partagés</p>
-                    <p className="text-2xl font-bold text-gray-900">{myProjects.length}</p>
-                  </div>
-                  <div className="p-3 bg-green-50 rounded-lg">
-                    <Target className="w-6 h-6 text-green-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Tâches en cours</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {teamMembers.reduce((sum, member) => sum + member.pendingTasks, 0)}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-yellow-50 rounded-lg">
-                    <Clock className="w-6 h-6 text-yellow-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Disponibilité moy.</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {Math.round(teamMembers.reduce((sum, member) => sum + member.availability, 0) / teamMembers.length)}%
-                    </p>
-                  </div>
-                  <div className="p-3 bg-purple-50 rounded-lg">
-                    <Activity className="w-6 h-6 text-purple-600" />
-                  </div>
+                <div className="relative">
+                  <Filter className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                  <select
+                    value={departmentFilter}
+                    onChange={(e) => setDepartmentFilter(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent text-gray-800"
+                  >
+                    <option value="">Tous les départements</option>
+                    <option value="IT">IT</option>
+                    <option value="DEV">Développement</option>
+                    <option value="QA">Qualité</option>
+                  </select>
                 </div>
               </div>
             </div>
 
-            {/* Team Members */}
-            {teamMembers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {teamMembers.map((member) => (
-                  <div key={member.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                    {/* Header */}
+            {/* Liste des membres */}
+            {filteredMembers.length > 0 ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {filteredMembers.map((member) => (
+                  <div key={member.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                    {/* En-tête du membre */}
                     <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-lg">
-                          {member.username.split(' ').map(n => n[0]).join('').toUpperCase()}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{member.username}</h3>
-                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(member.role)}`}>
-                            {member.role === 'CHEF_DE_PROJET' ? 'Chef de Projet' : 
-                             member.role === 'DEVELOPPEUR' ? 'Développeur' : member.role}
-                          </span>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">{member.username}</h3>
+                        <p className="text-sm text-gray-600 mb-2">{member.jobTitle || 'Développeur'}</p>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <Mail className="w-3 h-3" />
+                          <span>{member.email}</span>
                         </div>
                       </div>
-                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${getAvailabilityColor(member.availability)}`}>
-                        {member.availability}%
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                          {member.department || 'IT'}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Contact Info */}
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Mail className="w-4 h-4" />
-                        <span className="truncate">{member.email}</span>
-                      </div>
-                      {member.jobTitle && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <User className="w-4 h-4" />
-                          <span>{member.jobTitle}</span>
-                        </div>
-                      )}
-                      {member.department && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <MapPin className="w-4 h-4" />
-                          <span>{member.department}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Current Activity */}
-                    {member.currentProject && (
-                      <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Activity className="w-4 h-4 text-[#4B2A7B]" />
-                          <span className="font-medium text-[#4B2A7B]">Projet actuel:</span>
-                        </div>
-                        <p className="text-sm text-gray-700 mt-1">{member.currentProject}</p>
-                      </div>
-                    )}
-
-                    {/* Stats */}
-                    <div className="grid grid-cols-3 gap-3 mb-4">
-                      <div className="text-center">
-                        <p className="text-lg font-semibold text-gray-900">{member.assignedProjects}</p>
-                        <p className="text-xs text-gray-600">Projets</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-lg font-semibold text-green-600">{member.completedTasks}</p>
-                        <p className="text-xs text-gray-600">Terminées</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-lg font-semibold text-blue-600">{member.pendingTasks}</p>
-                        <p className="text-xs text-gray-600">En cours</p>
+                    {/* Projets en commun */}
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                        <FolderOpen className="w-4 h-4" />
+                        Projets en commun ({member.projects.length})
+                      </h4>
+                      <div className="space-y-1">
+                        {member.projects.slice(0, 3).map((project) => (
+                          <div key={project.id} className="text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                            {project.titre}
+                          </div>
+                        ))}
+                        {member.projects.length > 3 && (
+                          <div className="text-xs text-gray-500 italic">
+                            +{member.projects.length - 3} autre(s) projet(s)
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Shared Projects */}
-                    {member.sharedProjects && member.sharedProjects.length > 0 && (
-                      <div className="border-t border-gray-200 pt-3">
-                        <p className="text-xs font-medium text-gray-600 mb-2">Projets partagés:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {member.sharedProjects.slice(0, 2).map((project, index) => (
-                            <span key={index} className="inline-block px-2 py-1 bg-[#4B2A7B]/10 text-[#4B2A7B] rounded text-xs">
-                              {project}
-                            </span>
-                          ))}
-                          {member.sharedProjects.length > 2 && (
-                            <span className="inline-block px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                              +{member.sharedProjects.length - 2}
-                            </span>
-                          )}
-                        </div>
+                    {/* Statistiques des tâches */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="text-center p-2 bg-gray-50 rounded-lg">
+                        <div className="text-lg font-semibold text-gray-900">{member.totalTasks}</div>
+                        <div className="text-xs text-gray-600">Total tâches</div>
                       </div>
-                    )}
+                      <div className="text-center p-2 bg-gray-50 rounded-lg">
+                        <div className="text-lg font-semibold text-gray-900">{member.completedTasks}</div>
+                        <div className="text-xs text-gray-600">Terminées</div>
+                      </div>
+                    </div>
 
-                    {/* Last Activity */}
-                    <div className="border-t border-gray-200 pt-3 mt-3">
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <Calendar className="w-3 h-3" />
-                        <span>Dernière activité: {formatLastActivity(member.lastActivity)}</span>
+                    {/* Taux de completion */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Taux de completion</span>
+                      <div className={`flex items-center gap-1 font-medium ${getCompletionRateColor(member.completionRate)}`}>
+                        {getCompletionRateIcon(member.completionRate)}
+                        <span>{member.completionRate}%</span>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
                 <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun membre d'équipe</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {searchTerm || departmentFilter ? 'Aucun membre trouvé' : 'Aucun membre d\'équipe'}
+                </h3>
                 <p className="text-gray-600">
-                  Vous travaillez seul pour le moment ou aucune donnée d'équipe n'est disponible.
+                  {searchTerm || departmentFilter
+                    ? 'Essayez de modifier vos filtres de recherche'
+                    : "Vous travaillez seul sur vos projets pour le moment"}
                 </p>
+                {(searchTerm || departmentFilter) && (
+                  <button
+                    onClick={() => { setSearchTerm(''); setDepartmentFilter(''); }}
+                    className="mt-4 px-4 py-2 bg-[#4B2A7B] text-white rounded-lg hover:bg-[#5B3A8B] transition-colors"
+                  >
+                    Effacer les filtres
+                  </button>
+                )}
               </div>
             )}
           </div>

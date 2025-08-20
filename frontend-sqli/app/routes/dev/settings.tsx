@@ -1,615 +1,246 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  User,
-  Mail,
-  Lock,
-  Bell,
-  Shield,
-  Save,
-  Eye,
-  EyeOff,
-  Phone,
-  MapPin,
-  Calendar
+  Activity, Mail, User as UserIcon, BadgeCheck, Save, Phone, Briefcase,
+  Upload, X, Globe, ShieldCheck, Calendar as Cal, Edit
 } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavDev from '../../components/NavDev';
 import { authService } from '../../services/api';
+import { userService, type Role, type Department } from '../../services/userService';
 import toast from 'react-hot-toast';
 
-interface UserProfile {
-  id: number;
-  username: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  address?: string;
-  role: string;
-  jobTitle?: string;
-  department?: string;
-  createdAt: string;
-}
+type Profile = {
+  id: number; username: string; email: string; role: Role | string;
+  nom?: string; prenom?: string; jobTitle?: string;
+  gender?: 'Homme'|'Femme'|'Autre';
+  language?: string; skills?: string[];
+  actif?: boolean; createdAt?: string; avatarUrl?: string;
+  emails?: string[]; statusSince?: string; department?: Department; phone?: string;
+};
 
-interface NotificationSettings {
-  emailNotifications: boolean;
-  taskAssigned: boolean;
-  projectUpdates: boolean;
-  deadlineReminders: boolean;
-  teamUpdates: boolean;
-}
+const DEPTS: Department[] = ['ADMINISTRATION','DEVELOPPEMENT','EXTERNE','MANAGEMENT'];
+
+const Badge = ({ children, className = '' }: { children: React.ReactNode; className?: string }) =>
+  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${className}`}>{children}</span>;
+
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <label className="block">
+    <div className="text-xs font-medium text-gray-500 mb-1">{label}</div>
+    {children}
+  </label>
+);
 
 export default function DevSettings() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('profile');
-  
-  // Profile form
-  const [profile, setProfile] = useState<UserProfile>({
-    id: 0,
-    username: '',
-    email: '',
-    firstName: '',
-    lastName: '',
-    phone: '',
-    address: '',
-    role: '',
-    jobTitle: '',
-    department: '',
-    createdAt: ''
-  });
 
-  // Password form
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [showPasswords, setShowPasswords] = useState({
-    current: false,
-    new: false,
-    confirm: false
-  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState<Partial<Profile>>({});
+  const origRef = useRef<Partial<Profile>>({});
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-  // Notifications
-  const [notifications, setNotifications] = useState<NotificationSettings>({
-    emailNotifications: true,
-    taskAssigned: true,
-    projectUpdates: true,
-    deadlineReminders: true,
-    teamUpdates: false
-  });
-
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
+  useEffect(() => { (async () => {
     try {
-      setLoading(true);
-      const userData = await authService.getCurrentUser();
-      setUser(userData);
-      
-      // Mapper les données utilisateur vers le profil
-      setProfile({
-        id: userData.id,
-        username: userData.username,
-        email: userData.email,
-        firstName: userData.firstName || '',
-        lastName: userData.lastName || '',
-        phone: userData.phone || '',
-        address: userData.address || '',
-        role: userData.role,
-        jobTitle: userData.jobTitle || 'Développeur',
-        department: userData.department || 'IT',
-        createdAt: userData.createdAt || new Date().toISOString()
+      const me = await authService.getCurrentUser();
+      const enriched: Profile = {
+        ...me,
+        emails: [me.email],
+        language: me.language ?? 'fr',
+        skills: me.skills ?? ['Développement'],
+        jobTitle: me.jobTitle ?? 'Développeur',
+        actif: me.actif ?? true,
+        department: me.department ?? 'DEVELOPPEMENT',
+        phone: me.phone ?? '',
+        createdAt: me.dateCreation ?? undefined,
+      };
+      setUser(enriched);
+      setForm(enriched);
+      origRef.current = enriched;
+    } catch (e) {
+      console.error(e); toast.error("Impossible de charger le profil");
+    } finally { setLoading(false); }
+  })(); }, []);
+
+  const emailOK = useMemo(() => !form.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email), [form.email]);
+  const phoneOK = useMemo(() => !form.phone || /^[0-9+\s()-]{6,20}$/.test(form.phone ?? ''), [form.phone]);
+  const dirty   = useMemo(() => JSON.stringify(form) !== JSON.stringify(origRef.current), [form]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    if (!isEditing) return toast.error('Clique sur Edit pour modifier.');
+    if (!emailOK)  return toast.error('Email invalide');
+    if (!phoneOK)  return toast.error('Téléphone invalide');
+    try {
+      const updated = await userService.updateUser(user.id, {
+        nom: form.nom, email: form.email, role: (user.role as Role) ?? 'DEVELOPPEUR',
+        jobTitle: form.jobTitle, department: form.department, phone: form.phone, actif: form.actif,
       });
-
-    } catch (error: any) {
-      console.error('Erreur lors du chargement du profil:', error);
-      toast.error('Erreur lors du chargement du profil');
-    } finally {
-      setLoading(false);
-    }
+      const merged = { ...user, ...updated } as Profile;
+      setUser(merged); setForm(merged); origRef.current = merged;
+      setAvatarPreview(null); setIsEditing(false);
+      toast.success('Profil mis à jour ✅');
+    } catch { toast.error('Erreur lors de la sauvegarde'); }
   };
 
-  const handleLogout = async () => {
-    try {
-      await authService.logout();
-      navigate('/auth/login');
-      toast.success('Déconnexion réussie');
-    } catch {
-      toast.error('Erreur lors de la déconnexion');
-    }
-  };
+  const handleCancel = () => { setForm(origRef.current); setAvatarPreview(null); setIsEditing(false); };
+  const pickAvatar = (f: File) => { const r = new FileReader(); r.onload = () => setAvatarPreview(String(r.result)); r.readAsDataURL(f); setIsEditing(true); };
 
-  const handleProfileSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setSaving(true);
-      
-      // TODO: Implémenter l'endpoint de mise à jour du profil
-      // await userService.updateProfile(profile);
-      
-      toast.success('Profil mis à jour avec succès');
-    } catch (error) {
-      toast.error('Erreur lors de la mise à jour du profil');
-    } finally {
-      setSaving(false);
-    }
-  };
+  if (loading) return (
+    <div className="flex h-screen">
+      <NavDev user={user ?? undefined} />
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <Activity className="h-8 w-8 animate-spin text-[#4B2A7B] mx-auto mb-4" />
+          <p className="text-gray-600">Chargement du profil…</p>
+        </div>
+      </div>
+    </div>
+  );
+  if (!user) return null;
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error('Les mots de passe ne correspondent pas');
-      return;
-    }
+  return (
+    <ProtectedRoute allowedRoles={['DEVELOPPEUR']}>
+      <div className="flex h-screen bg-gradient-to-b from-[#f6f4fb] to-[#fbfcfe]">
+        <NavDev user={user} />
 
-    if (passwordForm.newPassword.length < 8) {
-      toast.error('Le mot de passe doit contenir au moins 8 caractères');
-      return;
-    }
+        <div className="flex-1 overflow-auto">
+          {/* Header harmonisé */}
+          <div className="p-6">
+            <div className="w-full">
+              <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
+                <div className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
+                     style={{background:'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'}} />
+                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <img src={avatarPreview ?? user.avatarUrl ?? '/avatar.svg'}
+                           className="w-14 h-14 rounded-full object-cover bg-gray-100 ring-4 ring-white/20" />
+                      <label className="absolute -bottom-1 -right-1 cursor-pointer rounded-full bg-white/95 text-[#372362] border p-1 shadow hover:bg-white" title="Changer l'avatar">
+                        <Upload className="w-4 h-4" />
+                        <input type="file" accept="image/*" className="hidden"
+                               onChange={(e)=>{ const f=e.target.files?.[0]; if(f) pickAvatar(f); }} />
+                      </label>
+                    </div>
+                    <div>
+                      <h1 className="text-xl font-semibold tracking-tight">
+                        {user.nom ? `${user.nom} ${user.prenom ?? ''}` : user.username}
+                      </h1>
+                      <div className="mt-1 text-white/85 flex flex-wrap items-center gap-3 text-sm">
+                        <span className="inline-flex items-center gap-1"><Mail className="w-4 h-4"/>{user.email}</span>
+                        {user.createdAt && <span className="inline-flex items-center gap-1"><Cal className="w-4 h-4"/>{new Date(user.createdAt).toLocaleDateString()}</span>}
+                        <span className="inline-flex items-center gap-1"><Globe className="w-4 h-4"/>{(user.language ?? 'fr').toUpperCase()}</span>
+                      </div>
+                    </div>
+                  </div>
 
-    try {
-      setSaving(true);
-      
-      // TODO: Implémenter l'endpoint de changement de mot de passe
-      // await authService.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
-      
-      setPasswordForm({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-      
-      toast.success('Mot de passe mis à jour avec succès');
-    } catch (error) {
-      toast.error('Erreur lors du changement de mot de passe');
-    } finally {
-      setSaving(false);
-    }
-  };
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-blue-100 text-blue-800 border border-blue-200">
+                      <ShieldCheck className="w-3 h-3" /> Développeur
+                    </Badge>
+                    <Badge className={user.actif ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-700 border border-gray-200'}>
+                      <BadgeCheck className="w-3 h-3" /> {user.actif ? 'Actif' : 'Inactif'}
+                    </Badge>
 
-  const handleNotificationSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setSaving(true);
-      
-      // TODO: Implémenter l'endpoint de mise à jour des notifications
-      // await userService.updateNotificationSettings(notifications);
-      
-      toast.success('Paramètres de notification mis à jour');
-    } catch (error) {
-      toast.error('Erreur lors de la mise à jour des notifications');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    });
-  };
-
-  if (loading) {
-    return (
-      <ProtectedRoute allowedRoles={['DEVELOPPEUR']}>
-        <div className="flex h-screen bg-gray-50">
-          <NavDev user={user} onLogout={handleLogout} />
-          <main className="flex-1 overflow-auto">
-            <div className="max-w-4xl mx-auto px-6 py-8">
-              <div className="animate-pulse space-y-6">
-                <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-                <div className="bg-white rounded-lg p-6 shadow-sm">
-                  <div className="space-y-4">
-                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                    <div className="h-10 bg-gray-200 rounded"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                    <div className="h-10 bg-gray-200 rounded"></div>
+                    {!isEditing ? (
+                      <button onClick={()=>setIsEditing(true)}
+                              className="ml-2 px-3 py-2 rounded-md bg-[#4B2A7B] text-white hover:brightness-110 flex items-center gap-2">
+                        <Edit className="w-4 h-4" /> Edit
+                      </button>
+                    ) : (
+                      <div className="ml-2 flex items-center gap-2">
+                        <button onClick={handleCancel}
+                                className="px-3 py-2 rounded-md bg-white text-gray-800 border hover:bg-gray-50 flex items-center gap-2">
+                          <X className="w-4 h-4" /> Cancel
+                        </button>
+                        <button onClick={handleSave} disabled={!dirty}
+                                className="px-3 py-2 rounded-md bg-green-600 text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
+                          <Save className="w-4 h-4" /> Save
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
-          </main>
-        </div>
-      </ProtectedRoute>
-    );
-  }
-
-  return (
-    <ProtectedRoute allowedRoles={['DEVELOPPEUR']}>
-      <div className="flex h-screen bg-gray-50">
-        <NavDev user={user} onLogout={handleLogout} />
-        
-        <main className="flex-1 overflow-auto">
-          {/* Header */}
-          <div className="bg-white border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Paramètres</h1>
-                <p className="text-sm text-gray-600">
-                  Gérez votre profil et vos préférences
-                </p>
-              </div>
-            </div>
           </div>
 
-          <div className="max-w-4xl mx-auto px-6 py-8">
-            {/* Tabs */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-              <div className="border-b border-gray-200">
-                <nav className="flex space-x-8 px-6">
-                  {[
-                    { id: 'profile', name: 'Profil', icon: User },
-                    { id: 'password', name: 'Mot de passe', icon: Lock },
-                    { id: 'notifications', name: 'Notifications', icon: Bell },
-                    { id: 'security', name: 'Sécurité', icon: Shield },
-                  ].map((tab) => {
-                    const Icon = tab.icon;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
-                          activeTab === tab.id
-                            ? 'border-[#4B2A7B] text-[#4B2A7B]'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {tab.name}
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
-
-              <div className="p-6">
-                {/* Profile Tab */}
-                {activeTab === 'profile' && (
-                  <form onSubmit={handleProfileSubmit} className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Informations personnelles</h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Nom d'utilisateur
-                          </label>
-                          <div className="relative">
-                            <User className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                            <input
-                              type="text"
-                              value={profile.username}
-                              onChange={(e) => setProfile({...profile, username: e.target.value})}
-                              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                              disabled
-                            />
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">Le nom d'utilisateur ne peut pas être modifié</p>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Email
-                          </label>
-                          <div className="relative">
-                            <Mail className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                            <input
-                              type="email"
-                              value={profile.email}
-                              onChange={(e) => setProfile({...profile, email: e.target.value})}
-                              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Prénom
-                          </label>
-                          <input
-                            type="text"
-                            value={profile.firstName}
-                            onChange={(e) => setProfile({...profile, firstName: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Nom
-                          </label>
-                          <input
-                            type="text"
-                            value={profile.lastName}
-                            onChange={(e) => setProfile({...profile, lastName: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Téléphone
-                          </label>
-                          <div className="relative">
-                            <Phone className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                            <input
-                              type="tel"
-                              value={profile.phone}
-                              onChange={(e) => setProfile({...profile, phone: e.target.value})}
-                              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Poste
-                          </label>
-                          <input
-                            type="text"
-                            value={profile.jobTitle}
-                            onChange={(e) => setProfile({...profile, jobTitle: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mt-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Adresse
-                        </label>
-                        <div className="relative">
-                          <MapPin className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                          <textarea
-                            value={profile.address}
-                            onChange={(e) => setProfile({...profile, address: e.target.value})}
-                            rows={3}
-                            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="bg-gray-50 rounded-lg p-4 mt-6">
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                          <Calendar className="w-4 h-4" />
-                          <span>Membre depuis: {formatDate(profile.createdAt)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Shield className="w-4 h-4" />
-                          <span>Rôle: {profile.role === 'DEVELOPPEUR' ? 'Développeur' : profile.role}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end">
-                      <button
-                        type="submit"
-                        disabled={saving}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#4B2A7B] text-white rounded-lg hover:bg-[#5B3A8B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <Save className="w-4 h-4" />
-                        {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {/* Password Tab */}
-                {activeTab === 'password' && (
-                  <form onSubmit={handlePasswordSubmit} className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Changer le mot de passe</h3>
-                      
-                      <div className="space-y-4 max-w-md">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Mot de passe actuel
-                          </label>
-                          <div className="relative">
-                            <Lock className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                            <input
-                              type={showPasswords.current ? "text" : "password"}
-                              value={passwordForm.currentPassword}
-                              onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
-                              className="w-full pl-9 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                              required
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPasswords({...showPasswords, current: !showPasswords.current})}
-                              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                            >
-                              {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Nouveau mot de passe
-                          </label>
-                          <div className="relative">
-                            <Lock className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                            <input
-                              type={showPasswords.new ? "text" : "password"}
-                              value={passwordForm.newPassword}
-                              onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
-                              className="w-full pl-9 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                              required
-                              minLength={8}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPasswords({...showPasswords, new: !showPasswords.new})}
-                              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                            >
-                              {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Confirmer le nouveau mot de passe
-                          </label>
-                          <div className="relative">
-                            <Lock className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                            <input
-                              type={showPasswords.confirm ? "text" : "password"}
-                              value={passwordForm.confirmPassword}
-                              onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
-                              className="w-full pl-9 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
-                              required
-                              minLength={8}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPasswords({...showPasswords, confirm: !showPasswords.confirm})}
-                              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                            >
-                              {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-blue-50 rounded-lg p-4 mt-4">
-                        <p className="text-sm text-blue-800">
-                          <strong>Conseils pour un mot de passe sécurisé:</strong>
-                        </p>
-                        <ul className="text-sm text-blue-700 mt-2 space-y-1 list-disc list-inside">
-                          <li>Au moins 8 caractères</li>
-                          <li>Mélanger lettres majuscules et minuscules</li>
-                          <li>Inclure des chiffres et caractères spéciaux</li>
-                          <li>Éviter les informations personnelles</li>
-                        </ul>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end">
-                      <button
-                        type="submit"
-                        disabled={saving}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#4B2A7B] text-white rounded-lg hover:bg-[#5B3A8B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <Save className="w-4 h-4" />
-                        {saving ? 'Mise à jour...' : 'Changer le mot de passe'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {/* Notifications Tab */}
-                {activeTab === 'notifications' && (
-                  <form onSubmit={handleNotificationSubmit} className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Préférences de notification</h3>
-                      
-                      <div className="space-y-4">
-                        {[
-                          { key: 'emailNotifications', label: 'Notifications par email', description: 'Recevoir toutes les notifications par email' },
-                          { key: 'taskAssigned', label: 'Nouvelles tâches assignées', description: 'Être notifié quand une tâche vous est assignée' },
-                          { key: 'projectUpdates', label: 'Mises à jour de projet', description: 'Recevoir les notifications de changements sur vos projets' },
-                          { key: 'deadlineReminders', label: 'Rappels d\'échéance', description: 'Être alerté avant les dates limites de vos tâches' },
-                          { key: 'teamUpdates', label: 'Activité de l\'équipe', description: 'Recevoir les notifications d\'activité de votre équipe' },
-                        ].map((setting) => (
-                          <div key={setting.key} className="flex items-start justify-between py-3">
-                            <div className="flex-1">
-                              <h4 className="text-sm font-medium text-gray-900">{setting.label}</h4>
-                              <p className="text-sm text-gray-600">{setting.description}</p>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer ml-4">
-                              <input
-                                type="checkbox"
-                                checked={notifications[setting.key as keyof NotificationSettings] as boolean}
-                                onChange={(e) => setNotifications({
-                                  ...notifications,
-                                  [setting.key]: e.target.checked
-                                })}
-                                className="sr-only peer"
-                              />
-                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#4B2A7B]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4B2A7B]"></div>
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end">
-                      <button
-                        type="submit"
-                        disabled={saving}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#4B2A7B] text-white rounded-lg hover:bg-[#5B3A8B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <Save className="w-4 h-4" />
-                        {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {/* Security Tab */}
-                {activeTab === 'security' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Sécurité du compte</h3>
-                      
-                      <div className="space-y-4">
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                          <div className="flex items-center gap-3">
-                            <Shield className="w-5 h-5 text-green-600" />
-                            <div>
-                              <h4 className="text-sm font-medium text-green-900">Compte sécurisé</h4>
-                              <p className="text-sm text-green-700">Votre compte utilise une authentification sécurisée</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <h4 className="text-sm font-medium text-gray-900 mb-2">Sessions actives</h4>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-sm text-gray-700">Session actuelle</p>
-                                <p className="text-xs text-gray-500">Navigateur principal • {new Date().toLocaleString('fr-FR')}</p>
-                              </div>
-                              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Actuel</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                          <div className="flex items-center gap-3">
-                            <Bell className="w-5 h-5 text-yellow-600" />
-                            <div>
-                              <h4 className="text-sm font-medium text-yellow-900">Conseils de sécurité</h4>
-                              <ul className="text-sm text-yellow-800 mt-2 space-y-1">
-                                <li>• Changez régulièrement votre mot de passe</li>
-                                <li>• Ne partagez jamais vos identifiants</li>
-                                <li>• Déconnectez-vous sur les appareils partagés</li>
-                                <li>• Signaler toute activité suspecte</li>
-                              </ul>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+          {/* Formulaire */}
+          <div className="px-6 pb-8">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+              <h3 className="text-base font-semibold text-gray-900 mb-4">Informations personnelles</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Field label="Nom complet">
+                  <input className="w-full px-3 py-2 rounded-md bg-gray-50 border border-gray-200 text-black focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent"
+                         readOnly={!isEditing}
+                         value={form.nom ? `${form.nom} ${form.prenom ?? ''}` : user.username}
+                         onChange={(e)=>setForm({ ...form, nom: e.target.value })} />
+                </Field>
+                <Field label="Poste">
+                  <div className="relative">
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/>
+                    <input className="w-full pl-9 pr-3 py-2 rounded-md bg-gray-50 border border-gray-200 text-black focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent"
+                           readOnly={!isEditing}
+                           value={form.jobTitle ?? ''} onChange={(e)=>setForm({ ...form, jobTitle: e.target.value })}/>
                   </div>
-                )}
+                </Field>
+                <Field label="Email">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/>
+                    <input className={`w-full pl-9 pr-3 py-2 rounded-md bg-gray-50 border ${emailOK?'border-gray-200':'border-red-300'} text-black focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent`}
+                           readOnly={!isEditing}
+                           value={form.email ?? ''} onChange={(e)=>setForm({ ...form, email: e.target.value })}/>
+                  </div>
+                  {!emailOK && <p className="mt-1 text-xs text-red-600">Email invalide</p>}
+                </Field>
+                <Field label="Téléphone">
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/>
+                    <input className={`w-full pl-9 pr-3 py-2 rounded-md bg-gray-50 border ${phoneOK?'border-gray-200':'border-red-300'} text-black focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent`}
+                           readOnly={!isEditing}
+                           value={form.phone ?? ''} onChange={(e)=>setForm({ ...form, phone: e.target.value })}/>
+                  </div>
+                  {!phoneOK && <p className="mt-1 text-xs text-red-600">Format téléphone invalide</p>}
+                </Field>
+                <Field label="Département">
+                  <select className="w-full px-3 py-2 rounded-md bg-gray-50 border border-gray-200 text-black focus:outline-none focus:ring-2 focus:ring-[#7E56D9] focus:border-transparent"
+                          disabled={!isEditing}
+                          value={form.department ?? 'DEVELOPPEMENT'}
+                          onChange={(e)=>setForm({ ...form, department: e.target.value as Department })}>
+                    {DEPTS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </Field>
+                <Field label="Statut">
+                  <button disabled={!isEditing}
+                    onClick={()=>setForm({ ...form, actif: !form.actif })}
+                    className={`px-3 py-2 rounded-md text-sm border ${form.actif?'bg-green-50 text-green-700 border-green-200':'bg-gray-50 text-gray-700 border-gray-200'} ${!isEditing?'opacity-60 cursor-not-allowed':''}`}>
+                    <div className="flex items-center gap-2"><BadgeCheck className="w-4 h-4"/>{form.actif?'Actif':'Inactif'}</div>
+                  </button>
+                </Field>
+              </div>
+
+              {/* Emails secondaires */}
+              <div className="mt-6">
+                <div className="text-sm font-semibold text-black mb-3">Adresses email</div>
+                <div className="space-y-2">
+                  {(user.emails ?? [user.email]).map((e,i)=>(
+                    <div key={i} className="flex items-center gap-3 text-sm">
+                      <div className="p-2 rounded-full bg-gray-100"><Mail className="w-4 h-4 text-gray-600"/></div>
+                      <div className="text-gray-900">{e}</div>
+                      <div className="text-xs text-gray-500">• {i===0?'principal':'ajouté récemment'}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
+
+            {/* Footer contextuel (info) */}
+            <div className="mt-6 text-xs text-gray-500 flex items-center gap-4">
+              <span className="inline-flex items-center gap-1"><UserIcon className="w-3 h-3" /> {user.username}</span>
+              <span className="inline-flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> {user.role}</span>
+              <span className="inline-flex items-center gap-1"><Globe className="w-3 h-3" /> {(user.language ?? 'fr').toUpperCase()}</span>
+            </div>
           </div>
-        </main>
+        </div>
       </div>
     </ProtectedRoute>
   );

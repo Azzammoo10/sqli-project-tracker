@@ -45,13 +45,22 @@ export default function DevProjects() {
   const loadProjects = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Chargement des projets pour le développeur...');
+      
       const userData = await authService.getCurrentUser();
+      console.log('👤 Utilisateur connecté:', userData);
       setUser(userData);
+      
       const userProjects = await projectService.getProjectsForCurrentUser();
+      console.log('📋 Projets récupérés:', userProjects);
+      
       setProjects(userProjects);
+      setFilteredProjects(userProjects);
     } catch (error: any) {
-      console.error('Erreur lors du chargement des projets:', error);
-      toast.error('Erreur lors du chargement des projets');
+      console.error('❌ Erreur lors du chargement des projets:', error);
+      console.error('❌ Détails de l\'erreur:', error.response?.data);
+      console.error('❌ Status de l\'erreur:', error.response?.status);
+      toast.error(`Erreur lors du chargement des projets: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }

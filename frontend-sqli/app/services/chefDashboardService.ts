@@ -70,6 +70,17 @@ export const chefDashboardService = {
     }
   },
 
+  // Récupérer l'équipe détaillée du chef de projet
+  getDetailedTeamOverview: async (): Promise<any[]> => {
+    try {
+      const response = await apiClient.get('/analytics/chef/detailed-team-overview');
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors de la récupération de l\'équipe détaillée:', error);
+      return [];
+    }
+  },
+
   // Récupérer l'activité récente
   getRecentActivity: async (): Promise<RecentActivity[]> => {
     try {

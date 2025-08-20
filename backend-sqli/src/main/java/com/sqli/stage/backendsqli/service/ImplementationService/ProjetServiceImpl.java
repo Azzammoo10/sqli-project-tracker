@@ -349,36 +349,50 @@ public class ProjetServiceImpl implements ProjetService {
     public List<ProjectResponse> getProjectsForCurrentUser() {
         User currentUser = getCurrentUser();
         
+        System.out.println("=== DEBUG: getProjectsForCurrentUser ===");
+        System.out.println("Utilisateur connecté: " + currentUser.getUsername() + " (ID: " + currentUser.getId() + ")");
+        System.out.println("Rôle: " + currentUser.getRole());
+        
         switch (currentUser.getRole()) {
             case CHEF_DE_PROJET:
                 // Retourner les projets créés par le chef de projet
-                return projetRepository.findByCreatedByUsername(currentUser.getUsername())
-                        .stream()
+                System.out.println("Mode CHEF_DE_PROJET - Recherche des projets créés par l'utilisateur");
+                List<Project> chefProjects = projetRepository.findByCreatedByUsername(currentUser.getUsername());
+                System.out.println("Projets trouvés pour le chef: " + chefProjects.size());
+                return chefProjects.stream()
                         .map(this::mapToResponse)
                         .collect(Collectors.toList());
                         
             case CLIENT:
                 // Retourner les projets où l'utilisateur est le client
-                return projetRepository.findByClientId(currentUser.getId())
-                        .stream()
+                System.out.println("Mode CLIENT - Recherche des projets où l'utilisateur est client");
+                List<Project> clientProjects = projetRepository.findByClientId(currentUser.getId());
+                System.out.println("Projets trouvés pour le client: " + clientProjects.size());
+                return clientProjects.stream()
                         .map(this::mapToResponse)
                         .collect(Collectors.toList());
                         
             case DEVELOPPEUR:
                 // Retourner les projets où l'utilisateur est assigné comme développeur
-                return projetRepository.findByDeveloppeurId(currentUser.getId())
-                        .stream()
+                System.out.println("Mode DEVELOPPEUR - Recherche des projets assignés à l'utilisateur");
+                List<Project> devProjects = projetRepository.findByDeveloppeurId(currentUser.getId());
+                System.out.println("Projets trouvés pour le développeur: " + devProjects.size());
+                devProjects.forEach(p -> System.out.println("  - " + p.getTitre() + " (ID: " + p.getId() + ")"));
+                return devProjects.stream()
                         .map(this::mapToResponse)
                         .collect(Collectors.toList());
                         
             case ADMIN:
                 // L'admin voit tous les projets
-                return projetRepository.findAll()
-                        .stream()
+                System.out.println("Mode ADMIN - Retour de tous les projets");
+                List<Project> allProjects = projetRepository.findAll();
+                System.out.println("Total des projets: " + allProjects.size());
+                return allProjects.stream()
                         .map(this::mapToResponse)
                         .collect(Collectors.toList());
                         
             default:
+                System.out.println("Rôle non reconnu: " + currentUser.getRole());
                 return List.of();
         }
     }
@@ -419,6 +433,21 @@ public class ProjetServiceImpl implements ProjetService {
         // UUID : attention si tu ne renvoies que 8 chars, ajuste la validation du DTO
         String uuid = project.getUuidPublic();
 
+        // Calculer les statistiques des tâches
+        int totalTasks = 0;
+        int completedTasks = 0;
+        int inProgressTasks = 0;
+        
+        if (project.getTasks() != null && !project.getTasks().isEmpty()) {
+            totalTasks = project.getTasks().size();
+            completedTasks = (int) project.getTasks().stream()
+                    .filter(task -> task.getStatut() == StatutTache.TERMINE)
+                    .count();
+            inProgressTasks = (int) project.getTasks().stream()
+                    .filter(task -> task.getStatut() == StatutTache.EN_COURS)
+                    .count();
+        }
+
         ProjectResponse resp = new ProjectResponse();
         resp.setId(project.getId());
         resp.setTitre(project.getTitre());
@@ -429,10 +458,16 @@ public class ProjetServiceImpl implements ProjetService {
         resp.setProgression(project.getProgression());
         resp.setDateDebut(project.getDateDebut());
         resp.setDateFin(project.getDateFin());
-        resp.setStatut(project.getStatut()); // enum StatutProjet directement si c’est voulu
+        resp.setStatut(project.getStatut()); // enum StatutProjet directement si c'est voulu
         resp.setPublicLinkEnabled(project.isPublicLinkEnabled()); // champ renommé
         resp.setUuidPublic(uuid);
         resp.setDeveloppeurs(developpeurList);
+        
+        // Ajouter les statistiques des tâches
+        resp.setTotalTasks(totalTasks);
+        resp.setCompletedTasks(completedTasks);
+        resp.setInProgressTasks(inProgressTasks);
+        
         return resp;
     }
 

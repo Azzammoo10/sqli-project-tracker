@@ -26,6 +26,9 @@ export default [
   route("chef/settings", "routes/chef/settings.tsx"),
   route("dev/dashboard", "routes/dev/dashboard.tsx"),
   route("dev/projects", "routes/dev/projects.tsx"),
+  route("dev/tasks", "routes/dev/tasks.tsx"),
+  route("dev/team", "routes/dev/team.tsx"),
+  route("dev/settings", "routes/dev/settings.tsx"),
   route("client/dashboard", "routes/client/dashboard.tsx"),
   route("*", "routes/404.tsx"),
 ] satisfies RouteConfig;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Search, Plus, Trash2, Edit, User, Activity, RotateCcw, FilterX
+  Search, Plus, Trash2, Edit, User, Activity, RotateCcw, FilterX, AlertTriangle, X
 } from 'lucide-react';
 import NavAdmin from '../../components/NavAdmin';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -44,6 +44,11 @@ export default function AdminUsers() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
+  // États pour la modal de suppression
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserType | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
+
   useEffect(() => {
     (async () => {
       try {
@@ -70,15 +75,44 @@ export default function AdminUsers() {
     }
   };
 
-  const onDelete = async (userId: number) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
+  const openDeleteModal = (userToDelete: UserType) => {
+    setUserToDelete(userToDelete);
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setUserToDelete(null);
+  };
+
+  const onDelete = async () => {
+    if (!userToDelete) return;
+
     try {
-      await userService.deleteUser(userId);
-      setUsers(prev => prev.filter(u => u.id !== userId));
+      setDeletingUserId(userToDelete.id);
+      await userService.deleteUser(userToDelete.id);
+      setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
       toast.success('Utilisateur supprimé avec succès');
+      closeDeleteModal();
     } catch (error: any) {
       console.error('Erreur lors de la suppression:', error);
-      toast.error("Erreur lors de la suppression de l'utilisateur");
+      
+      // Gestion d'erreur plus détaillée
+      let errorMessage = "Erreur lors de la suppression de l'utilisateur";
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 403) {
+        errorMessage = "Impossible de supprimer cet utilisateur (accès refusé)";
+      } else if (error.response?.status === 404) {
+        errorMessage = "Utilisateur non trouvé";
+      } else if (error.response?.status === 409) {
+        errorMessage = "Impossible de supprimer cet utilisateur (conflit avec d'autres données)";
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -280,7 +314,7 @@ export default function AdminUsers() {
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => onDelete(u.id)}
+                              onClick={() => openDeleteModal(u)}
                               className="text-red-600 hover:text-red-800"
                               title="Supprimer"
                             >
@@ -361,6 +395,82 @@ export default function AdminUsers() {
           </div>
         </div>
       </div>
+
+      {/* Modal de confirmation de suppression */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay avec animation */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
+            onClick={closeDeleteModal}
+          />
+          
+          {/* Modal avec animation */}
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-md w-full mx-4 transform transition-all duration-300 scale-100 opacity-100">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Confirmer la suppression</h3>
+                  <p className="text-sm text-gray-500">Cette action est irréversible</p>
+                </div>
+              </div>
+              <button
+                onClick={closeDeleteModal}
+                className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Contenu */}
+            <div className="p-6">
+              <p className="text-gray-700 mb-2">
+                Êtes-vous sûr de vouloir supprimer l'utilisateur :
+              </p>
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <p className="font-medium text-gray-900">
+                  {userToDelete?.prenom} {userToDelete?.nom} ({userToDelete?.username})
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Email: {userToDelete?.email} | 
+                  Rôle: {userToDelete?.role}
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 p-6 border-t border-gray-100">
+              <button
+                onClick={closeDeleteModal}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={onDelete}
+                disabled={deletingUserId === userToDelete?.id}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {deletingUserId === userToDelete?.id ? (
+                  <>
+                    <Activity className="w-4 h-4 animate-spin" />
+                    Suppression...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Supprimer
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ProtectedRoute>
   );
 }

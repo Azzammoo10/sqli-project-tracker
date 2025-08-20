@@ -7,6 +7,11 @@ import com.sqli.stage.backendsqli.exception.EmailAlreadyExistsException;
 import com.sqli.stage.backendsqli.exception.ResourceNotFoundException;
 import com.sqli.stage.backendsqli.exception.WeakPasswordException;
 import com.sqli.stage.backendsqli.repository.UserRepository;
+import com.sqli.stage.backendsqli.repository.ProjetRepository;
+import com.sqli.stage.backendsqli.repository.TaskRepository;
+import com.sqli.stage.backendsqli.repository.HistoriqueRepository;
+import com.sqli.stage.backendsqli.entity.Historique;
+import com.sqli.stage.backendsqli.entity.Task;
 import com.sqli.stage.backendsqli.service.AdminService;
 import com.sqli.stage.backendsqli.validation.StrongPasswordValidator;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +22,7 @@ import java.text.Normalizer;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
+import com.sqli.stage.backendsqli.entity.Project;
 
 @RequiredArgsConstructor
 @Service
@@ -25,6 +31,9 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final StrongPasswordValidator strongPasswordValidator;
+    private final ProjetRepository projetRepository;
+    private final TaskRepository taskRepository;
+    private final HistoriqueRepository historiqueRepository;
 
     private String generateUsername(String nom, Role role) {
         String username = "";
@@ -153,7 +162,66 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public void deleteUser(int id) {
-        userRepository.deleteById(id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec id : " + id));
+
+        // Vérifier si l'utilisateur est un admin (empêcher la suppression d'admin)
+        if (user.getRole() == Role.ADMIN) {
+            throw new RuntimeException("Impossible de supprimer un administrateur");
+        }
+
+        try {
+            // Supprimer les tâches associées à l'utilisateur
+            if (user.getTasks() != null && !user.getTasks().isEmpty()) {
+                taskRepository.deleteAll(user.getTasks());
+            }
+
+            // Supprimer les enregistrements d'historique associés à l'utilisateur
+            List<Historique> historiques = historiqueRepository.findByUserId(id);
+            if (!historiques.isEmpty()) {
+                historiqueRepository.deleteAll(historiques);
+            }
+
+            // Gérer les projets selon le rôle de l'utilisateur
+            if (user.getRole() == Role.CLIENT) {
+                // Si c'est un client, supprimer tous ses projets
+                List<Project> clientProjects = projetRepository.findByClientId(id);
+                if (!clientProjects.isEmpty()) {
+                    // Supprimer d'abord toutes les tâches de ces projets
+                    for (Project project : clientProjects) {
+                        if (project.getTasks() != null && !project.getTasks().isEmpty()) {
+                            taskRepository.deleteAll(project.getTasks());
+                        }
+                    }
+                    // Puis supprimer les projets
+                    projetRepository.deleteAll(clientProjects);
+                }
+            } else if (user.getRole() == Role.DEVELOPPEUR || user.getRole() == Role.STAGIAIRE) {
+                // Si c'est un développeur, supprimer ses tâches ET le retirer des projets
+                List<Project> devProjects = projetRepository.findByDeveloppeurId(id);
+                if (!devProjects.isEmpty()) {
+                    for (Project project : devProjects) {
+                        // Supprimer toutes les tâches de ce développeur dans ce projet
+                        if (project.getTasks() != null && !project.getTasks().isEmpty()) {
+                            List<Task> tasksToDelete = project.getTasks().stream()
+                                    .filter(task -> task.getDeveloppeur() != null && task.getDeveloppeur().getId().equals(id))
+                                    .collect(Collectors.toList());
+                            if (!tasksToDelete.isEmpty()) {
+                                taskRepository.deleteAll(tasksToDelete);
+                            }
+                        }
+                        // Retirer le développeur du projet
+                        project.getDeveloppeurs().remove(user);
+                        projetRepository.save(project);
+                    }
+                }
+            }
+
+            // Maintenant supprimer l'utilisateur
+            userRepository.deleteById(id);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la suppression de l'utilisateur : " + e.getMessage());
+        }
     }
 
     @Override

@@ -354,6 +354,152 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     @Override
+    public List<Map<String, Object>> getDetailedTeamOverview() {
+        String currentUsername = getCurrentUsername();
+        List<Project> chefProjects = projectRepository.findByCreatedByUsername(currentUsername);
+        
+        System.out.println("=== DEBUG: getDetailedTeamOverview ===");
+        System.out.println("Chef connecté: " + currentUsername);
+        System.out.println("Projets du chef: " + chefProjects.size());
+        
+        // Récupérer tous les développeurs assignés aux projets de ce chef
+        Set<User> assignedDevelopers = new HashSet<>();
+        for (Project project : chefProjects) {
+            if (project.getDeveloppeurs() != null) {
+                System.out.println("Projet '" + project.getTitre() + "' (ID: " + project.getId() + ") - Développeurs: " + 
+                                 project.getDeveloppeurs().stream().map(User::getUsername).collect(Collectors.joining(", ")));
+                assignedDevelopers.addAll(project.getDeveloppeurs());
+            }
+        }
+        
+        System.out.println("Développeurs uniques trouvés: " + assignedDevelopers.size());
+        
+        return assignedDevelopers.stream()
+                .map(dev -> {
+                    System.out.println("--- Traitement développeur: " + dev.getUsername() + " (ID: " + dev.getId() + ") ---");
+                    
+                    Map<String, Object> member = new HashMap<>();
+                    member.put("id", dev.getId());
+                    member.put("username", dev.getUsername());
+                    member.put("email", dev.getEmail());
+                    member.put("role", dev.getRole());
+                    member.put("jobTitle", dev.getJobTitle() != null ? dev.getJobTitle() : "Développeur");
+                    member.put("department", dev.getDepartment() != null ? dev.getDepartment().toString() : "Développement");
+                    member.put("phone", dev.getPhone());
+                    member.put("enabled", dev.isEnabled());
+                    member.put("actifDansProjet", dev.isActifDansProjet());
+                    
+                    // Compter les projets assignés à ce développeur
+                    List<Project> userProjects = chefProjects.stream()
+                            .filter(p -> p.getDeveloppeurs() != null && p.getDeveloppeurs().contains(dev))
+                            .toList();
+                    
+                    System.out.println("Projets assignés à " + dev.getUsername() + ": " + userProjects.size());
+                    userProjects.forEach(p -> System.out.println("  - " + p.getTitre() + " (ID: " + p.getId() + ")"));
+                    
+                    member.put("assignedProjects", userProjects.size());
+                    
+                    // Détails des projets assignés
+                    List<Map<String, Object>> projectDetails = userProjects.stream()
+                            .map(p -> {
+                                Map<String, Object> project = new HashMap<>();
+                                project.put("id", p.getId());
+                                project.put("titre", p.getTitre());
+                                project.put("progression", p.getProgression() != null ? p.getProgression() : 0);
+                                project.put("statut", p.getStatut().toString());
+                                project.put("dateDebut", p.getDateDebut() != null ? p.getDateDebut().toString() : null);
+                                project.put("dateFin", p.getDateFin() != null ? p.getDateFin().toString() : null);
+                                return project;
+                            })
+                            .toList();
+                    member.put("projects", projectDetails);
+                    
+                    // Compter les tâches UNIQUEMENT des projets du chef connecté
+                    List<Integer> projectIds = userProjects.stream().map(Project::getId).toList();
+                    int totalTasks = 0;
+                    int completedTasks = 0;
+                    int inProgressTasks = 0;
+                    int blockedTasks = 0;
+                    int nonCommenceTasks = 0;
+                    
+                    System.out.println("Project IDs pour " + dev.getUsername() + ": " + projectIds);
+                    
+                    if (!projectIds.isEmpty()) {
+                        try {
+                            // Compter les tâches par statut pour les projets assignés à ce développeur
+                            totalTasks = taskRepository.countByDeveloppeurIdAndProjectIdIn(dev.getId(), projectIds);
+                            completedTasks = taskRepository.countByDeveloppeurIdAndProjectIdInAndStatut(dev.getId(), projectIds, StatutTache.TERMINE);
+                            inProgressTasks = taskRepository.countByDeveloppeurIdAndProjectIdInAndStatut(dev.getId(), projectIds, StatutTache.EN_COURS);
+                            blockedTasks = taskRepository.countByDeveloppeurIdAndProjectIdInAndStatut(dev.getId(), projectIds, StatutTache.BLOQUE);
+                            nonCommenceTasks = taskRepository.countByDeveloppeurIdAndProjectIdInAndStatut(dev.getId(), projectIds, StatutTache.NON_COMMENCE);
+                            
+                            System.out.println("Méthodes repository appelées avec succès");
+                        } catch (Exception e) {
+                            System.out.println("Erreur avec les nouvelles méthodes repository: " + e.getMessage());
+                            // Fallback: utiliser les anciennes méthodes
+                            System.out.println("Utilisation du fallback...");
+                            totalTasks = taskRepository.countByDeveloppeurId(dev.getId());
+                            completedTasks = taskRepository.countByDeveloppeurIdAndStatut(dev.getId(), StatutTache.TERMINE);
+                            inProgressTasks = taskRepository.countByDeveloppeurIdAndStatut(dev.getId(), StatutTache.EN_COURS);
+                            blockedTasks = taskRepository.countByDeveloppeurIdAndStatut(dev.getId(), StatutTache.BLOQUE);
+                            nonCommenceTasks = totalTasks - completedTasks - inProgressTasks - blockedTasks;
+                            if (nonCommenceTasks < 0) nonCommenceTasks = 0;
+                            
+                            System.out.println("Fallback utilisé - Tâches globales pour " + dev.getUsername() + ": Total=" + totalTasks);
+                        }
+                    } else {
+                        System.out.println("Aucun projet assigné à " + dev.getUsername());
+                    }
+                    
+                    System.out.println("Tâches pour " + dev.getUsername() + " dans les projets du chef: Total=" + totalTasks + 
+                                     ", Terminées=" + completedTasks + ", En cours=" + inProgressTasks + 
+                                     ", Bloquées=" + blockedTasks + ", Non commencées=" + nonCommenceTasks);
+                    
+                    member.put("totalTasks", totalTasks);
+                    member.put("completedTasks", completedTasks);
+                    member.put("inProgressTasks", inProgressTasks);
+                    member.put("blockedTasks", blockedTasks);
+                    member.put("nonCommenceTasks", nonCommenceTasks);
+                    
+                    // Calculer le taux de completion
+                    double completionRate = totalTasks > 0 ? (completedTasks * 100.0) / totalTasks : 0;
+                    member.put("completionRate", Math.round(completionRate));
+                    
+                    // Calculer la charge de travail (basée sur les tâches non commencées)
+                    // Charge = tâches non commencées / total * 100
+                    double workload = 0.0;
+                    if (totalTasks > 0) {
+                        // Calcul basé sur les tâches non commencées (plus logique métier)
+                        workload = (nonCommenceTasks * 100.0) / totalTasks;
+                        
+                        // Si toutes les tâches sont terminées, charge = 0
+                        if (completedTasks == totalTasks) {
+                            workload = 0.0;
+                        }
+                        // Si toutes les tâches sont non commencées, charge = 100
+                        else if (nonCommenceTasks == totalTasks) {
+                            workload = 100.0;
+                        }
+                    }
+                    
+                    System.out.println("Charge calculée pour " + dev.getUsername() + " (basée sur tâches non commencées): " + Math.round(workload) + "%");
+                    
+                    member.put("workload", Math.round(workload));
+                    
+                    // Calculer la disponibilité (inverse de la charge)
+                    double availability = 100 - workload;
+                    member.put("availability", Math.round(availability));
+                    
+                    // Dernière activité (basée sur la dernière tâche modifiée)
+                    // Pour l'instant, on utilise la date de création de l'utilisateur
+                    member.put("lastActivity", dev.getUsername()); // Placeholder
+                    
+                    return member;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<Map<String, Object>> getUpcomingDeadlines(int days) {
         String currentUsername = getCurrentUsername();
         List<Project> chefProjects = projectRepository.findByCreatedByUsername(currentUsername);

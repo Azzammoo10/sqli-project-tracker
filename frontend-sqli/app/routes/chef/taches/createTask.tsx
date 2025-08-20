@@ -1,13 +1,13 @@
 // app/routes/chef/tasks/CreateTask.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Activity,
-  ArrowLeft,
-  Save,
-  Calendar,
-  FileText,
-  Layers,
+import { 
+  Activity, 
+  ArrowLeft, 
+  Save, 
+  Calendar, 
+  FileText, 
+  Layers, 
   ClipboardList,
   User,
   Clock,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import ProtectedRoute from '../../../components/ProtectedRoute';
 import NavChef from '../../../components/NavChef';
+import DeveloperMultiSelect from '../../../components/DeveloperMultiSelect';
 import { authService } from '../../../services/api';
 import { projectService } from '../../../services/projectService';
 import { taskService } from '../../../services/taskService';
@@ -25,109 +26,135 @@ type Statut = 'NON_COMMENCE' | 'EN_COURS' | 'BLOQUE' | 'TERMINE';
 type Priorite = 'BASSE' | 'MOYENNE' | 'ELEVEE';
 
 export default function CreateTask() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
-  const [submitting, setSubmitting] = useState(false);
+    const navigate = useNavigate();
+    const [user, setUser] = useState<any>(null);
+    const [submitting, setSubmitting] = useState(false);
 
-  const [form, setForm] = useState({
-    titre: '',
-    description: '',
-    dateDebut: '',
-    dateFin: '',
-    statut: 'NON_COMMENCE' as Statut,
-    priorite: 'MOYENNE' as Priorite,
-    plannedHours: 8,
-    projectId: '' as any,
-    developpeurId: '' as any,
-  });
+    const [form, setForm] = useState({
+        titre: '',
+        description: '',
+        dateDebut: '',
+        dateFin: '',
+        statut: 'NON_COMMENCE' as Statut,
+        priorite: 'MOYENNE' as Priorite,
+        plannedHours: 8,
+        projectId: '' as any,
+        developpeurIds: [] as number[], // Changé pour supporter plusieurs développeurs
+    });
 
-  const [projects, setProjects] = useState<any[]>([]);
-  const [developers, setDevelopers] = useState<any[]>([]);
+    const [projects, setProjects] = useState<any[]>([]);
+    const [developers, setDevelopers] = useState<any[]>([]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const u = await authService.getCurrentUser();
-        setUser(u);
+    useEffect(() => {
+        (async () => {
+            try {
+                console.log('Chargement des données...');
+                const u = await authService.getCurrentUser();
+                setUser(u);
+                console.log('Utilisateur chargé:', u);
+                
+                // Projets du chef
+                const myProjects = await projectService.getProjectsByChef();
+                setProjects(myProjects ?? []);
+                console.log('Projets chargés:', myProjects);
+                
+                // Développeurs
+                const devs = await userService.getUsersByRole('DEVELOPPEUR');
+                setDevelopers(devs ?? []);
+                console.log('Développeurs chargés:', devs);
+            } catch (e) {
+                console.error('Erreur détaillée:', e);
+                toast.error('Erreur lors du chargement des données');
+            }
+        })();
+    }, []);
 
-        const myProjects = await projectService.getProjectsByChef();
-        setProjects(myProjects ?? []);
+    const valid = useMemo(() => {
+        const okTitre = form.titre.trim().length >= 3;
+        const okDates = form.dateDebut && form.dateFin && new Date(form.dateFin) >= new Date(form.dateDebut);
+        const okProject = !!form.projectId;
+        const okDevs = form.developpeurIds.length > 0; // Au moins un développeur
+        return okTitre && okDates && okProject && okDevs;
+    }, [form]);
 
-        const devs = await userService.getUsersByRole('DEVELOPPEUR');
-        setDevelopers(devs ?? []);
-      } catch (e) {
-        console.error('Erreur chargement données:', e);
-        toast.error('Erreur lors du chargement des données');
-      }
-    })();
-  }, []);
+    // Message d'aide pour la sélection multiple
+    const getDeveloperHelpText = () => {
+        if (form.developpeurIds.length === 0) {
+            return "Sélectionnez au moins un développeur";
+        } else if (form.developpeurIds.length === 1) {
+            const dev = developers.find(d => d.id === form.developpeurIds[0]);
+            return `Tâche assignée à ${dev?.username || 'un développeur'}`;
+        } else {
+            return `Tâche assignée à ${form.developpeurIds.length} développeurs`;
+        }
+    };
 
-  const valid = useMemo(() => {
-    const okTitre = form.titre.trim().length >= 3;
-    const okDates = form.dateDebut && form.dateFin && new Date(form.dateFin) >= new Date(form.dateDebut);
-    const okProject = !!form.projectId;
-    const okDev = !!form.developpeurId;
-    return okTitre && okDates && okProject && okDev;
-  }, [form]);
+    const submit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!valid || submitting) return;
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!valid || submitting) return;
+        setSubmitting(true);
+        try {
+            // Pour chaque développeur sélectionné, créer une tâche
+            const promises = form.developpeurIds.map(developpeurId => {
+                const payload = {
+                    titre: form.titre.trim(),
+                    description: form.description.trim() || undefined,
+                    dateDebut: form.dateDebut,
+                    dateFin: form.dateFin,
+                    statut: form.statut,
+                    priorite: form.priorite,
+                    plannedHours: form.plannedHours,
+                    projectId: Number(form.projectId),
+                    developpeurId: developpeurId, // Un développeur par tâche
+                    effectiveHours: 0,
+                    remainingHours: form.plannedHours,
+                    progression: 0
+                };
+                return taskService.createTask(payload);
+            });
 
-    setSubmitting(true);
-    try {
-      const payload = {
-        titre: form.titre.trim(),
-        description: form.description.trim() || undefined,
-        dateDebut: form.dateDebut,
-        dateFin: form.dateFin,
-        statut: form.statut,
-        priorite: form.priorite,
-        plannedHours: form.plannedHours,
-        projectId: Number(form.projectId),
-        developpeurId: Number(form.developpeurId),
-        effectiveHours: 0,
-        remainingHours: form.plannedHours,
-        progression: 0
-      };
+            await Promise.all(promises);
+            const devCount = form.developpeurIds.length;
+            const message = devCount === 1 
+                ? 'Tâche créée avec succès' 
+                : `${devCount} tâches créées avec succès (une par développeur)`;
+            toast.success(message);
+            navigate('/chef/tasks');
+        } catch (error: any) {
+            console.error('Erreur création tâche:', error);
+            toast.error(error?.response?.data?.message || 'Erreur lors de la création de la tâche');
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
-      await taskService.createTask(payload);
-      toast.success('Tâche créée avec succès');
-      navigate('/chef/tasks');
-    } catch (error: any) {
-      console.error('Erreur création tâche:', error);
-      toast.error(error?.response?.data?.message || 'Erreur lors de la création de la tâche');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setForm(prev => ({
+            ...prev,
+            [name]: name === 'plannedHours' ? Number(value) : value,
+        }));
+    };
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setForm(prev => ({
-      ...prev,
-      [name]: name === 'plannedHours' ? Number(value) : value,
-    }));
-  };
+    const handleLogout = async () => {
+        try {
+            await authService.logout();
+            navigate('/auth/login');
+            toast.success('Déconnexion réussie');
+        } catch {
+            toast.error('Erreur lors de la déconnexion');
+        }
+    };
 
-  const handleLogout = async () => {
-    try {
-      await authService.logout();
-      navigate('/auth/login');
-      toast.success('Déconnexion réussie');
-    } catch {
-      toast.error('Erreur lors de la déconnexion');
-    }
-  };
+    // ✅ Classes communes pour inputs / selects / textarea (couleurs visibles)
+    const fieldBase =
+      'block w-full pl-9 pr-3 py-3 rounded-lg border text-gray-900 placeholder:text-gray-600 ' +
+      'bg-gray-50 border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent focus:bg-white';
 
-  // ✅ Classes communes pour inputs / selects / textarea (couleurs visibles)
-  const fieldBase =
-    'block w-full pl-9 pr-3 py-3 rounded-lg border text-gray-900 placeholder:text-gray-600 ' +
-    'bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent';
-
-  const fieldBaseNoIcon =
-    'block w-full px-3 py-3 rounded-lg border text-gray-900 placeholder:text-gray-600 ' +
-    'bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent';
+    const fieldBaseNoIcon =
+      'block w-full px-3 py-3 rounded-lg border text-gray-900 placeholder:text-gray-600 ' +
+      'bg-gray-50 border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent focus:bg-white';
 
   return (
     <ProtectedRoute allowedRoles={['CHEF_DE_PROJET']}>
@@ -204,26 +231,16 @@ export default function CreateTask() {
                   </div>
                 </div>
 
-                {/* Développeur */}
+                {/* Développeurs */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Développeur *</label>
-                  <div className="relative">
-                    <User className="h-4 w-4 text-gray-500 absolute left-3 top-3" />
-                    <select
-                      name="developpeurId"
-                      value={form.developpeurId}
-                      onChange={onChange}
-                      className={fieldBase}
-                      required
-                    >
-                      <option value="" disabled>— Sélectionner un développeur —</option>
-                      {developers.map((dev: any) => (
-                        <option key={dev.id} value={dev.id}>
-                          {dev.username || dev.nom || `Développeur #${dev.id}`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Développeurs *</label>
+                  <DeveloperMultiSelect
+                    options={developers.map(d => ({ id: d.id, label: d.username || d.nom || `Développeur #${d.id}` }))}
+                    value={form.developpeurIds}
+                    onChange={(selectedIds) => setForm(prev => ({ ...prev, developpeurIds: selectedIds }))}
+                    placeholder="Sélectionner les développeurs"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">{getDeveloperHelpText()}</p>
                 </div>
 
                 {/* Dates */}

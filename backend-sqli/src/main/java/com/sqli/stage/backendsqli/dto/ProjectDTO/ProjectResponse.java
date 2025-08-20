@@ -59,4 +59,9 @@ public class ProjectResponse {
     private String uuidPublic;
 
     private List<DeveloperResponse> developpeurs;
+    
+    // Statistiques des tâches
+    private int totalTasks;
+    private int completedTasks;
+    private int inProgressTasks;
 }

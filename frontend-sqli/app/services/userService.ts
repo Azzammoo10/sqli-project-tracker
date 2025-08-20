@@ -98,4 +98,19 @@ export const userService = {
     const { data } = await apiClient.get(`/admin/users/by-role/${role}`);
     return data;
   },
+
+  // Méthodes pour le profil utilisateur
+  getCurrentUserProfile: async (): Promise<User> => {
+    const { data } = await apiClient.get('/users/profile');
+    return data;
+  },
+
+  updateProfile: async (id: number, payload: UpdateUserRequest): Promise<User> => {
+    const { data } = await apiClient.put(`/users/${id}/profile`, payload);
+    return data;
+  },
+
+  changePassword: async (payload: { currentPassword: string; newPassword: string }): Promise<void> => {
+    await apiClient.post('/users/change-password', payload);
+  },
 };

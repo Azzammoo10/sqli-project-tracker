@@ -74,6 +74,13 @@ public class AnalyticsController {
         return ResponseEntity.ok(analyticsService.getTeamOverview());
     }
 
+    // Endpoint pour l'équipe détaillée du chef de projet
+    @GetMapping("/chef/detailed-team-overview")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<List<Map<String, Object>>> getDetailedTeamOverview() {
+        return ResponseEntity.ok(analyticsService.getDetailedTeamOverview());
+    }
+
     // Endpoint pour les échéances à venir
     @GetMapping("/chef/upcoming-deadlines")
     @PreAuthorize("hasRole('CHEF_DE_PROJET')")
