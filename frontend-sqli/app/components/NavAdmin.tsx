@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import {Link, useLocation, useNavigate} from 'react-router-dom';
 import {
     LayoutDashboard,
     Users,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import sqliLogo from '../assets/images/SQLI-LOGO.png';
 
+
 interface NavAdminProps {
     user?: {
         username: string;
@@ -18,6 +19,7 @@ interface NavAdminProps {
     };
     onLogout?: () => void;
 }
+
 
 export default function NavAdmin({ user, onLogout }: NavAdminProps) {
     const location = useLocation();

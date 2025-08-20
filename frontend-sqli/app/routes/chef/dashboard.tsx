@@ -18,9 +18,9 @@ import {
 } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavChef from '../../components/NavChef';
-import { authService } from '../../services/api';
-import { chefDashboardService } from '../../services/chefDashboardService';
-import { projectService } from '../../services/projectService';
+import { authService } from '~/services/api';
+import { chefDashboardService } from '~/services/chefDashboardService';
+import { projectService } from '~/services/projectService';
 import type {
   DashboardStats,
   ProjectOverview as Project,

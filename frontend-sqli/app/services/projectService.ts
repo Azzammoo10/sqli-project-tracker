@@ -16,6 +16,10 @@ export interface Project {
   tasks?: Array<{ id: number; titre: string; statut: string }>;
   uuidPublic?: string;
   publicLinkEnabled?: boolean;
+  // Statistiques des tâches (ajoutées par le backend)
+  totalTasks?: number;
+  completedTasks?: number;
+  inProgressTasks?: number;
 }
 
 export interface CreateProjectRequest {

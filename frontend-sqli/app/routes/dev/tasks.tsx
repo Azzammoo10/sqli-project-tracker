@@ -23,8 +23,8 @@ import {
 } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavDev from '../../components/NavDev';
-import { authService } from '../../services/api';
-import { taskService, type Task } from '../../services/taskService';
+import { authService } from '~/services/api';
+import { taskService, type Task } from '~/services/taskService';
 import toast from 'react-hot-toast';
 
 interface TaskWithTimer extends Task {
@@ -168,7 +168,8 @@ export default function DevTasks() {
       await taskService.updateTaskStatus(taskId, newStatus);
       
       // Mettre à jour l'état local
-      setTasks(prevTasks => prevTasks.map(task => {
+      // @ts-ignore
+        setTasks(prevTasks => prevTasks.map(task => {
         if (task.id === taskId) {
           return {
             ...task,

@@ -9,6 +9,7 @@ import NavAdmin from '../../components/NavAdmin';
 import { authService } from '../../services/api';
 import { userService, type Role, type Department } from '../../services/userService';
 import toast from 'react-hot-toast';
+import {useNavigate} from "react-router-dom";
 
 type Profile = {
   id: number;
@@ -64,7 +65,9 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 );
 
 export default function AdminSettings() {
-  const [user, setUser] = useState<Profile | null>(null);
+    const navigate = useNavigate();
+
+    const [user, setUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   // ✅ Vue / Édition
@@ -138,6 +141,16 @@ export default function AdminSettings() {
     setIsEditing(false);
   };
 
+    const handleLogout = async () => {
+        try {
+            await authService.logout();
+            navigate('/auth/login');
+            toast.success('Déconnexion réussie');
+        } catch {
+            toast.error('Erreur lors de la déconnexion');
+        }
+    };
+
   const pickAvatar = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => setAvatarPreview(String(reader.result));
@@ -166,7 +179,7 @@ export default function AdminSettings() {
   return (
     <ProtectedRoute allowedRoles={['ADMIN']}>
       <div className="flex h-screen bg-gradient-to-b from-[#f6f4fb] to-[#fbfcfe]">
-        <NavAdmin user={user} />
+        <NavAdmin user={user} onLogout={handleLogout}  />
 
         <div className="flex-1 overflow-auto">
           {/* Header harmonisé (même mauve que le reste) */}

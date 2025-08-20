@@ -35,7 +35,7 @@ export default function DevProjects() {
     if (searchTerm) {
       filtered = filtered.filter(p =>
         p.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchTerm.toLowerCase())
+        (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
     if (statusFilter) filtered = filtered.filter(p => p.statut === statusFilter);
@@ -103,6 +103,16 @@ export default function DevProjects() {
     if (statut === 'TERMINE') return false;
     if (!dateFin) return false;
     return new Date(dateFin) < new Date();
+  };
+
+  // Calculer la taille de l'équipe basée sur les développeurs assignés
+  const getTeamSize = (project: Project) => {
+    return project.developpeurs ? project.developpeurs.length : 0;
+  };
+
+  // Obtenir la date de dernière mise à jour (utiliser la date de création si pas de mise à jour)
+  const getLastUpdated = (project: Project) => {
+    return project.dateDebut || new Date().toISOString();
   };
 
   if (loading) {
@@ -210,7 +220,7 @@ export default function DevProjects() {
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-600 mb-3">{project.description}</p>
+                        <p className="text-gray-600 mb-3">{project.description || 'Aucune description'}</p>
 
                         <div className="flex items-center gap-6 text-sm text-gray-600">
                           <div className="flex items-center gap-1">
@@ -219,7 +229,7 @@ export default function DevProjects() {
                           </div>
                           <div className="flex items-center gap-1">
                             <Users className="w-4 h-4" />
-                            <span>Équipe: {project.teamSize || 0} membres</span>
+                            <span>Équipe: {getTeamSize(project)} membres</span>
                           </div>
                         </div>
                       </div>
@@ -235,14 +245,14 @@ export default function DevProjects() {
                     <div className="mb-4">
                       <div className="flex items-center justify-between text-sm mb-2">
                         <span className="text-gray-600">Progression</span>
-                        <span className="font-medium">{project.progression}%</span>
+                        <span className="font-medium">{project.progression || 0}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3">
                         <div
                           className={`h-3 rounded-full transition-all duration-300 ${
-                            project.progression >= 100 ? 'bg-green-500' : 'bg-[#4B2A7B]'
+                            (project.progression || 0) >= 100 ? 'bg-green-500' : 'bg-[#4B2A7B]'
                           }`}
-                          style={{ width: `${Math.min(project.progression, 100)}%` }}
+                          style={{ width: `${Math.min(project.progression || 0, 100)}%` }}
                         />
                       </div>
                     </div>
@@ -276,14 +286,14 @@ export default function DevProjects() {
                       <div className="flex items-center gap-2">
                         {getStatusIcon(project.statut)}
                         <span className="text-sm text-gray-600">
-                          Dernière mise à jour: {formatDate(project.lastUpdated)}
+                          Dernière mise à jour: {formatDate(getLastUpdated(project))}
                         </span>
                       </div>
                       <button
-                        onClick={() => navigate(`/dev/projects/${project.id}`)}
+                        onClick={() => navigate(`/dev/tasks?project=${project.id}`)}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-[#4B2A7B] text-white rounded-lg hover:bg-[#5B3A8B] transition-colors"
                       >
-                        Voir détails
+                        Voir les tâches
                         <ChevronRight className="w-4 h-4" />
                       </button>
                     </div>

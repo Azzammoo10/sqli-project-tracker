@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavDev from '../../components/NavDev';
-import { authService } from '../../services/api';
+import { authService } from '~/services/api';
 import { taskService, type Task } from '../../services/taskService';
 import { projectService, type Project } from '../../services/projectService';
 import toast from 'react-hot-toast';

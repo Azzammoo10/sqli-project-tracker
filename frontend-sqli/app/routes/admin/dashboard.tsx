@@ -13,10 +13,10 @@ import {
 } from 'lucide-react';
 import NavAdmin from '../../components/NavAdmin';
 import ProtectedRoute from '../../components/ProtectedRoute';
-import { authService } from '../../services/api';
-import { userService } from '../../services/userService';
-import { projectService } from '../../services/projectService';
-import { historyService, type HistoryEntry } from '../../services/historyService';
+import { authService } from '~/services/api';
+import { userService } from '~/services/userService';
+import { projectService } from '~/services/projectService';
+import { historyService, type HistoryEntry } from '~/services/historyService';
 import toast from 'react-hot-toast';
 
 type UserLite = {
