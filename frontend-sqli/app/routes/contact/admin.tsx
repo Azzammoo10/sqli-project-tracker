@@ -42,10 +42,7 @@ export default function ContactAdminPage() {
   };
 
   return (
-      <div className="min-h-screen flex items-center justify-center p-4"
-           style={{
-               background: "linear-gradient(135deg, #2a1b3d 0%, #44337a 50%, #6b46c1 100%)"
-           }}>
+      <div className="min-h-screen bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66] flex items-center justify-center p-6 text-white">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
 
         <div className="flex">
