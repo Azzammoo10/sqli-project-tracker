@@ -13,10 +13,10 @@ export default [
   route("admin/projects", "routes/admin/projects.tsx"),
   route("admin/history", "routes/admin/history.tsx"),
   route("admin/settings", "routes/admin/settings.tsx"),
-  
   route("/admin/projects/:id", "routes/admin/project-details.tsx"),
-
   route("chef/dashboard", "routes/chef/dashboard.tsx"),
+  route("/chef/tasks/:id/edit", "routes/chef/taches/task-edit.tsx"),
+
   route("chef/projects", "routes/chef/projects.tsx"),
   route("chef/projects/create", "routes/chef/projects/create.tsx"),
   route("chef/tasks", "routes/chef/tasks.tsx"),

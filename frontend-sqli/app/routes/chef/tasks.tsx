@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Activity, Plus, Search, RotateCcw, ClipboardList, Trash2, AlertTriangle, X } from 'lucide-react';
+import { Activity, Plus, Search, RotateCcw, ClipboardList, Trash2, Pencil, AlertTriangle, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavChef from '../../components/NavChef';
@@ -16,7 +16,6 @@ export default function ChefTasks() {
   const [taskToDelete, setTaskToDelete] = useState<any>(null);
   const navigate = useNavigate();
 
-  // 🔎 petite recherche locale (pas d'impact service)
   const [q, setQ] = useState('');
 
   useEffect(() => {
@@ -54,10 +53,7 @@ export default function ChefTasks() {
     try {
       setDeletingTaskId(taskToDelete.id);
       await taskService.delete(taskToDelete.id);
-      
-      // Mettre à jour la liste locale
-      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskToDelete.id));
-      
+      setTasks(prev => prev.filter(t => t.id !== taskToDelete.id));
       toast.success('Tâche supprimée avec succès');
       closeDeleteModal();
     } catch (error: any) {
@@ -99,15 +95,14 @@ export default function ChefTasks() {
       <div className="flex h-screen bg-gradient-to-b from-[#f6f4fb] to-[#fbfcfe]">
         <NavChef user={user} />
         <div className="flex-1 overflow-auto">
-          {/* Bannière harmonisée */}
+          {/* Bannière */}
           <div className="p-6">
             <div className="w-full">
               <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
                 <div
                   className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
                   style={{
-                    background:
-                      'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'
+                    background: 'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'
                   }}
                 />
                 <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -137,7 +132,7 @@ export default function ChefTasks() {
             </div>
           </div>
 
-          {/* Outils (recherche simple) */}
+          {/* Outils */}
           <div className="px-6">
             <div className="w-full bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-5">
               <div className="flex items-center gap-4">
@@ -165,7 +160,7 @@ export default function ChefTasks() {
               </div>
             </div>
 
-            {/* Tableau avec colonne Actions */}
+            {/* Tableau */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full">
@@ -194,14 +189,25 @@ export default function ChefTasks() {
                           {t.dateFin ? new Date(t.dateFin).toLocaleDateString() : '—'}
                         </td>
                         <td className="px-6 py-3 text-sm">
-                          <button
-                            onClick={() => openDeleteModal(t)}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-colors"
-                            title="Supprimer la tâche"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            Supprimer
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => navigate(`/chef/tasks/${t.id}/edit`)}
+                              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 hover:border-indigo-300 transition-colors"
+                              title="Modifier la tâche"
+                            >
+                              <Pencil className="w-3 h-3" />
+                              Modifier
+                            </button>
+
+                            <button
+                              onClick={() => openDeleteModal(t)}
+                              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-colors"
+                              title="Supprimer la tâche"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              Supprimer
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -221,18 +227,11 @@ export default function ChefTasks() {
           </div>
         </div>
 
-        {/* Modal de confirmation de suppression */}
+        {/* Modal suppression */}
         {showDeleteModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* Overlay avec animation */}
-            <div 
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
-              onClick={closeDeleteModal}
-            />
-            
-            {/* Modal avec animation */}
-            <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-md w-full mx-4 transform transition-all duration-300 scale-100 opacity-100">
-              {/* Header */}
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300" onClick={closeDeleteModal} />
+            <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-md w/full mx-4 transform transition-all duration-300 scale-100 opacity-100">
               <div className="flex items-center justify-between p-6 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
@@ -243,34 +242,23 @@ export default function ChefTasks() {
                     <p className="text-sm text-gray-500">Cette action est irréversible</p>
                   </div>
                 </div>
-                <button
-                  onClick={closeDeleteModal}
-                  className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-                >
+                <button onClick={closeDeleteModal} className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
                   <X className="w-4 h-4 text-gray-400" />
                 </button>
               </div>
 
-              {/* Contenu */}
               <div className="p-6">
-                <p className="text-gray-700 mb-2">
-                  Êtes-vous sûr de vouloir supprimer la tâche :
-                </p>
+                <p className="text-gray-700 mb-2">Êtes-vous sûr de vouloir supprimer la tâche :</p>
                 <div className="bg-gray-50 rounded-lg p-4 mb-6">
                   <p className="font-medium text-gray-900">{taskToDelete?.titre}</p>
                   <p className="text-sm text-gray-600 mt-1">
-                    Projet: {taskToDelete?.projectTitre ?? '—'} | 
-                    Développeur: {taskToDelete?.developpeurUsername ?? '—'}
+                    Projet: {taskToDelete?.projectTitre ?? '—'} | Développeur: {taskToDelete?.developpeurUsername ?? '—'}
                   </p>
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="flex items-center gap-3 p-6 border-t border-gray-100">
-                <button
-                  onClick={closeDeleteModal}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
+                <button onClick={closeDeleteModal} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                   Annuler
                 </button>
                 <button

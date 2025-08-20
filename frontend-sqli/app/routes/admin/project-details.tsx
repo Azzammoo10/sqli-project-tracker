@@ -1,4 +1,3 @@
-// app/routes/admin/project-details.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -6,7 +5,6 @@ import {
   ArrowLeft,
   CalendarDays,
   FolderOpen,
-  Link2,
   User,
   Users,
   BadgeCheck,
@@ -14,24 +12,20 @@ import {
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavAdmin from '../../components/NavAdmin';
 import projectService, { type Project } from '../../services/projectService';
+import taskService from '../../services/taskService';
 import { authService } from '../../services/api';
 import toast from 'react-hot-toast';
 
-/* -------------------------- Helpers UI & Data -------------------------- */
+/* ----------------------- Helpers: normalisation & UI ---------------------- */
 
 const pretty = (s?: string | null) =>
-  (s ?? '').toString().replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()) || '—';
+  (s ?? '')
+    .toString()
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/(^\w|\s\w)/g, (c) => c.toUpperCase()) || '—';
 
-const safeClientName = (p: Project) =>
-  (p as any).clientName || p.client?.username || '—';
-
-const safeChefName = (p: Project) =>
-  (p as any).chefUsername || p.createdBy?.username || '—';
-
-const safeType = (p: Project) =>
-  (p as any).typeLabel || (p as any).type || p.type || '—';
-
-const normalizeStatus = (raw?: string) => {
+const normStatus = (raw?: string) => {
   const v = (raw ?? '').toUpperCase();
   if (['EN_COURS', 'IN_PROGRESS'].includes(v)) return 'EN_COURS';
   if (['TERMINE', 'TERMINÉ', 'DONE'].includes(v)) return 'TERMINE';
@@ -40,9 +34,9 @@ const normalizeStatus = (raw?: string) => {
   return 'UNKNOWN';
 };
 
-const statusBadge = (raw?: string) => {
-  const s = normalizeStatus(raw);
-  const map: Record<string, string> = {
+const StatusBadge = ({ value }: { value?: string }) => {
+  const s = normStatus(value);
+  const styles: Record<string, string> = {
     EN_COURS: 'bg-green-50 text-green-700',
     TERMINE: 'bg-purple-50 text-purple-700',
     EN_ATTENTE: 'bg-amber-50 text-amber-700',
@@ -50,41 +44,116 @@ const statusBadge = (raw?: string) => {
     UNKNOWN: 'bg-gray-100 text-gray-500',
   };
   const label =
-    s === 'EN_COURS'
-      ? 'En cours'
-      : s === 'TERMINE'
-      ? 'Terminé'
-      : s === 'EN_ATTENTE'
-      ? 'En attente'
-      : s === 'ANNULE'
-      ? 'Annulé'
+    s === 'EN_COURS' ? 'En cours'
+      : s === 'TERMINE' ? 'Terminé'
+      : s === 'EN_ATTENTE' ? 'En attente'
+      : s === 'ANNULE' ? 'Annulé'
       : '—';
-  return <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${map[s]}`}>{label}</span>;
-};
 
-const typeBadge = (label: string) => {
-  const l = (label || '—').toString();
-  const map: Record<string, string> = {
-    Delivery: 'bg-indigo-50 text-indigo-700',
-    TMA: 'bg-blue-50 text-blue-700',
-    Interne: 'bg-gray-100 text-black',
-    '—': 'bg-gray-50 text-gray-400',
-  };
-  const key = (['Delivery', 'TMA', 'Interne'].includes(l) ? l : '—') as keyof typeof map;
-  return <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${map[key]}`}>{key}</span>;
+  return <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${styles[s]}`}>{label}</span>;
 };
 
 const pct = (n?: number) => Math.min(100, Math.max(0, Number(n ?? 0)));
 
-/* ---------------------------------------------------------------------- */
+/** Normalise un objet Project venant de différents DTO côté BE */
+function normalizeProject(raw: any): Project & {
+  clientName?: string;
+  chefUsername?: string;
+  team?: Array<{ id?: number; username?: string; email?: string }>;
+  taskList?: Array<{ id?: number; titre?: string; statut?: string; developpeur?: any; developpeurUsername?: string }>;
+  status?: string;
+  progress?: number;
+  typeLabel?: string;
+} {
+  const clientName = raw?.clientName ?? raw?.client?.username ?? raw?.client?.nom ?? undefined;
+  const chefUsername =
+    raw?.chefUsername ??
+    raw?.createdBy?.username ??
+    raw?.chefDeProjet?.username ??
+    raw?.owner?.username ??
+    undefined;
+
+  const status = raw?.statut ?? raw?.status ?? undefined;
+
+  // Progression : couvrir plein de variantes
+  const progress =
+    raw?.progression ??
+    raw?.progress ??
+    raw?.progressPercentage ??
+    raw?.progressionPercent ??
+    raw?.projectProgress ??
+    undefined;
+
+  // Type
+  const typeLabel =
+    raw?.typeLabel ??
+    raw?.type ??
+    raw?.projectType?.label ??
+    raw?.projectType ??
+    undefined;
+
+  // Équipe : couvrir plusieurs clés
+  const team =
+    raw?.developpeurs ??
+    raw?.developers ??
+    raw?.teamMembers ??
+    raw?.members ??
+    [];
+
+  // Tâches : couvrir plusieurs clés
+  const taskList =
+    raw?.tasks ??
+    raw?.taches ??
+    raw?.todoList ??
+    [];
+
+  return {
+    ...raw,
+    clientName,
+    chefUsername,
+    status,
+    progress,
+    typeLabel,
+    team,
+    taskList,
+  };
+}
+
+/** Déduit des membres depuis la liste des tâches (fallback) */
+function deriveTeamFromTasks(tasks: Array<any>) {
+  const byKey = new Map<string, { id?: number; username?: string; email?: string }>();
+  for (const t of tasks) {
+    const dev =
+      t?.developpeur ??
+      t?.developer ??
+      undefined;
+
+    const username =
+      dev?.username ??
+      t?.developpeurUsername ??
+      t?.developerUsername ??
+      undefined;
+
+    const email =
+      dev?.email ??
+      t?.developerEmail ??
+      undefined;
+
+    if (!username && !email) continue;
+    const key = (username ?? email) as string;
+    if (!byKey.has(key)) byKey.set(key, { id: dev?.id, username, email });
+  }
+  return Array.from(byKey.values());
+}
+
+/* --------------------------------- Page ---------------------------------- */
 
 export default function AdminProjectDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
   const [me, setMe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [project, setProject] = useState<Project | null>(null);
+  const [project, setProject] = useState<ReturnType<typeof normalizeProject> | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -92,8 +161,50 @@ export default function AdminProjectDetails() {
         const u = await authService.getCurrentUser();
         setMe(u);
         if (!id) return;
-        const p = await projectService.getProjectById(Number(id));
-        setProject(p);
+
+        // 1) Récup projet
+        const raw = await projectService.getProjectById(Number(id));
+        let p = normalizeProject(raw);
+
+        // 2) Si pas de tâches dans la réponse détail, on va les chercher
+        let tasks = p.taskList ?? [];
+        if (!tasks.length) {
+          try {
+            tasks = await taskService.getByProject(Number(id));
+          } catch {
+            // no-op (certains projets n'ont pas de tâches)
+          }
+        }
+
+        // 3) Équipe : si vide, déduire via les tâches
+        let team = p.team ?? [];
+        if (!team.length && tasks.length) {
+          team = deriveTeamFromTasks(tasks);
+        }
+
+        // 4) Progression : si manquante, calculer depuis tâches, sinon appeler l’API de recompute
+        let progress = p.progress;
+        if (progress === undefined || progress === null || Number.isNaN(Number(progress))) {
+          if (tasks.length) {
+            const total = tasks.length;
+            const done = tasks.filter((t) => normStatus(t.statut) === 'TERMINE').length;
+            progress = total > 0 ? Math.round((done / total) * 100) : 0;
+          } else {
+            try {
+              const recomputed = await projectService.recomputeProgress(Number(id));
+              progress = Number(recomputed ?? 0);
+            } catch {
+              progress = 0;
+            }
+          }
+        }
+
+        setProject({
+          ...p,
+          taskList: tasks,
+          team,
+          progress,
+        });
       } catch (e) {
         console.error(e);
         toast.error('Erreur lors du chargement du projet');
@@ -104,18 +215,27 @@ export default function AdminProjectDetails() {
   }, [id]);
 
   const logout = async () => {
-    try {
-      await authService.logout();
-      navigate('/auth/login');
-    } catch {
-      // no-op
-    }
+    try { await authService.logout(); navigate('/auth/login'); } catch {}
   };
 
-  const devs = useMemo(() => project?.developpeurs ?? [], [project]);
-  const tasks = useMemo(() => project?.tasks ?? ([] as Array<{ id?: number; titre?: string; statut?: string }>), [project]);
-  const publicEnabled = (project as any)?.publicLinkEnabled === true;
-  const uuidPublic = (project as any)?.uuidPublic as string | undefined;
+  const devs = useMemo(() => project?.team ?? [], [project]);
+  const tasks = useMemo(
+    () => (project?.taskList ?? []) as Array<{ id?: number; titre?: string; statut?: string }>,
+    [project]
+  );
+
+  // Stats tâches : si BE ne fournit pas, on dérive
+  const { totalTasks, completedTasks, inProgressTasks } = useMemo(() => {
+    const total = Number(project?.totalTasks ?? tasks.length ?? 0);
+    let done = Number(project?.completedTasks ?? 0);
+    let doing = Number(project?.inProgressTasks ?? 0);
+
+    if (tasks.length) {
+      done = tasks.filter((t) => normStatus(t.statut) === 'TERMINE').length;
+      doing = tasks.filter((t) => normStatus(t.statut) === 'EN_COURS').length;
+    }
+    return { totalTasks: total, completedTasks: done, inProgressTasks: doing };
+  }, [project, tasks]);
 
   /* ------------------------------- Loading ------------------------------- */
 
@@ -143,7 +263,7 @@ export default function AdminProjectDetails() {
         <NavAdmin user={me} onLogout={logout} />
 
         <div className="flex-1 overflow-auto">
-          {/* Header violet harmonisé */}
+          {/* Header harmonisé */}
           <div className="p-6">
             <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
               <div
@@ -165,11 +285,13 @@ export default function AdminProjectDetails() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full inline-flex items-center gap-1">
                     <BadgeCheck className="w-4 h-4" />
-                    {statusBadge(project.statut)}
+                    <StatusBadge value={project.status ?? project.statut} />
                   </span>
-                  <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
-                    {typeBadge(safeType(project))}
-                  </span>
+                  {(totalTasks || inProgressTasks || completedTasks) ? (
+                    <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
+                      Tâches: {completedTasks}/{totalTasks} terminées
+                    </span>
+                  ) : null}
                   <Link
                     to="/admin/projects"
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/15 transition text-white"
@@ -185,63 +307,62 @@ export default function AdminProjectDetails() {
           <div className="px-6 pb-8 space-y-6">
             {/* Carte infos */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              {/* Description */}
-              <p className="text-gray-900 mb-6">{project.description || '—'}</p>
+              {project.description ? (
+                <p className="text-gray-900 mb-6">{project.description}</p>
+              ) : null}
 
-              {/* Grille d’infos */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
-                <div>
-                  <div className="text-gray-500">Client</div>
-                  <div className="mt-1 font-medium text-gray-900">{safeClientName(project)}</div>
-                </div>
-
-                <div>
-                  <div className="text-gray-500">Chef de projet</div>
-                  <div className="mt-1 font-medium text-gray-900">{safeChefName(project)}</div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-gray-500" />
+                {project.clientName && (
                   <div>
-                    <div className="text-gray-500">Début</div>
-                    <div className="mt-1 font-medium text-gray-900">
-                      {project.dateDebut ? new Date(project.dateDebut).toLocaleDateString() : '—'}
+                    <div className="text-gray-500">Client</div>
+                    <div className="mt-1 font-medium text-gray-900">{project.clientName}</div>
+                  </div>
+                )}
+
+                {project.chefUsername && (
+                  <div>
+                    <div className="text-gray-500">Chef de projet</div>
+                    <div className="mt-1 font-medium text-gray-900">{project.chefUsername}</div>
+                  </div>
+                )}
+
+                {project.dateDebut && (
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4 text-gray-500" />
+                    <div>
+                      <div className="text-gray-500">Début</div>
+                      <div className="mt-1 font-medium text-gray-900">
+                        {new Date(project.dateDebut).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-gray-500" />
-                  <div>
-                    <div className="text-gray-500">Fin</div>
-                    <div className="mt-1 font-medium text-gray-900">
-                      {project.dateFin ? new Date(project.dateFin).toLocaleDateString() : '—'}
+                {project.dateFin && (
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4 text-gray-500" />
+                    <div>
+                      <div className="text-gray-500">Fin</div>
+                      <div className="mt-1 font-medium text-gray-900">
+                        {new Date(project.dateFin).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                <div>
-                  <div className="text-gray-500">Type</div>
-                  <div className="mt-1">{typeBadge(safeType(project))}</div>
-                </div>
-
-                <div>
-                  <div className="text-gray-500">Statut</div>
-                  <div className="mt-1">{statusBadge(project.statut)}</div>
-                </div>
-
-                <div>
-                  <div className="text-gray-500">Lien public</div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Link2 className="w-4 h-4 text-gray-500" />
-                    <span className={`text-sm ${publicEnabled ? 'text-green-700' : 'text-gray-500'}`}>
-                      {publicEnabled ? 'Activé' : 'Désactivé'}
-                    </span>
-                    {publicEnabled && uuidPublic && (
-                      <span className="text-xs text-gray-500">UUID : {uuidPublic}</span>
-                    )}
+                {project.typeLabel && (
+                  <div>
+                    <div className="text-gray-500">Type</div>
+                    <div className="mt-1 font-medium text-gray-900">{project.typeLabel}</div>
                   </div>
-                </div>
+                )}
+
+                {project.status && (
+                  <div>
+                    <div className="text-gray-500">Statut</div>
+                    <div className="mt-1"><StatusBadge value={project.status} /></div>
+                  </div>
+                )}
               </div>
 
               {/* Progression */}
@@ -250,10 +371,12 @@ export default function AdminProjectDetails() {
                 <div className="h-2 bg-gray-100 rounded">
                   <div
                     className="h-2 bg-[#4B2A7B] rounded"
-                    style={{ width: `${pct(project.progression)}%` }}
+                    style={{ width: `${pct(project.progress ?? project.progression)}%` }}
                   />
                 </div>
-                <div className="mt-1 text-sm text-gray-700">{Math.round(pct(project.progression))}%</div>
+                <div className="mt-1 text-sm text-gray-700">
+                  {Math.round(pct(project.progress ?? project.progression))}%
+                </div>
               </div>
             </div>
 
@@ -275,7 +398,7 @@ export default function AdminProjectDetails() {
                 <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {devs.map((d, idx) => (
                     <li
-                      key={`${d.id ?? idx}-${d.email ?? d.username}`}
+                      key={`${d.id ?? idx}-${d.email ?? d.username ?? 'm' + idx}`}
                       className="p-3 border border-gray-200 rounded-md flex items-center gap-3"
                     >
                       <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
@@ -283,7 +406,7 @@ export default function AdminProjectDetails() {
                       </div>
                       <div>
                         <div className="text-sm font-medium text-gray-900">{d.username ?? '—'}</div>
-                        <div className="text-xs text-gray-600">{d.email ?? ''}</div>
+                        {d.email ? <div className="text-xs text-gray-600">{d.email}</div> : null}
                       </div>
                     </li>
                   ))}
@@ -291,9 +414,18 @@ export default function AdminProjectDetails() {
               )}
             </div>
 
-            {/* Tâches (si renvoyées par l’API) */}
+            {/* Tâches */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Tâches</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Tâches</h2>
+                {(totalTasks || inProgressTasks || completedTasks) ? (
+                  <div className="text-xs text-gray-600">
+                    Total: <b>{totalTasks}</b> • En cours: <b>{inProgressTasks}</b> • Terminées:{' '}
+                    <b>{completedTasks}</b>
+                  </div>
+                ) : null}
+              </div>
+
               {tasks.length === 0 ? (
                 <p className="text-sm text-gray-600">Aucune tâche pour ce projet.</p>
               ) : (
