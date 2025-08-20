@@ -23,8 +23,7 @@ public class TaskController {
     @GetMapping("/chef/priority")
     @PreAuthorize("hasRole('CHEF_DE_PROJET')")
     public ResponseEntity<List<TaskResponse>> getPriorityTasks() {
-        // Pour l'instant, retourner toutes les tâches
-        return ResponseEntity.ok(taskService.getAllTasks());
+        return ResponseEntity.ok(taskService.getPriorityTasksForChef());
     }
 
     // Endpoint pour obtenir les tâches en retard

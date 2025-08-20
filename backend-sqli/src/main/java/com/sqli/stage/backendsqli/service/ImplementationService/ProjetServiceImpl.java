@@ -153,8 +153,14 @@ public class ProjetServiceImpl implements ProjetService {
 
     @Override
     public ProjectResponse getProjectById(int id) {
+        System.out.println("=== DEBUG: getProjectById(" + id + ") ===");
         Project project = projetRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Projet Introuvable avec ID :" + id));
+        
+        System.out.println("Projet trouvé: " + project.getTitre());
+        System.out.println("Developpeurs dans le projet: " + (project.getDeveloppeurs() != null ? project.getDeveloppeurs().size() : "null"));
+        System.out.println("Tasks dans le projet: " + (project.getTasks() != null ? project.getTasks().size() : "null"));
+        
         return mapToResponse(project);
     }
 
@@ -406,18 +412,61 @@ public class ProjetServiceImpl implements ProjetService {
 
 
     public ProjectResponse mapToResponse(Project project) {
+        System.out.println("=== DEBUG: mapToResponse pour projet " + project.getId() + " ===");
+        System.out.println("Developpeurs dans le projet: " + (project.getDeveloppeurs() != null ? project.getDeveloppeurs().size() : "null"));
+        if (project.getDeveloppeurs() != null) {
+            project.getDeveloppeurs().forEach(dev -> 
+                System.out.println("  - Dev: " + dev.getUsername() + " (ID: " + dev.getId() + ")")
+            );
+        }
+        
         List<DeveloperResponse> developpeurList = project.getDeveloppeurs() == null ? List.of()
                 : project.getDeveloppeurs().stream()
                 .map(dev -> new DeveloperResponse(
+                        dev.getId(),
                         dev.getNom(),
                         dev.getEmail(),
                         dev.getUsername(),
                         dev.getJobTitle()
                 ))
                 .toList();
+        
+        // Si aucun développeur assigné directement au projet, essayer de les récupérer via les tâches
+        if (developpeurList.isEmpty() && project.getTasks() != null) {
+            System.out.println("=== Récupération des développeurs via les tâches ===");
+            developpeurList = project.getTasks().stream()
+                    .filter(task -> task.getDeveloppeur() != null)
+                    .map(task -> task.getDeveloppeur())
+                    .distinct()
+                    .map(dev -> new DeveloperResponse(
+                            dev.getId(),
+                            dev.getNom(),
+                            dev.getEmail(),
+                            dev.getUsername(),
+                            dev.getJobTitle()
+                    ))
+                    .toList();
+            System.out.println("Développeurs récupérés via les tâches: " + developpeurList.size());
+        }
+        
+        System.out.println("DeveloppeurList mappée: " + developpeurList.size());
+        developpeurList.forEach(dev -> 
+            System.out.println("  - DevResponse: " + dev.getUsername() + " (ID: " + dev.getId() + ")")
+        );
 
         // Client name null-safe
         String clientName = project.getClient() == null ? null : project.getClient().getNom();
+
+        // Objet client complet
+        ProjectResponse.ClientInfo clientInfo = null;
+        if (project.getClient() != null) {
+            clientInfo = new ProjectResponse.ClientInfo(
+                project.getClient().getId(),
+                project.getClient().getUsername(),
+                project.getClient().getNom(),
+                project.getClient().getEmail()
+            );
+        }
 
         // Type enum + label lisible
         TypeProjet type = project.getType(); // peut être null
@@ -448,14 +497,29 @@ public class ProjetServiceImpl implements ProjetService {
                     .count();
         }
 
+        // Calculer la progression basée sur les tâches terminées
+        BigDecimal calculatedProgression = BigDecimal.ZERO;
+        if (totalTasks > 0) {
+            calculatedProgression = BigDecimal.valueOf((completedTasks * 100.0) / totalTasks);
+        }
+        
+        // Si la progression stockée est différente de celle calculée, utiliser la calculée
+        if (project.getProgression() == null || project.getProgression().compareTo(calculatedProgression) != 0) {
+            System.out.println("=== Mise à jour de la progression ===");
+            System.out.println("Progression stockée: " + project.getProgression());
+            System.out.println("Progression calculée: " + calculatedProgression);
+            System.out.println("Tâches totales: " + totalTasks + ", Terminées: " + completedTasks);
+        }
+
         ProjectResponse resp = new ProjectResponse();
         resp.setId(project.getId());
         resp.setTitre(project.getTitre());
         resp.setDescription(project.getDescription());
         resp.setClientName(clientName);
+        resp.setClient(clientInfo);
         resp.setType(type);
         resp.setTypeLabel(typeLabel);
-        resp.setProgression(project.getProgression());
+        resp.setProgression(calculatedProgression); // Utiliser la progression calculée
         resp.setDateDebut(project.getDateDebut());
         resp.setDateFin(project.getDateFin());
         resp.setStatut(project.getStatut()); // enum StatutProjet directement si c'est voulu
@@ -467,6 +531,18 @@ public class ProjetServiceImpl implements ProjetService {
         resp.setTotalTasks(totalTasks);
         resp.setCompletedTasks(completedTasks);
         resp.setInProgressTasks(inProgressTasks);
+        
+        System.out.println("Response finale - Developpeurs: " + (resp.getDeveloppeurs() != null ? resp.getDeveloppeurs().size() : "null"));
+        
+        // Vérifier si les développeurs sont bien assignés via les tâches
+        if ((resp.getDeveloppeurs() == null || resp.getDeveloppeurs().isEmpty()) && project.getTasks() != null) {
+            System.out.println("=== ATTENTION: Aucun développeur assigné au projet, mais il y a des tâches ===");
+            project.getTasks().forEach(task -> {
+                if (task.getDeveloppeur() != null) {
+                    System.out.println("  - Tâche '" + task.getTitre() + "' assignée à: " + task.getDeveloppeur().getUsername());
+                }
+            });
+        }
         
         return resp;
     }

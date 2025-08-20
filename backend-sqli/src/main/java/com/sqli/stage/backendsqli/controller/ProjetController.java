@@ -98,7 +98,13 @@ public class ProjetController {
 
     // Endpoint pour obtenir un projet par ID
     @GetMapping("/{id}")
-    public ResponseEntity<ProjectDetailsResponse> getProjectById(@PathVariable int id) {
+    public ResponseEntity<ProjectResponse> getProjectById(@PathVariable int id) {
+        return ResponseEntity.ok(projetService.getProjectById(id));
+    }
+
+    // Endpoint pour obtenir les détails complets d'un projet
+    @GetMapping("/{id}/details")
+    public ResponseEntity<ProjectDetailsResponse> getProjectDetails(@PathVariable int id) {
         return ResponseEntity.ok(projetService.getDetailedProject(id));
     }
 
@@ -123,6 +129,14 @@ public class ProjetController {
     public ResponseEntity<Void> assignDevelopers(@PathVariable int id, @RequestBody List<Integer> developerIds) {
         projetService.assignUsersToProject(id, developerIds);
         return ResponseEntity.ok().build();
+    }
+
+    // Endpoint pour forcer la mise à jour de la progression d'un projet
+    @PostMapping("/{id}/update-progress")
+    @PreAuthorize("hasRole('CHEF_DE_PROJET')")
+    public ResponseEntity<BigDecimal> updateProjectProgress(@PathVariable int id) {
+        BigDecimal progress = projetService.updateProjectProgress(id);
+        return ResponseEntity.ok(progress);
     }
 
     // Endpoint pour obtenir les projets publics

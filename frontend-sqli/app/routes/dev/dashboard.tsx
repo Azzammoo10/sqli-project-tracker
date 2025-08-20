@@ -2,12 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Clock,
-  CheckCircle,
-  AlertTriangle,
-  Calendar,
   Users,
   Play,
-  Pause,
   Square,
   Activity,
   Target,
@@ -18,8 +14,8 @@ import {
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavDev from '../../components/NavDev';
 import { authService } from '~/services/api';
-import { taskService, type Task } from '../../services/taskService';
-import { projectService, type Project } from '../../services/projectService';
+import { taskService, type Task } from '~/services/taskService';
+import { projectService, type Project } from '~/services/projectService';
 import toast from 'react-hot-toast';
 
 interface TeamMember {

@@ -8,4 +8,5 @@ import lombok.Data;
 public class ChartData {
     private String label;
     private int value;
+    private String color;
 }

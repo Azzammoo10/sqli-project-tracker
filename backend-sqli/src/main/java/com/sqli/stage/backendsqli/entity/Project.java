@@ -57,11 +57,11 @@ public class Project {
     @ManyToOne
     private User createdBy;
 
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JsonIgnoreProperties("project")
     private List<Task> tasks;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "project_developpeurs",
             joinColumns = @JoinColumn(name = "project_id"),

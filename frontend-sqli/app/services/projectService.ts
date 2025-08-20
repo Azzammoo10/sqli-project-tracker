@@ -10,9 +10,20 @@ export interface Project {
   progression: number; // 0..100
   dateDebut: string;
   dateFin?: string;
-  client?: { id: number; username: string; email: string };
+  clientName?: string; // Ancien champ pour compatibilité
+  client?: { 
+    id: number; 
+    username: string; 
+    nom: string; 
+    email: string; 
+  };
   createdBy?: { id: number; username: string; email: string };
-  developpeurs?: Array<{ id: number; username: string; email: string }>;
+  developpeurs?: Array<{ 
+    id: number; 
+    username: string; 
+    nom: string; 
+    email: string; 
+  }>;
   tasks?: Array<{ id: number; titre: string; statut: string }>;
   uuidPublic?: string;
   publicLinkEnabled?: boolean;

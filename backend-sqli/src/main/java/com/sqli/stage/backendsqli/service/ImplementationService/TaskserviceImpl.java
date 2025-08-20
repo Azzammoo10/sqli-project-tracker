@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.HashMap;
+import java.util.ArrayList;
 
 @RequiredArgsConstructor
 @Service
@@ -223,6 +224,33 @@ public class TaskserviceImpl implements Taskservice {
         }
 
         return tasks.stream().map(this::mapToReponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<TaskResponse> getPriorityTasksForChef() {
+        String currentUsername = getCurrentUser().getUsername();
+        User currentChef = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("Chef de projet non trouvé"));
+        
+        // Récupérer les projets du chef connecté
+        List<Project> chefProjects = projetRepository.findByCreatedByUsername(currentUsername);
+        List<Integer> projectIds = chefProjects.stream().map(Project::getId).toList();
+        
+        if (projectIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // Récupérer toutes les tâches des projets du chef
+        List<Task> allTasks = taskRepoistory.findByProjectIdIn(projectIds);
+        
+        // Filtrer les tâches prioritaires (ELEVEE priorité ou NON_COMMENCE statut)
+        return allTasks.stream()
+                .filter(task -> task.getPriorite() == com.sqli.stage.backendsqli.entity.Enums.Priorite.ELEVEE || 
+                               task.getStatut() == StatutTache.NON_COMMENCE)
+                .sorted(Comparator.comparing(Task::getPriorite, Comparator.reverseOrder())
+                        .thenComparing(Task::getDateFin))
+                .map(this::mapToReponse)
+                .collect(Collectors.toList());
     }
 
 
@@ -554,6 +582,26 @@ public class TaskserviceImpl implements Taskservice {
     private TaskResponse mapToReponse(Task task){
         String devUsername = task.getDeveloppeur() != null ? task.getDeveloppeur().getUsername() : null;
         String projectTitre = task.getProject() != null ? task.getProject().getTitre() : null;
+        
+        // Créer les objets complets
+        TaskResponse.ProjectInfo projectInfo = null;
+        if (task.getProject() != null) {
+            projectInfo = new TaskResponse.ProjectInfo(
+                task.getProject().getId(),
+                task.getProject().getTitre(),
+                task.getProject().getDescription()
+            );
+        }
+        
+        TaskResponse.DeveloperInfo developerInfo = null;
+        if (task.getDeveloppeur() != null) {
+            developerInfo = new TaskResponse.DeveloperInfo(
+                task.getDeveloppeur().getId(),
+                task.getDeveloppeur().getUsername(),
+                task.getDeveloppeur().getEmail()
+            );
+        }
+        
         return new TaskResponse(
                 task.getId(),
                 task.getTitre(),
@@ -566,7 +614,9 @@ public class TaskserviceImpl implements Taskservice {
                 task.getEffectiveHours(),
                 task.getRemainingHours(),
                 devUsername,
-                projectTitre
+                projectTitre,
+                projectInfo,
+                developerInfo
         );
     }
 

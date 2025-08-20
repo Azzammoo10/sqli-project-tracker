@@ -7,5 +7,7 @@ import lombok.Data;
 @Builder
 public class ProgressResponse {
     private int projectId;
+    private String titre;
     private double completionPercentage;
+    private String color;
 }

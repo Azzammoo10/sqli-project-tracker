@@ -10,7 +10,9 @@ import com.sqli.stage.backendsqli.entity.Enums.Role;
 import com.sqli.stage.backendsqli.entity.Enums.StatutProjet;
 import com.sqli.stage.backendsqli.entity.Enums.StatutTache;
 import com.sqli.stage.backendsqli.entity.Project;
+import com.sqli.stage.backendsqli.entity.Task;
 import com.sqli.stage.backendsqli.entity.User;
+import java.util.Random;
 import com.sqli.stage.backendsqli.repository.ProjetRepository;
 import com.sqli.stage.backendsqli.repository.TaskRepository;
 import com.sqli.stage.backendsqli.repository.UserRepository;
@@ -241,8 +243,44 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public List<Map<String, Object>> getRecentActivity() {
-        // Pour l'instant, retourner une liste vide pour un nouveau chef de projet
-        return new ArrayList<>();
+        String currentUsername = getCurrentUsername();
+        List<Project> chefProjects = projectRepository.findByCreatedByUsername(currentUsername);
+        
+        List<Map<String, Object>> activities = new ArrayList<>();
+        
+        // Ajouter des activités basées sur les projets récents
+        for (Project project : chefProjects) {
+            Map<String, Object> activity = new HashMap<>();
+            activity.put("id", project.getId());
+            activity.put("type", "PROJECT");
+            activity.put("description", "Projet '" + project.getTitre() + "' créé");
+            activity.put("timestamp", LocalDateTime.now().minusDays(new Random().nextInt(7)).toString());
+            activity.put("projectId", project.getId());
+            activity.put("projectName", project.getTitre());
+            activities.add(activity);
+        }
+        
+        // Ajouter des activités basées sur les tâches récentes
+        List<Integer> projectIds = chefProjects.stream().map(Project::getId).toList();
+        if (!projectIds.isEmpty()) {
+            List<Task> recentTasks = taskRepository.findByProjectIdIn(projectIds);
+            for (Task task : recentTasks) {
+                Map<String, Object> activity = new HashMap<>();
+                activity.put("id", task.getId());
+                activity.put("type", "TASK");
+                activity.put("description", "Tâche '" + task.getTitre() + "' créée dans le projet '" + task.getProject().getTitre() + "'");
+                activity.put("timestamp", LocalDateTime.now().minusDays(new Random().nextInt(5)).toString());
+                activity.put("projectId", task.getProject().getId());
+                activity.put("projectName", task.getProject().getTitre());
+                activity.put("taskId", task.getId());
+                activity.put("taskName", task.getTitre());
+                activities.add(activity);
+            }
+        }
+        
+        // Trier par timestamp (plus récent en premier) et limiter à 10
+        activities.sort((a, b) -> b.get("timestamp").toString().compareTo(a.get("timestamp").toString()));
+        return activities.stream().limit(10).collect(Collectors.toList());
     }
 
     @Override
@@ -253,7 +291,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return chefProjects.stream()
                 .map(p -> ProgressResponse.builder()
                         .projectId(p.getId())
+                        .titre(p.getTitre())
                         .completionPercentage(p.getProgression() != null ? p.getProgression().doubleValue() : 0.0)
+                        .color("#4B2A7B")
                         .build())
                 .collect(Collectors.toList());
     }
@@ -274,10 +314,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         long termine = taskRepository.countByProjectIdInAndStatut(projectIds, StatutTache.TERMINE);
         
         List<ChartData> data = new ArrayList<>();
-        if (nonCommence > 0) data.add(ChartData.builder().label("Non commencé").value((int)nonCommence).build());
-        if (enCours > 0) data.add(ChartData.builder().label("En cours").value((int)enCours).build());
-        if (bloque > 0) data.add(ChartData.builder().label("Bloqué").value((int)bloque).build());
-        if (termine > 0) data.add(ChartData.builder().label("Terminé").value((int)termine).build());
+        if (nonCommence > 0) data.add(ChartData.builder().label("Non commencé").value((int)nonCommence).color("#6B7280").build());
+        if (enCours > 0) data.add(ChartData.builder().label("En cours").value((int)enCours).color("#3B82F6").build());
+        if (bloque > 0) data.add(ChartData.builder().label("Bloqué").value((int)bloque).color("#EF4444").build());
+        if (termine > 0) data.add(ChartData.builder().label("Terminé").value((int)termine).color("#10B981").build());
         
         return data;
     }
@@ -465,21 +505,23 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     double completionRate = totalTasks > 0 ? (completedTasks * 100.0) / totalTasks : 0;
                     member.put("completionRate", Math.round(completionRate));
                     
-                    // Calculer la charge de travail (basée sur les tâches non commencées)
-                    // Charge = tâches non commencées / total * 100
+                    // Calculer la charge de travail (basée sur les tâches en cours et bloquées)
+                    // Charge = (tâches en cours + bloquées) / total * 100
                     double workload = 0.0;
                     if (totalTasks > 0) {
-                        // Calcul basé sur les tâches non commencées (plus logique métier)
-                        workload = (nonCommenceTasks * 100.0) / totalTasks;
+                        // Calcul basé sur les tâches actives (en cours + bloquées)
+                        workload = ((inProgressTasks + blockedTasks) * 100.0) / totalTasks;
                         
                         // Si toutes les tâches sont terminées, charge = 0
                         if (completedTasks == totalTasks) {
                             workload = 0.0;
                         }
-                        // Si toutes les tâches sont non commencées, charge = 100
+                        // Si toutes les tâches sont non commencées, charge = 0 (pas encore commencé)
                         else if (nonCommenceTasks == totalTasks) {
-                            workload = 100.0;
+                            workload = 0.0;
                         }
+                        // Limiter à 100%
+                        workload = Math.min(workload, 100.0);
                     }
                     
                     System.out.println("Charge calculée pour " + dev.getUsername() + " (basée sur tâches non commencées): " + Math.round(workload) + "%");

@@ -43,4 +43,7 @@ public interface Taskservice {
     Map<String, Object> startTaskTimer(int taskId);
     Map<String, Object> stopTaskTimer(int taskId);
     Map<String, Object> getTaskTimerStatus(int taskId);
+    
+    // Priority tasks for chef
+    List<TaskResponse> getPriorityTasksForChef();
 }

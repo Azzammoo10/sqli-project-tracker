@@ -9,6 +9,7 @@ import NavChef from '../../components/NavChef';
 import { authService } from '../../services/api';
 import { chefDashboardService } from '../../services/chefDashboardService';
 import toast from 'react-hot-toast';
+import {useNavigate} from "react-router-dom";
 
 interface TeamMember {
   id: number;
@@ -43,7 +44,14 @@ interface TeamMember {
 type SortField = 'username' | 'completionRate' | 'workload' | 'assignedProjects';
 type SortOrder = 'asc' | 'desc';
 
+
+
+
+
+
+
 export default function ChefTeam() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [team, setTeam] = useState<TeamMember[]>([]);
@@ -52,6 +60,16 @@ export default function ChefTeam() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [expandedMember, setExpandedMember] = useState<number | null>(null);
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      navigate('/auth/login');
+      toast.success('Déconnexion réussie');
+    } catch (error) {
+      toast.error('Erreur lors de la déconnexion');
+    }
+  };
 
   useEffect(() => {
     const loadTeamData = async () => {
@@ -200,7 +218,7 @@ export default function ChefTeam() {
   if (loading) {
     return (
       <div className="flex h-screen">
-        <NavChef user={user} />
+        <NavChef user={user} onLogout={handleLogout} />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Activity className="h-8 w-8 animate-spin text-[#4B2A7B] mx-auto mb-4" />
@@ -214,7 +232,7 @@ export default function ChefTeam() {
   return (
     <ProtectedRoute allowedRoles={['CHEF_DE_PROJET']}>
       <div className="flex h-screen bg-gray-50">
-        <NavChef user={user} />
+        <NavChef user={user} onLogout={handleLogout} />
         <div className="flex-1 overflow-auto">
           {/* Header simplifié */}
           <div className="bg-white border-b border-gray-200 px-6 py-4">
@@ -434,32 +452,75 @@ export default function ChefTeam() {
                           </div>
                         </div>
 
-                        {/* Métriques */}
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-700 mb-3">Métriques de performance</h4>
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div className="flex items-center gap-2">
-                              <CheckCircle2 className="h-4 w-4 text-green-600" />
-                              <span className="text-gray-600">Terminées:</span>
-                              <span className="font-medium">{member.completedTasks}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <PauseCircle className="h-4 w-4 text-yellow-600" />
-                              <span className="text-gray-600">En cours:</span>
-                              <span className="font-medium">{member.pendingTasks}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <XCircle className="h-4 w-4 text-red-600" />
-                              <span className="text-gray-600">Bloquées:</span>
-                              <span className="font-medium">{member.blockedTasks}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-blue-600" />
-                              <span className="text-gray-600">Total:</span>
-                              <span className="font-medium">{member.totalTasks}</span>
-                            </div>
-                          </div>
-                        </div>
+                                                 {/* Métriques de performance - Design amélioré */}
+                         <div>
+                           <h4 className="text-sm font-medium text-gray-700 mb-4">Métriques de performance</h4>
+                           <div className="space-y-4">
+                             {/* Taux de completion */}
+                             <div className="bg-white rounded-lg p-3 border border-gray-200">
+                               <div className="flex items-center justify-between mb-2">
+                                 <span className="text-sm font-medium text-gray-700">Taux de completion</span>
+                                 <span className="text-lg font-bold text-[#4B2A7B]">{member.completionRate}%</span>
+                               </div>
+                               <div className="w-full bg-gray-200 rounded-full h-2">
+                                 <div
+                                   className="h-2 bg-gradient-to-r from-[#4B2A7B] to-[#7E56D9] rounded-full transition-all duration-300"
+                                   style={{ width: `${member.completionRate}%` }}
+                                 />
+                               </div>
+                             </div>
+
+                             {/* Charge de travail */}
+                             <div className="bg-white rounded-lg p-3 border border-gray-200">
+                               <div className="flex items-center justify-between mb-2">
+                                 <span className="text-sm font-medium text-gray-700">Charge de travail</span>
+                                 <span className={`text-lg font-bold ${member.workload > 80 ? 'text-red-600' : member.workload > 50 ? 'text-yellow-600' : 'text-green-600'}`}>
+                                   {member.workload}%
+                                 </span>
+                               </div>
+                               <div className="w-full bg-gray-200 rounded-full h-2">
+                                 <div
+                                   className={`h-2 rounded-full transition-all duration-300 ${
+                                     member.workload > 80 ? 'bg-red-500' : member.workload > 50 ? 'bg-yellow-500' : 'bg-green-500'
+                                   }`}
+                                   style={{ width: `${member.workload}%` }}
+                                 />
+                               </div>
+                             </div>
+
+                             {/* Détail des tâches */}
+                             <div className="grid grid-cols-2 gap-3">
+                               <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                                 <div className="flex items-center gap-2 mb-1">
+                                   <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                   <span className="text-xs font-medium text-green-700">Terminées</span>
+                                 </div>
+                                 <span className="text-lg font-bold text-green-800">{member.completedTasks}</span>
+                               </div>
+                               <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                                 <div className="flex items-center gap-2 mb-1">
+                                   <PauseCircle className="h-4 w-4 text-blue-600" />
+                                   <span className="text-xs font-medium text-blue-700">En cours</span>
+                                 </div>
+                                 <span className="text-lg font-bold text-blue-800">{member.pendingTasks}</span>
+                               </div>
+                               <div className="bg-red-50 rounded-lg p-3 border border-red-200">
+                                 <div className="flex items-center gap-2 mb-1">
+                                   <XCircle className="h-4 w-4 text-red-600" />
+                                   <span className="text-xs font-medium text-red-700">Bloquées</span>
+                                 </div>
+                                 <span className="text-lg font-bold text-red-800">{member.blockedTasks}</span>
+                               </div>
+                               <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                 <div className="flex items-center gap-2 mb-1">
+                                   <Clock className="h-4 w-4 text-gray-600" />
+                                   <span className="text-xs font-medium text-gray-700">Total</span>
+                                 </div>
+                                 <span className="text-lg font-bold text-gray-800">{member.totalTasks}</span>
+                               </div>
+                             </div>
+                           </div>
+                         </div>
                       </div>
                     </div>
                   )}

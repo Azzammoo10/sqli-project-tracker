@@ -144,7 +144,7 @@ export default function ChefProjects() {
               <ProjectsTable
                 projects={filtered}
                 userRole="CHEF_DE_PROJET"
-                onDeleteProject={handleDeleteProject}
+                // onDeleteProject={handleDeleteProject}
                 loading={false}
               />
             </div>

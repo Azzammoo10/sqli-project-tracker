@@ -30,6 +30,9 @@ public class ProjectResponse {
     @NotBlank(message = "Le nom du client est obligatoire")
     private String clientName;
 
+    // Objet client complet pour plus de détails
+    private ClientInfo client;
+
     // ✅ AJOUT : type enum + un label lisible pour l’UI
     private TypeProjet type;         // DELIVERY | TMA | INTERNE (selon ton enum)
     private String typeLabel;        // "Delivery" | "TMA" | "Interne"
@@ -64,4 +67,15 @@ public class ProjectResponse {
     private int totalTasks;
     private int completedTasks;
     private int inProgressTasks;
+    
+    // Classe interne pour les informations du client
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ClientInfo {
+        private Integer id;
+        private String username;
+        private String nom;
+        private String email;
+    }
 }

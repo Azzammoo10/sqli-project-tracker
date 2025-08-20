@@ -236,7 +236,7 @@ export default function ProjectsTable({ projects, userRole, loading }: Props) {
                     <div className="flex items-center justify-end gap-2">
                       {userRole !== 'CLIENT' && (
                         <Link
-                          to={`/admin/projects/${p.id}`}
+                          to={userRole === 'ADMIN' ? `/admin/projects/${p.id}` : `/chef/projects/${p.id}`}
                           className="p-2 rounded-md hover:bg-gray-100 text-black"
                           title="Voir le détail du projet"
                         >

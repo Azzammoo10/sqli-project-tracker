@@ -19,6 +19,7 @@ export default [
 
   route("chef/projects", "routes/chef/projects.tsx"),
   route("chef/projects/create", "routes/chef/projects/create.tsx"),
+  route("chef/projects/:id", "routes/chef/projects/[id].tsx"),
   route("chef/tasks", "routes/chef/tasks.tsx"),
   route("chef/tasks/create","routes/chef/taches/createTask.tsx"),
   route("chef/team", "routes/chef/team.tsx"),

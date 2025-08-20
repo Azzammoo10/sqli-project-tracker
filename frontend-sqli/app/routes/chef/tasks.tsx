@@ -3,8 +3,8 @@ import { Activity, Plus, Search, RotateCcw, ClipboardList, Trash2, Pencil, Alert
 import { useNavigate } from 'react-router-dom';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavChef from '../../components/NavChef';
-import { authService } from '../../services/api';
-import { taskService } from '../../services/taskService';
+import { authService } from '~/services/api';
+import { taskService } from '~/services/taskService';
 import toast from 'react-hot-toast';
 
 export default function ChefTasks() {
@@ -17,6 +17,16 @@ export default function ChefTasks() {
   const navigate = useNavigate();
 
   const [q, setQ] = useState('');
+
+    const handleLogout = async () => {
+        try {
+            await authService.logout();
+            navigate('/auth/login');
+            toast.success('Déconnexion réussie');
+        } catch (error) {
+            toast.error('Erreur lors de la déconnexion');
+        }
+    };
 
   useEffect(() => {
     const load = async () => {
@@ -93,7 +103,7 @@ export default function ChefTasks() {
   return (
     <ProtectedRoute allowedRoles={['CHEF_DE_PROJET']}>
       <div className="flex h-screen bg-gradient-to-b from-[#f6f4fb] to-[#fbfcfe]">
-        <NavChef user={user} />
+        <NavChef user={user} onLogout={handleLogout} />
         <div className="flex-1 overflow-auto">
           {/* Bannière */}
           <div className="p-6">
