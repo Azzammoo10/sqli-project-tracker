@@ -21,15 +21,16 @@ public class QRCodeService {
      * @return Le QR code en format byte array
      */
     public byte[] generateProjectQRCode(Long projectId, String projectName) throws WriterException, IOException {
-        // URL qui sera encodée dans le QR code - utiliser l'URL ngrok
-        String projectUrl = "https://ac84aa5c99a9.ngrok-free.app/project/" + projectId;
+        // URL qui sera encodée dans le QR code - utiliser l'URL ngrok du frontend
+        // Le frontend aura une page publique qui appelle l'API backend
+        String projectUrl = "https://b545267bc47b.ngrok-free.app/project/" + projectId;
         
-        // Créer le contenu du QR code
-        String qrContent = String.format("Projet: %s\nURL: %s", projectName, projectUrl);
+        // Créer le contenu du QR code - juste l'URL de la page publique
+        String qrContent = projectUrl;
         
-        // Générer le QR code
+        // Générer le QR code avec une taille plus grande pour une meilleure lisibilité
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
-        BitMatrix bitMatrix = qrCodeWriter.encode(qrContent, BarcodeFormat.QR_CODE, 300, 300);
+        BitMatrix bitMatrix = qrCodeWriter.encode(qrContent, BarcodeFormat.QR_CODE, 400, 400);
         
         // Convertir en image
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
