@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.math.BigDecimal;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -281,6 +282,80 @@ public class ProjetController {
         result.put("message", "Progression de tous les projets mise à jour");
         
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Récupère les détails d'un projet en mode public (sans authentification)
+     * @param id L'ID du projet
+     * @return Les détails du projet
+     */
+    @GetMapping("/{id}/public")
+    @CrossOrigin(origins = "*")
+    public ResponseEntity<Map<String, Object>> getProjectPublic(@PathVariable Integer id) {
+        try {
+            ProjectResponse projectResponse = projetService.getProjectById(id);
+            if (projectResponse == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Map<String, Object> projectDetails = new HashMap<>();
+            projectDetails.put("id", projectResponse.getId());
+            projectDetails.put("nom", projectResponse.getTitre());
+            projectDetails.put("description", projectResponse.getDescription());
+            projectDetails.put("dateDebut", projectResponse.getDateDebut());
+            projectDetails.put("dateFin", projectResponse.getDateFin());
+            projectDetails.put("statut", projectResponse.getStatut());
+            projectDetails.put("type", projectResponse.getType());
+            projectDetails.put("progression", projectResponse.getProgression() != null ? projectResponse.getProgression().intValue() : 0);
+
+            // Informations du client
+            if (projectResponse.getClient() != null) {
+                Map<String, String> clientInfo = new HashMap<>();
+                clientInfo.put("nom", projectResponse.getClient().getNom());
+                clientInfo.put("email", projectResponse.getClient().getEmail());
+                projectDetails.put("client", clientInfo);
+            }
+
+            // Informations du chef de projet (utiliser createdBy si disponible, sinon fallback sur le client)
+            if (projectResponse.getCreatedBy() != null) {
+                Map<String, String> chefInfo = new HashMap<>();
+                chefInfo.put("nom", projectResponse.getCreatedBy().getNom());
+                chefInfo.put("email", projectResponse.getCreatedBy().getEmail());
+                projectDetails.put("chefDeProjet", chefInfo);
+            } else if (projectResponse.getClient() != null) {
+                // Fallback sur le client si pas de chef de projet défini
+                Map<String, String> chefInfo = new HashMap<>();
+                chefInfo.put("nom", projectResponse.getClient().getNom());
+                chefInfo.put("email", projectResponse.getClient().getEmail());
+                projectDetails.put("chefDeProjet", chefInfo);
+            }
+
+            // Liste des développeurs
+            if (projectResponse.getDeveloppeurs() != null && !projectResponse.getDeveloppeurs().isEmpty()) {
+                List<Map<String, String>> devsInfo = projectResponse.getDeveloppeurs().stream()
+                    .map(dev -> {
+                        Map<String, String> devInfo = new HashMap<>();
+                        devInfo.put("nom", dev.getNom());
+                        devInfo.put("email", dev.getEmail());
+                        return devInfo;
+                    })
+                    .collect(Collectors.toList());
+                projectDetails.put("developpeurs", devsInfo);
+            }
+
+            // Pour les tâches, on va utiliser les statistiques disponibles
+            Map<String, Object> tasksSummary = new HashMap<>();
+            tasksSummary.put("total", projectResponse.getTotalTasks());
+            tasksSummary.put("completed", projectResponse.getCompletedTasks());
+            tasksSummary.put("inProgress", projectResponse.getInProgressTasks());
+            projectDetails.put("taches", tasksSummary);
+
+            return ResponseEntity.ok(projectDetails);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("message", "Erreur lors de la récupération du projet");
+            return ResponseEntity.internalServerError().body(error);
+        }
     }
 }
 

@@ -14,9 +14,10 @@ export default [
   route("admin/history", "routes/admin/history.tsx"),
   route("admin/settings", "routes/admin/settings.tsx"),
   route("/admin/projects/:id", "routes/admin/project-details.tsx"),
+
+
   route("chef/dashboard", "routes/chef/dashboard.tsx"),
   route("/chef/tasks/:id/edit", "routes/chef/taches/task-edit.tsx"),
-
   route("chef/projects", "routes/chef/projects.tsx"),
   route("chef/projects/create", "routes/chef/projects/create.tsx"),
   route("chef/projects/:id", "routes/chef/projects/[id].tsx"),
@@ -26,14 +27,25 @@ export default [
   route("chef/team", "routes/chef/team.tsx"),
   route("chef/analytics", "routes/chef/analytics.tsx"),
   route("chef/settings", "routes/chef/settings.tsx"),
+
+
   route("dev/dashboard", "routes/dev/dashboard.tsx"),
   route("dev/projects", "routes/dev/projects.tsx"),
   route("dev/tasks", "routes/dev/tasks.tsx"),
   route("dev/team", "routes/dev/team.tsx"),
   route("dev/settings", "routes/dev/settings.tsx"),
+
+
   route("client/dashboard", "routes/client/dashboard.tsx"),
   route("client/projects", "routes/client/projects.tsx"),
   route("client/projects/:id", "routes/client/project-details.tsx"),
-    route("/client/settings", "routes/client/settings.tsx"),
+  route("client/settings", "routes/client/settings.tsx"),
+
+  // Route publique pour les projets (accessible via QR code)
+  route("project/:id", "routes/project-public.tsx"),
+
+
   route("*", "routes/404.tsx"),
+
+
 ] satisfies RouteConfig;

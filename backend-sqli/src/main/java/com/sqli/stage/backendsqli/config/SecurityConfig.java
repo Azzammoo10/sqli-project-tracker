@@ -33,6 +33,8 @@ public class SecurityConfig {
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/projects/*/public").permitAll() // Endpoint projet public
+                        .requestMatchers("/api/qrcode/**").permitAll() // Endpoints QR Code
                         .requestMatchers("/api/projects/public/**").permitAll()
                         .requestMatchers("/api/admin/users/by-role/**").hasAnyRole("ADMIN", "CHEF_DE_PROJET")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN") // nécessite ROLE_ADMIN côté user

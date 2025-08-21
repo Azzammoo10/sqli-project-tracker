@@ -33,6 +33,9 @@ public class ProjectResponse {
     // Objet client complet pour plus de détails
     private ClientInfo client;
 
+    // Chef de projet (créateur du projet)
+    private ClientInfo createdBy;
+
     // ✅ AJOUT : type enum + un label lisible pour l’UI
     private TypeProjet type;         // DELIVERY | TMA | INTERNE (selon ton enum)
     private String typeLabel;        // "Delivery" | "TMA" | "Interne"

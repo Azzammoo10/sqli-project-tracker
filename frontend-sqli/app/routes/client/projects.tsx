@@ -1,7 +1,7 @@
 // app/routes/client/projects.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Search, Filter, Calendar, Users, Target } from 'lucide-react';
+import { Activity, Search, Filter, Calendar, Users, Target, QrCode } from 'lucide-react';
 import NavClient from '../../components/NavClient';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { authService } from '../../services/api';
@@ -294,6 +294,31 @@ export default function ClientProjects() {
                         </div>
                       </div>
                     )}
+
+                    {/* QR Code du projet */}
+                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <QrCode className="w-5 h-5 text-gray-600" />
+                          <h4 className="text-sm font-medium text-gray-700">QR Code du projet</h4>
+                        </div>
+                        <span className="text-xs text-gray-500">Scannez pour accéder</span>
+                      </div>
+                      <div className="text-center">
+                        <img 
+                          src={`/api/qrcode/project/${project.id}?projectName=${encodeURIComponent(project.titre)}`}
+                          alt={`QR Code pour ${project.titre}`}
+                          className="w-32 h-32 mx-auto border-2 border-gray-200 rounded-lg shadow-sm"
+                          onError={(e) => {
+                            console.error('❌ Erreur chargement QR Code:', e);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                        <p className="text-xs text-gray-500 mt-2">
+                          Accès direct au projet via mobile
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

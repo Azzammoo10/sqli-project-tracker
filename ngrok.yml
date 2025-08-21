@@ -1,0 +1,13 @@
+version: "2"
+authtoken: 30rpPRMseYjbzN53Dc9BVVzHt4p_7J9QGTRQAnmHhtrTL7XYD
+
+tunnels:
+  frontend:
+    addr: 5173
+    proto: http
+    inspect: true
+    
+  backend:
+    addr: 8080
+    proto: http
+    inspect: true

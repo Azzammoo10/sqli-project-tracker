@@ -517,6 +517,17 @@ public class ProjetServiceImpl implements ProjetService {
             );
         }
 
+        // Objet chef de projet (createdBy)
+        ProjectResponse.ClientInfo createdByInfo = null;
+        if (project.getCreatedBy() != null) {
+            createdByInfo = new ProjectResponse.ClientInfo(
+                project.getCreatedBy().getId(),
+                project.getCreatedBy().getUsername(),
+                project.getCreatedBy().getNom(),
+                project.getCreatedBy().getEmail()
+            );
+        }
+
         // Type enum + label lisible
         TypeProjet type = project.getType(); // peut être null
         String typeLabel = null;
@@ -566,6 +577,7 @@ public class ProjetServiceImpl implements ProjetService {
         resp.setDescription(project.getDescription());
         resp.setClientName(clientName);
         resp.setClient(clientInfo);
+        resp.setCreatedBy(createdByInfo);
         resp.setType(type);
         resp.setTypeLabel(typeLabel);
         resp.setProgression(calculatedProgression); // Utiliser la progression calculée

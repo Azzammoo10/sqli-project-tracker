@@ -14,12 +14,14 @@ import {
   FolderOpen,
   BarChart3,
   Eye,
-  ExternalLink
+  ExternalLink,
+  QrCode
 } from 'lucide-react';
-import { authService } from '../../services/api';
+import { authService } from '~/services/api';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavClient from '../../components/NavClient';
-import { clientService, type ClientProject, type ClientDashboardStats } from '../../services/clientService';
+import { clientService, type ClientProject, type ClientDashboardStats } from '~/services/clientService';
+import ProjectQRCode from '../../components/ProjectQRCode';
 import toast from 'react-hot-toast';
 
 /* -------------------------------- Helpers -------------------------------- */
@@ -267,8 +269,8 @@ export default function ClientDashboard() {
   const [user, setUser] = useState<any>(null);
   const [projects, setProjects] = useState<ClientProject[]>([]);
   const [stats, setStats] = useState<ClientDashboardStats | null>(null);
-  const [timeline, setTimeline] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
 
   // Chargement initial
   useEffect(() => {
@@ -277,23 +279,26 @@ export default function ClientDashboard() {
     (async () => {
       try {
         setLoading(true);
-        const results = await Promise.allSettled([
-          authService.getCurrentUser(),
-          clientService.getClientProjects(),
-          clientService.getClientDashboardStats(),
-          clientService.getProjectTimeline(),
-          clientService.getRecentActivity(),
-        ]);
+                 const results = await Promise.allSettled([
+           authService.getCurrentUser(),
+           clientService.getClientProjects(),
+           clientService.getClientDashboardStats(),
+           clientService.getRecentActivity(),
+         ]);
 
-        if (cancelled) return;
+         if (cancelled) return;
 
-        const [userData, projectsData, statsData, timelineData, activitiesData] = results;
+         const [userData, projectsData, statsData, activitiesData] = results;
 
-        if (userData.status === 'fulfilled') setUser(userData.value);
-        if (projectsData.status === 'fulfilled') setProjects(projectsData.value);
-        if (statsData.status === 'fulfilled') setStats(statsData.value);
-        if (timelineData.status === 'fulfilled') setTimeline(timelineData.value);
-        if (activitiesData.status === 'fulfilled') setActivities(activitiesData.value);
+         if (userData.status === 'fulfilled') setUser(userData.value);
+         if (projectsData.status === 'fulfilled') setProjects(projectsData.value);
+         if (statsData.status === 'fulfilled') setStats(statsData.value);
+         if (activitiesData.status === 'fulfilled') setActivities(activitiesData.value);
+        
+        // Initialiser le projet sélectionné avec le premier projet
+        if (projectsData.status === 'fulfilled' && projectsData.value.length > 0) {
+          setSelectedProjectId(projectsData.value[0].id);
+        }
       } catch (e) {
         toast.error('Erreur lors du chargement');
       } finally {
@@ -319,18 +324,16 @@ export default function ClientDashboard() {
   const refreshDashboard = async () => {
     const tId = toast.loading('Actualisation...');
     try {
-      const results = await Promise.allSettled([
-        clientService.getClientProjects(),
-        clientService.getClientDashboardStats(),
-        clientService.getProjectTimeline(),
-        clientService.getRecentActivity(),
-      ]);
-      const [projectsData, statsData, timelineData, activitiesData] = results;
+             const results = await Promise.allSettled([
+         clientService.getClientProjects(),
+         clientService.getClientDashboardStats(),
+         clientService.getRecentActivity(),
+       ]);
+       const [projectsData, statsData, activitiesData] = results;
 
-      if (projectsData.status === 'fulfilled') setProjects(projectsData.value);
-      if (statsData.status === 'fulfilled') setStats(statsData.value);
-      if (timelineData.status === 'fulfilled') setTimeline(timelineData.value);
-      if (activitiesData.status === 'fulfilled') setActivities(activitiesData.value);
+       if (projectsData.status === 'fulfilled') setProjects(projectsData.value);
+       if (statsData.status === 'fulfilled') setStats(statsData.value);
+       if (activitiesData.status === 'fulfilled') setActivities(activitiesData.value);
 
       toast.success('Dashboard actualisé', { id: tId });
     } catch {
@@ -503,31 +506,8 @@ export default function ClientDashboard() {
                 </SectionCard>
               </div>
 
-              {/* Sidebar - Timeline et activités */}
-              <div className="space-y-6">
-                {/* Timeline des projets */}
-                <SectionCard 
-                  title="📅 Timeline des projets"
-                  subtitle="Progression et statuts en temps réel"
-                >
-                  {timeline.length > 0 ? (
-                    <div className="space-y-4">
-                      {timeline.slice(0, 5).map((item, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <div className="w-2 h-2 mt-2 bg-indigo-500 rounded-full flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-800 truncate">{item.titre}</p>
-                            <p className="text-xs text-gray-500">
-                              {Math.round(item.progression ?? 0)}% • {getStatusLabel(item.statut)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptyState text="Aucune donnée disponible." />
-                  )}
-                </SectionCard>
+                             {/* Sidebar - Activités et QR Code */}
+               <div className="space-y-6">
 
                 {/* Activités récentes */}
                 <SectionCard 
@@ -558,6 +538,55 @@ export default function ClientDashboard() {
                     <EmptyState text="Aucune activité récente." />
                   )}
                 </SectionCard>
+
+                {/* QR Code du projet sélectionné */}
+                {projects.length > 0 && selectedProjectId && (
+                  <SectionCard 
+                    title="📱 QR Code du projet"
+                    subtitle="Scannez pour accéder au projet depuis votre mobile"
+                  >
+                    <div className="space-y-4">
+                      {/* Sélecteur de projet */}
+                      <div>
+                        <label htmlFor="project-select" className="block text-sm font-medium text-gray-700 mb-2">
+                          Choisir un projet
+                        </label>
+                        <select
+                          id="project-select"
+                          value={selectedProjectId}
+                          onChange={(e) => setSelectedProjectId(Number(e.target.value))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm text-gray-900"
+                        >
+                          {projects.map((project) => (
+                            <option key={project.id} value={project.id}>
+                              {project.titre} ({getStatusLabel(project.statut)})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* QR Code */}
+                      <div className="text-center">
+                        <img 
+                          src={`/api/qrcode/project/${selectedProjectId}?projectName=${encodeURIComponent(projects.find(p => p.id === selectedProjectId)?.titre || '')}`}
+                          alt={`QR Code pour ${projects.find(p => p.id === selectedProjectId)?.titre}`}
+                          className="w-48 h-48 mx-auto border-2 border-gray-200 rounded-lg shadow-sm"
+                          onError={(e) => {
+                            console.error('❌ Erreur chargement QR Code:', e);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                        <p className="text-sm text-gray-600 mt-3">
+                          Scannez ce QR code avec votre téléphone pour accéder directement au projet
+                        </p>
+                        <div className="mt-2 text-xs text-gray-500">
+                          <QrCode className="w-4 h-4 inline mr-1" />
+                          Accès mobile optimisé
+                        </div>
+                      </div>
+                    </div>
+                  </SectionCard>
+                )}
               </div>
             </div>
           </div>
