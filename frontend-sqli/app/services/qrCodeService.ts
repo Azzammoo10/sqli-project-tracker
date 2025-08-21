@@ -9,15 +9,14 @@ export const qrCodeService = {
    * @returns URL du QR code généré
    */
   generateProjectQRCode: (projectId: number, projectName: string): string => {
-    // URL ngrok pour le frontend (le QR code sera généré via le proxy)
-    const frontendNgrokUrl = 'https://ac84aa5c99a9.ngrok-free.app';
-    return `${frontendNgrokUrl}/api/qrcode/project/${projectId}?projectName=${encodeURIComponent(projectName)}`;
+    // Appeler le backend local directement (via le proxy Vite)
+    return `/api/qrcode/project/${projectId}?projectName=${encodeURIComponent(projectName)}`;
   },
 
   // Générer l'URL de la page publique accessible depuis le téléphone
   generateProjectPublicUrl: (projectId: number): string => {
     // URL ngrok pour le frontend (port 5173)
-    const frontendNgrokUrl = 'https://ac84aa5c99a9.ngrok-free.app';
+    const frontendNgrokUrl = 'https://b545267bc47b.ngrok-free.app';
     return `${frontendNgrokUrl}/project/${projectId}`;
   },
 
