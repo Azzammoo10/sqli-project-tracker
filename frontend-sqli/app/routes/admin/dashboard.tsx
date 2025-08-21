@@ -132,7 +132,7 @@ export default function AdminDashboard() {
         <div className="flex-1 overflow-auto">
           {/* Header harmonisé */}
           <div className="p-6">
-            <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
+              <div className="relative rounded-xl text-white p-6 shadow-md bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66]">
               <div
                 className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
                 style={{

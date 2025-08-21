@@ -289,12 +289,20 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         List<Project> chefProjects = projectRepository.findByCreatedByUsername(currentUsername);
         
         return chefProjects.stream()
-                .map(p -> ProgressResponse.builder()
-                        .projectId(p.getId())
-                        .titre(p.getTitre())
-                        .completionPercentage(p.getProgression() != null ? p.getProgression().doubleValue() : 0.0)
-                        .color("#4B2A7B")
-                        .build())
+                .map(p -> {
+                    double completionPercentage = p.getProgression() != null ? p.getProgression().doubleValue() : 0.0;
+                    
+                    // Utiliser le vrai statut de la base de données au lieu de le déduire
+                    String statut = p.getStatut() != null ? p.getStatut().toString() : "EN_COURS";
+                    
+                    return ProgressResponse.builder()
+                            .projectId(p.getId())
+                            .titre(p.getTitre())
+                            .statut(statut) // Utiliser le vrai statut de la base
+                            .completionPercentage(completionPercentage)
+                            .color("#4B2A7B")
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 

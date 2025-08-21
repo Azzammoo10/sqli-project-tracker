@@ -24,6 +24,15 @@ export default function ChefProjects() {
         setUser(userData);
 
         const chefProjects = await projectService.getProjectsByChef();
+        console.log('🔍 Projets récupérés depuis /projects/chef/overview:', chefProjects);
+        
+        // Vérifier la structure des données
+        if (chefProjects && chefProjects.length > 0) {
+          console.log('📊 Premier projet:', chefProjects[0]);
+          console.log('📈 Progression du premier projet:', chefProjects[0].progression);
+          console.log('🔑 Clés disponibles:', Object.keys(chefProjects[0]));
+        }
+        
         setProjects(chefProjects ?? []);
       } catch (error: any) {
         console.error('Erreur lors du chargement des projets:', error);
@@ -96,26 +105,21 @@ export default function ChefProjects() {
         <NavChef user={user} onLogout={handleLogout} />
 
         <div className="flex-1 overflow-auto">
-          {/* Bannière harmonisée (Chef) */}
+          {/* Bannière */}
           <div className="p-6">
             <div className="w-full">
-              <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
-                <div
-                  className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
-                  style={{
-                    background:
-                      'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'
-                  }}
-                />
-                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <FolderOpen className="h-6 w-6 text-white/90" />
+              <div className="relative rounded-xl text-white p-6 shadow-md bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66]">
+                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                      <FolderOpen className="h-6 w-6 text-white" />
+                    </div>
                     <div>
-                      <h1 className="text-2xl font-semibold tracking-tight">Mes Projets</h1>
-                      <p className="text-white/85">Gérez vos projets et équipes</p>
+                      <h1 className="text-3xl font-bold tracking-tight">Mes Projets</h1>
+                      <p className="text-white/90 text-lg">Gérez vos projets et équipes</p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-3">
                     <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
                       Total: <b>{projects.length}</b>
                     </span>
@@ -124,12 +128,12 @@ export default function ChefProjects() {
                     </span>
                     <button
                       onClick={() => navigate('/chef/projects/create')}
-                      className="text-sm bg-white/10 hover:bg-white/20 transition px-3 py-1.5 rounded-full"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-200 font-medium"
                       title="Nouveau projet"
                     >
-                      <span className="inline-flex items-center gap-2"><Plus className="h-4 w-4" /> Créer projet</span>
+                      <Plus className="h-4 w-4" />
+                      Créer un projet
                     </button>
-                    
                   </div>
                 </div>
               </div>

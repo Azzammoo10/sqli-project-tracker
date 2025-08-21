@@ -1,9 +1,9 @@
-// app/routes/chef/settings.tsx
+// app/routes/client/settings.tsx
 import { useEffect, useState } from 'react';
-import { Activity, Edit, Mail, ShieldCheck, User, Globe, BadgeCheck } from 'lucide-react';
+import { Activity, Edit, Mail, ShieldCheck, User, Globe, BadgeCheck, Settings } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
-import NavChef from '../../components/NavDev';
-import { authService } from '../../services/api';
+import NavClient from '../../components/NavClient';
+import { authService } from '~/services/api';
 import toast from 'react-hot-toast';
 
 type Profile = {
@@ -17,7 +17,7 @@ const Chip = ({ children }: { children: React.ReactNode }) => (
   <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{children}</span>
 );
 
-export default function ChefSettings() {
+export default function ClientSettings() {
   const [user, setUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,7 +40,7 @@ export default function ChefSettings() {
 
   if (loading) return (
     <div className="flex h-screen">
-      <NavChef user={user ?? undefined} onLogout={handleLogout} />
+      <NavClient user={user ?? undefined} onLogout={handleLogout} />
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <Activity className="h-8 w-8 animate-spin text-[#4B2A7B] mx-auto mb-4" />
@@ -54,11 +54,26 @@ export default function ChefSettings() {
   return (
     <ProtectedRoute allowedRoles={['CLIENT']}>
       <div className="flex h-screen bg-gray-50">
-        <NavChef user={user} onLogout={handleLogout} />
+        <NavClient user={user} onLogout={handleLogout} />
         <div className="flex-1 overflow-auto">
+          {/* Header harmonisé */}
           <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome {user.username?.toUpperCase()} 👋</h1>
-            <p className="text-gray-600 mb-6">Espace paramètres du Chef de Projet</p>
+            <div className="relative rounded-xl text-white p-6 shadow-md bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66]">
+              <div className="relative flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                    <Settings className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Welcome {user.username?.toUpperCase()} 👋</h1>
+                    <p className="text-white/90 text-lg">Espace paramètres du Client</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 pb-8">
 
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center justify-between mb-6">

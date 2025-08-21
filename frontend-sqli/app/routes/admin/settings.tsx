@@ -185,11 +185,7 @@ export default function AdminSettings() {
           {/* Header harmonisé (même mauve que le reste) */}
           <div className="p-6">
             <div className="w-full">
-              <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
-                <div
-                  className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
-                  style={{ background: 'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)' }}
-                />
+              <div className="relative rounded-xl text-white p-6 shadow-md bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66]">
                 <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="relative">
@@ -199,7 +195,7 @@ export default function AdminSettings() {
                         className="w-14 h-14 rounded-full object-cover bg-gray-100 ring-4 ring-white/20"
                       />
                       <label
-                        className="absolute -bottom-1 -right-1 cursor-pointer rounded-full bg-white/95 text-[#372362] border p-1 shadow hover:bg-white"
+                        className="absolute -bottom-1 -right-1 cursor-pointer rounded-full bg-white/95 text-[#1F1B2E] border p-1 shadow hover:bg-white"
                         title="Changer l’avatar"
                       >
                         <Upload className="w-4 h-4" />

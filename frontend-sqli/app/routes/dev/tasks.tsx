@@ -344,12 +344,17 @@ export default function DevTasks() {
 
         <main className="flex-1 overflow-auto">
           {/* Header professionnel */}
-          <div className="bg-white border-b border-gray-200 px-6 py-6">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Mes Tâches</h1>
-                  <p className="text-gray-600 mt-1">Gérez vos tâches et suivez votre productivité</p>
+          <div className="p-6">
+            <div className="relative rounded-xl text-white p-6 shadow-md bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66]">
+              <div className="relative flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                    <Clock className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Mes Tâches</h1>
+                    <p className="text-white/90 text-lg">Gérez vos tâches et suivez votre productivité</p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <button

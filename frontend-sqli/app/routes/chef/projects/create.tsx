@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Activity, ArrowLeft } from 'lucide-react';
 import NavChef from '../../../components/NavChef';
 import ProtectedRoute from '../../../components/ProtectedRoute';
-import { authService } from '../../../services/api';
-import { projectService, type CreateProjectRequest } from '../../../services/projectService';
+import { authService } from '~/services/api';
+import { projectService, type CreateProjectRequest } from '~/services/projectService';
 import ProjectForm from '../../../components/ProjectForm';
 import toast from 'react-hot-toast';
 
@@ -56,16 +56,9 @@ export default function CreateProject() {
         <NavChef user={user} onLogout={handleLogout} />
 
         <main className="flex-1 overflow-auto">
-          {/* Header harmonisé (même style que les autres pages) */}
+          {/* Bannière */}
           <div className="p-6">
-            <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
-              <div
-                className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
-                style={{
-                  background:
-                    'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'
-                }}
-              />
+            <div className="relative rounded-xl text-white p-6 shadow-md bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66]">
               <div className="relative flex items-center justify-between gap-4">
                 <button
                   onClick={() => navigate('/chef/projects')}
@@ -76,9 +69,9 @@ export default function CreateProject() {
                 </button>
 
                 <div className="text-right">
-                  <h1 className="text-2xl font-semibold tracking-tight">Créer un projet</h1>
-                  <p className="text-white/85">
-                    Renseigne les informations puis enregistre
+                  <h1 className="text-3xl font-bold tracking-tight">Créer un projet</h1>
+                  <p className="text-white/90 text-lg">
+                    Renseignez les informations puis enregistrez
                   </p>
                 </div>
               </div>

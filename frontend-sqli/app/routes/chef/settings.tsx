@@ -107,10 +107,8 @@ export default function ChefSettings() {
           {/* Header harmonisé */}
           <div className="p-6">
             <div className="w-full">
-              <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
-                <div className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
-                     style={{background:'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'}} />
-                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="relative rounded-xl text-white p-6 shadow-md bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66]">
+                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <img src={avatarPreview ?? user.avatarUrl ?? '/avatar.svg'}
@@ -122,10 +120,11 @@ export default function ChefSettings() {
                       </label>
                     </div>
                     <div>
-                      <h1 className="text-xl font-semibold tracking-tight">
+                      <h1 className="text-3xl font-bold tracking-tight">
                         {user.nom ? `${user.nom} ${user.prenom ?? ''}` : user.username}
                       </h1>
-                      <div className="mt-1 text-white/85 flex flex-wrap items-center gap-3 text-sm">
+                      <p className="text-white/90 text-lg">Paramètres de votre profil et compte</p>
+                      <div className="mt-2 text-white/85 flex flex-wrap items-center gap-3 text-sm">
                         <span className="inline-flex items-center gap-1"><Mail className="w-4 h-4"/>{user.email}</span>
                         {user.createdAt && <span className="inline-flex items-center gap-1"><Cal className="w-4 h-4"/>{new Date(user.createdAt).toLocaleDateString()}</span>}
                         <span className="inline-flex items-center gap-1"><Globe className="w-4 h-4"/>{(user.language ?? 'fr').toUpperCase()}</span>

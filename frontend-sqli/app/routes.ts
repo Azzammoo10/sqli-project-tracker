@@ -20,6 +20,7 @@ export default [
   route("chef/projects", "routes/chef/projects.tsx"),
   route("chef/projects/create", "routes/chef/projects/create.tsx"),
   route("chef/projects/:id", "routes/chef/projects/[id].tsx"),
+  route("chef/projects/edit/:id", "routes/chef/projects/edit.tsx"),
   route("chef/tasks", "routes/chef/tasks.tsx"),
   route("chef/tasks/create","routes/chef/taches/createTask.tsx"),
   route("chef/team", "routes/chef/team.tsx"),
@@ -31,5 +32,8 @@ export default [
   route("dev/team", "routes/dev/team.tsx"),
   route("dev/settings", "routes/dev/settings.tsx"),
   route("client/dashboard", "routes/client/dashboard.tsx"),
+  route("client/projects", "routes/client/projects.tsx"),
+  route("client/projects/:id", "routes/client/project-details.tsx"),
+    route("/client/settings", "routes/client/settings.tsx"),
   route("*", "routes/404.tsx"),
 ] satisfies RouteConfig;

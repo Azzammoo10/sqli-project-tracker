@@ -42,6 +42,7 @@ export default function ChefDashboard() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [projectProgress, setProjectProgress] = useState<ChartData[]>([]);
   const [taskStatus, setTaskStatus] = useState<ChartData[]>([]);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
 
   useEffect(() => { loadDashboardData(); }, []);
 
@@ -55,6 +56,7 @@ export default function ChefDashboard() {
       const dashboardData = await chefDashboardService.getFullDashboardData();
 
       setProjects(dashboardData.projects || []);
+      console.log('Tâches reçues du backend:', dashboardData.tasks);
       setTasks(dashboardData.tasks || []);
       setTeam(dashboardData.team || []);
       setRecentActivity(dashboardData.activity || []);
@@ -185,49 +187,42 @@ export default function ChefDashboard() {
         <NavChef user={user} onLogout={handleLogout} />
 
         <main className="flex-1 overflow-auto">
-          {/* Banner harmonisée */}
-          <div className="p-6">
-            <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
-              <div
-                className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
-                style={{ background: 'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)' }}
-              />
-              <div className="relative flex items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-semibold tracking-tight">Tableau de bord</h1>
-                  <p className="text-white/85">
-                    Bienvenue, {user?.username} • {new Date().toLocaleTimeString('fr-FR')}
-                  </p>
+          {/* Bannière */}
+            {/* Header harmonisé */}
+            <div className="p-6">
+                <div className="relative rounded-xl text-white p-6 shadow-md bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66]">
+                    <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                                <BarChart3 className="h-6 w-6 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-bold tracking-tight">Dashboard Chef de Projet</h1>
+                                <p className="text-white/90 text-lg">
+                                    Bienvenue {user?.username?.toUpperCase()} — vue d'ensemble de vos projets
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
+          Projets: <b>{stats?.totalProjects ?? 0}</b>
+        </span>
+                            <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
+          Équipe: <b>{stats?.teamMembers ?? 0}</b>
+        </span>
+                            <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
+          Tâches: <b>{stats?.totalTasks ?? 0}</b>
+        </span>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    onClick={loadDashboardData}
-                    className="inline-flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/15 px-3 py-2 text-sm"
-                    title="Actualiser"
-                  >
-                    <RefreshCw className="w-4 h-4" /> Actualiser
-                  </button>
-                  <button
-                    onClick={handleRecomputeProgress}
-                    className="inline-flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/15 px-3 py-2 text-sm"
-                  >
-                    <Zap className="w-4 h-4" /> Recalculer
-                  </button>
-                  <button
-                    onClick={() => navigate('/chef/projects/create')}
-                    className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm text-[#4B2A7B] hover:bg-white/90"
-                  >
-                    <Plus className="w-4 h-4" /> Nouveau projet
-                  </button>
-                </div>
-              </div>
             </div>
-          </div>
 
-          {/* Contenu */}
+
+            {/* Contenu */}
           <div className="max-w-7xl mx-auto px-6 pb-8 space-y-8">
             {/* KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               {/* Projets actifs */}
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                 <div className="flex items-center justify-between">
@@ -295,6 +290,25 @@ export default function ChefDashboard() {
                   </div>
                 </div>
               </div>
+
+              {/* Analytics - Carte cliquable */}
+              <div
+                className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer group"
+                onClick={() => navigate('/chef/analytics')}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Analytics</p>
+                    <p className="text-xs text-indigo-600 flex items-center gap-1 mt-1 group-hover:text-indigo-700">
+                      <BarChart3 className="w-3 h-3" />
+                      Voir les détails
+                    </p>
+                  </div>
+                  <div className="p-3 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
+                    <BarChart3 className="w-6 h-6 text-indigo-600" />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Grille principale */}
@@ -315,7 +329,7 @@ export default function ChefDashboard() {
                 <div className="p-6">
                   {projects.length > 0 ? (
                     <div className="space-y-4">
-                      {projects.slice(0, 5).map((project) => (
+                                             {projects.slice(0, 3).map((project) => (
                         <div key={project.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                           <div className="flex items-center justify-between mb-3">
                             <h3 className="font-semibold text-gray-900 line-clamp-1">{project.titre}</h3>
@@ -410,7 +424,7 @@ export default function ChefDashboard() {
                   {tasks.length > 0 ? (
                     <div className="space-y-4">
                       {tasks
-                        .filter(t => t.priorite === 'HAUTE' || t.statut === 'EN_ATTENTE')
+                        .filter(t => t.priorite === 'ELEVEE' || t.priorite === 'CRITIQUE' || t.statut === 'NON_COMMENCE' || t.statut === 'EN_COURS' || t.statut === 'BLOQUE')
                         .slice(0, 6)
                         .map((task) => (
                           <div key={task.id} className="border border-gray-200 rounded-lg p-3 hover:shadow-sm transition-shadow">
@@ -445,25 +459,46 @@ export default function ChefDashboard() {
             </div>
 
             {/* Deuxième rangée */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Équipe */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Équipe améliorée */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                 <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-lg font-semibold text-gray-900">Équipe</h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-gray-900">Équipe</h2>
+                    <button
+                      onClick={() => navigate('/chef/team')}
+                      className="text-sm text-[#4B2A7B] hover:text-[#5B3A8B] font-medium flex items-center gap-1"
+                    >
+                      Voir tout <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 <div className="p-6">
                   {team.length > 0 ? (
                     <div className="space-y-4">
-                      {team.slice(0, 6).map((m) => (
-                        <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-200 to-indigo-200 border text-xs font-semibold text-[#4B2A7B] grid place-items-center">
+                      {team.slice(0, 8).map((m) => (
+                        <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-200 to-indigo-200 border-2 text-sm font-semibold text-[#4B2A7B] grid place-items-center flex-shrink-0">
                             {m.username.slice(0, 2).toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-gray-900 text-sm truncate">{m.username}</h4>
-                            <p className="text-xs text-gray-600">{m.jobTitle || m.role || 'Développeur'}</p>
+                            <p className="text-xs text-gray-600 mb-1">{m.jobTitle || m.role || 'Développeur'}</p>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <span>📊 {m.assignedProjects || 0} projets</span>
+                              {m.completedTasks !== undefined && m.pendingTasks !== undefined && (
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  m.assignedProjects > 0 ? 
+                                    (m.completedTasks / (m.completedTasks + m.pendingTasks) * 100 >= 80 ? 'bg-green-100 text-green-800' :
+                                     m.completedTasks / (m.completedTasks + m.pendingTasks) * 100 >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                                     'bg-red-100 text-red-800') : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {m.assignedProjects > 0 ? Math.round(m.completedTasks / (m.completedTasks + m.pendingTasks) * 100) : 0}% complété
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right flex-shrink-0">
                             <div className="text-sm font-medium text-gray-900">{m.assignedProjects || 0}</div>
                             <div className="text-xs text-gray-600">projets</div>
                           </div>
@@ -480,73 +515,276 @@ export default function ChefDashboard() {
                 </div>
               </div>
 
-              {/* Progression des projets */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-lg font-semibold text-gray-900">Progression des projets</h2>
-                </div>
-                <div className="p-6">
-                  {projectProgress.length > 0 ? (
-                    <div className="space-y-4">
-                      {projectProgress.map((item, idx) => (
-                        <div key={idx} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-900 truncate">{item.label}</span>
-                            <span className="text-sm font-medium text-gray-900">{item.value}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className="h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${item.value}%`, backgroundColor: item.color }}
-                            />
+                                                           {/* Graphique en donut - Projets par type avec filtres */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                  <div className="p-6 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-gray-900">Projets par type</h2>
+                      <div className="flex gap-2">
+                        {/* Filtres par type */}
+                        <button
+                          onClick={() => setSelectedType(null)}
+                          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                            selectedType === null 
+                              ? 'bg-[#4B2A7B] text-white' 
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          Tous
+                        </button>
+                        <button
+                          onClick={() => setSelectedType('TMA')}
+                          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                            selectedType === 'TMA' 
+                              ? 'bg-[#EC4899] text-white' 
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          TMA
+                        </button>
+                        <button
+                          onClick={() => setSelectedType('Delivery')}
+                          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                            selectedType === 'Delivery' 
+                              ? 'bg-[#3B82F6] text-white' 
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          Delivery
+                        </button>
+                        <button
+                          onClick={() => setSelectedType('Interne')}
+                          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                            selectedType === 'Interne' 
+                              ? 'bg-[#F59E0B] text-white' 
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          Interne
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    {projects.length > 0 ? (
+                      <div className="space-y-6">
+                        {/* Graphique en donut avec onglets */}
+                        <div className="flex justify-center mb-4">
+                          <div className="flex bg-gray-100 rounded-lg p-1">
+                            <button className="px-3 py-1 text-xs font-medium text-gray-600 bg-white rounded-md shadow-sm">
+                              Donut
+                            </button>
+                            <button className="px-3 py-1 text-xs font-medium text-gray-500 hover:text-gray-700">
+                              Pie
+                            </button>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune donnée</h3>
-                      <p className="text-gray-600">Les données de progression apparaîtront ici</p>
-                    </div>
-                  )}
+                        
+                        {/* Graphique en donut */}
+                        <div className="flex justify-center">
+                          <div className="relative w-48 h-48">
+                            <svg className="w-full h-full" viewBox="0 0 100 100">
+                              {(() => {
+                                // Filtrer les projets selon le type sélectionné
+                                let filteredProjects = projects;
+                                if (selectedType) {
+                                  filteredProjects = projects.filter(project => project.type === selectedType);
+                                }
+                                
+                                // Filtrer uniquement les types de projet valides
+                                const typeStats = filteredProjects.reduce((acc, project) => {
+                                  const type = project.type;
+                                  if (type === 'TMA' || type === 'Delivery' || type === 'Interne') {
+                                    acc[type] = (acc[type] || 0) + 1;
+                                  }
+                                  return acc;
+                                }, {} as Record<string, number>);
+                                
+                                const total = Object.values(typeStats).reduce((sum, count) => sum + count, 0);
+                                let currentAngle = 0;
+                                
+                                // Couleurs spécifiques pour chaque type
+                                const typeColors = {
+                                  'TMA': '#EC4899',      // Rose
+                                  'Delivery': '#3B82F6', // Bleu
+                                  'Interne': '#F59E0B'   // Jaune
+                                };
+                                
+                                return Object.entries(typeStats).map(([type, count]) => {
+                                  const percentage = (count / total) * 100;
+                                  const angle = (percentage / 100) * 360;
+                                  const startAngle = currentAngle;
+                                  const endAngle = currentAngle + angle;
+                                  
+                                  const x1 = 50 + 40 * Math.cos((startAngle - 90) * Math.PI / 180);
+                                  const y1 = 50 + 40 * Math.sin((startAngle - 90) * Math.PI / 180);
+                                  const x2 = 50 + 40 * Math.cos((endAngle - 90) * Math.PI / 180);
+                                  const y2 = 50 + 40 * Math.sin((endAngle - 90) * Math.PI / 180);
+                                  
+                                  const largeArcFlag = angle > 180 ? 1 : 0;
+                                  
+                                  const pathData = [
+                                    `M 50 50`,
+                                    `L ${x1} ${y1}`,
+                                    `A 40 40 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                                    'Z'
+                                  ].join(' ');
+                                  
+                                  currentAngle += angle;
+                                  
+                                  return (
+                                    <path
+                                      key={type}
+                                      d={pathData}
+                                      fill={typeColors[type as keyof typeof typeColors]}
+                                      className="transition-all duration-300 hover:opacity-80"
+                                    />
+                                  );
+                                });
+                              })()}
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="text-center">
+                                <div className="text-2xl font-bold text-gray-900">
+                                  {selectedType 
+                                    ? projects.filter(p => p.type === selectedType).length 
+                                    : projects.length
+                                  }
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  {selectedType ? `projets ${selectedType}` : 'projets'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Légende horizontale avec compteurs */}
+                        <div className="flex justify-center space-x-6">
+                          {(() => {
+                            const typeStats = projects.reduce((acc, project) => {
+                              const type = project.type;
+                              if (type === 'TMA' || type === 'Delivery' || type === 'Interne') {
+                                acc[type] = (acc[type] || 0) + 1;
+                              }
+                              return acc;
+                            }, {} as Record<string, number>);
+                            
+                            const total = Object.values(typeStats).reduce((sum, count) => sum + count, 0);
+                            const typeColors = {
+                              'TMA': '#EC4899',
+                              'Delivery': '#3B82F6',
+                              'Interne': '#F59E0B'
+                            };
+                            
+                            return Object.entries(typeStats).map(([type, count]) => (
+                              <div key={type} className="flex items-center gap-2">
+                                <div 
+                                  className={`w-3 h-3 rounded-full cursor-pointer transition-all ${
+                                    selectedType === type ? 'ring-2 ring-offset-2 ring-gray-400' : ''
+                                  }`}
+                                  style={{ backgroundColor: typeColors[type as keyof typeof typeColors] }}
+                                  onClick={() => setSelectedType(selectedType === type ? null : type)}
+                                  title={`Cliquer pour filtrer par ${type}`}
+                                />
+                                <span className="text-sm font-medium text-gray-900">{type}</span>
+                                <span className="text-xs text-gray-500">({count})</span>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                        
+                        {/* Liste des projets filtrés */}
+                        {selectedType && (
+                          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                            <h4 className="text-sm font-medium text-gray-900 mb-3">
+                              Projets {selectedType} ({projects.filter(p => p.type === selectedType).length})
+                            </h4>
+                            <div className="space-y-2 max-h-32 overflow-y-auto">
+                              {projects
+                                .filter(project => project.type === selectedType)
+                                .map(project => (
+                                  <div key={project.id} className="flex items-center justify-between text-xs">
+                                    <span className="text-gray-700 truncate">{project.titre}</span>
+                                    <span className={`px-2 py-1 rounded-full text-xs ${
+                                      project.statut === 'EN_COURS' ? 'bg-blue-100 text-blue-800' :
+                                      project.statut === 'TERMINE' ? 'bg-green-100 text-green-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {project.statut}
+                                    </span>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun projet</h3>
+                        <p className="text-gray-600">Créez votre premier projet pour voir les statistiques</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+            </div>
+
+            {/* Section Analytics dédiée */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">Analytics & Rapports</h2>
+                  <button
+                    onClick={() => navigate('/chef/analytics')}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#4B2A7B] text-white rounded-lg hover:bg-[#5B3A8B] transition-colors text-sm font-medium"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    Voir Analytics
+                  </button>
                 </div>
               </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Carte Analytics rapide */}
+                  <div className="text-center p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
+                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <BarChart3 className="w-6 h-6 text-indigo-600" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Vue d'ensemble</h3>
+                    <p className="text-sm text-gray-600">Métriques globales et KPIs</p>
+                  </div>
 
-              {/* Activité récente */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-lg font-semibold text-gray-900">Activité récente</h2>
+                  {/* Carte Projets par type */}
+                  <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <FolderOpen className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Projets par type</h3>
+                    <p className="text-sm text-gray-600">TMA, Delivery, Interne</p>
+                  </div>
+
+                  {/* Carte Équipe */}
+                  <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-100">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Users className="w-6 h-6 text-green-600" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Performance équipe</h3>
+                    <p className="text-sm text-gray-600">Productivité et métriques</p>
+                  </div>
                 </div>
-                <div className="p-6">
-                  {recentActivity.length > 0 ? (
-                    <div className="space-y-4">
-                      {recentActivity.slice(0, 6).map((a, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <div className="w-2 h-2 rounded-full bg-[#4B2A7B] mt-2 flex-shrink-0"></div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-900 line-clamp-2">{a.description}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {a.timestamp
-                                ? new Date(a.timestamp).toLocaleDateString('fr-FR', {
-                                    day: '2-digit',
-                                    month: 'short',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })
-                                : 'Date inconnue'}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune activité</h3>
-                      <p className="text-gray-600">L'activité récente apparaîtra ici</p>
-                    </div>
-                  )}
+                
+                <div className="mt-6 text-center">
+                  <p className="text-sm text-gray-600 mb-3">
+                    Accédez à des analyses détaillées et des rapports avancés
+                  </p>
+                  <button
+                    onClick={() => navigate('/chef/analytics')}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#4B2A7B] to-[#5B3A8B] text-white rounded-lg hover:from-[#5B3A8B] hover:to-[#6B4A9B] transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl"
+                  >
+                    <BarChart3 className="w-5 h-5" />
+                    Accéder aux Analytics
+                  </button>
                 </div>
               </div>
             </div>

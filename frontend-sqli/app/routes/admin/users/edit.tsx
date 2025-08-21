@@ -154,14 +154,7 @@ export default function EditUser() {
         <div className="flex-1 overflow-auto">
           {/* HEADER pleine largeur et harmonisé */}
           <div className="p-6">
-            <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
-              <div
-                className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
-                style={{
-                  background:
-                    'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'
-                }}
-              />
+            <div className="relative rounded-xl text-white p-6 shadow-md bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66]">
               <div className="relative flex items-center justify-between gap-4">
                 <button
                   onClick={() => navigate('/admin/users')}
@@ -171,8 +164,8 @@ export default function EditUser() {
                   <span className="text-sm">Retour</span>
                 </button>
                 <div className="text-right">
-                  <h1 className="text-2xl font-semibold">Modifier l’utilisateur</h1>
-                  <p className="text-white/85">Ajuste les informations, puis enregistre</p>
+                  <h1 className="text-3xl font-bold tracking-tight">Modifier l'utilisateur</h1>
+                  <p className="text-white/90 text-lg">Ajuste les informations, puis enregistre</p>
                 </div>
               </div>
             </div>

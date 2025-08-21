@@ -8,6 +8,7 @@ import lombok.Data;
 public class ProgressResponse {
     private int projectId;
     private String titre;
+    private String statut; // Ajout de la propriété statut
     private double completionPercentage;
     private String color;
 }

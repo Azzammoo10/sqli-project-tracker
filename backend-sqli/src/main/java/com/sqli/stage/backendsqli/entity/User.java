@@ -9,7 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "users")
@@ -42,7 +43,8 @@ public class User {
     @Column(nullable = false)
     private boolean enabled = true;
 
-    @ManyToMany(mappedBy = "developpeurs")
+    @ManyToMany(mappedBy = "developpeurs", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Project> projects;
 
 
@@ -51,9 +53,11 @@ public class User {
 
 
 
-    @OneToMany(mappedBy = "developpeur", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "developpeur", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Task> tasks;
 
-    @OneToMany(mappedBy = "employee", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "employee", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<AccountAnalyticLine> analyticLines = new ArrayList<>();
 }

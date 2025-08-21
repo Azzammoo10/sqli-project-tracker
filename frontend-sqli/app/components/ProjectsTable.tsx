@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, Search, Users } from 'lucide-react';
+import { Eye, Search, Users, Edit } from 'lucide-react';
 import type { Project } from '~/services/projectService';
 
 /** PROPS — plus d’actions optionnelles, juste la vue */
@@ -231,9 +231,18 @@ export default function ProjectsTable({ projects, userRole, loading }: Props) {
                     </div>
                   </td>
 
-                  {/* ✨ Seule action : œil → page détails */}
+                  {/* Actions : Édition et Détails */}
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
+                      {userRole === 'CHEF_DE_PROJET' && (
+                        <Link
+                          to={`/chef/projects/edit/${p.id}`}
+                          className="p-2 rounded-md hover:bg-gray-100 text-black"
+                          title="Modifier le projet"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                      )}
                       {userRole !== 'CLIENT' && (
                         <Link
                           to={userRole === 'ADMIN' ? `/admin/projects/${p.id}` : `/chef/projects/${p.id}`}

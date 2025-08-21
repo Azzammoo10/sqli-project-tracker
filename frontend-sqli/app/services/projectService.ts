@@ -65,8 +65,23 @@ export const projectService = {
 
   // CHEF
   getProjectsByChef: async (username?: string): Promise<Project[]> => {
-    const { data } = await apiClient.get('/projects/chef/overview');
-    return data;
+    try {
+      // Essayer d'abord l'endpoint standard qui retourne les bonnes données
+      const { data } = await apiClient.get('/projects');
+      console.log('✅ Données depuis /projects (avec bonne progression):', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Erreur avec /projects:', error);
+      // Fallback : essayer l'endpoint spécifique au chef
+      try {
+        const { data } = await apiClient.get('/projects/chef/overview');
+        console.log('🔄 Fallback: données depuis /projects/chef/overview:', data);
+        return data;
+      } catch (fallbackError) {
+        console.error('❌ Erreur avec fallback /projects/chef/overview:', fallbackError);
+        throw fallbackError;
+      }
+    }
   },
 
   // CLIENT

@@ -403,13 +403,7 @@ export default function ChefTaskEdit() {
                      </div>
                    </div>
 
-                                     {/* Informations de débogage (à retirer en production) */}
-                   <div className="text-xs text-gray-400 bg-gray-100 p-2 rounded border">
-                     <strong>Debug:</strong> form.developpeurId = {form.developpeurId || 'undefined'} | 
-                     developers count = {developers.length} | 
-                     selected count = {getSelectedDevelopers().length} |
-                     developersLoading = {developersLoading.toString()}
-                   </div>
+
 
                    {developersLoading ? (
                      <p className="text-sm text-gray-500">

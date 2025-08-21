@@ -25,6 +25,7 @@ import java.util.UUID;
 
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -65,9 +66,14 @@ public class ProjetServiceImpl implements ProjetService {
         project.setCreatedBy(currentUser);
 
         if (request.getDeveloppeurIds() != null && !request.getDeveloppeurIds().isEmpty()) {
+            System.out.println("=== Création avec développeurs ===");
+            System.out.println("DeveloppeurIds reçus: " + request.getDeveloppeurIds());
+            
             List<User> developers = userRepository.findAllById(request.getDeveloppeurIds()).stream()
                     .filter(user -> user.getRole() == Role.DEVELOPPEUR)
                     .toList();
+
+            System.out.println("Développeurs trouvés: " + developers.size());
 
             developers.forEach(dev -> dev.setActifDansProjet(true));
             userRepository.saveAll(developers);
@@ -76,7 +82,14 @@ public class ProjetServiceImpl implements ProjetService {
                 throw new ResourceNotFoundException("Aucun développeur valide trouvé dans la liste fournie");
             }
 
-            project.setDeveloppeurs(developers);
+            // Initialiser la liste des développeurs pour un nouveau projet
+            project.setDeveloppeurs(new ArrayList<>(developers));
+            System.out.println("Liste des développeurs initialisée: " + project.getDeveloppeurs().size());
+        } else {
+            System.out.println("=== Création sans développeurs ===");
+            // Initialiser avec une liste vide si aucun développeur n'est spécifié
+            project.setDeveloppeurs(new ArrayList<>());
+            System.out.println("Liste vide des développeurs initialisée");
         }
 
 
@@ -94,8 +107,14 @@ public class ProjetServiceImpl implements ProjetService {
 
 
     public ProjectResponse updateProject(int id, ProjectRequest request) {
+        System.out.println("=== DEBUG: updateProject(" + id + ") ===");
+        System.out.println("Request developpeurIds: " + request.getDeveloppeurIds());
+        
         Project project = projetRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Projet Introuvable avec ID :" + id));
+
+        System.out.println("Projet trouvé: " + project.getTitre());
+        System.out.println("Developpeurs actuels: " + (project.getDeveloppeurs() != null ? project.getDeveloppeurs().size() : "null"));
 
         String username = getCurrentUser().getUsername();
 
@@ -110,15 +129,39 @@ public class ProjetServiceImpl implements ProjetService {
         if (request.getDateDebut() != null) project.setDateDebut(request.getDateDebut());
         if (request.getDateFin() != null) project.setDateFin(request.getDateFin());
         if (request.getStatut() != null) { project.setStatut(request.getStatut()); }
-        if (request.getDeveloppeurIds() != null && !request.getDeveloppeurIds().isEmpty()) {
-            List<User> developpeurs = userRepository.findAllById(request.getDeveloppeurIds()).stream()
-                    .filter(user -> user.getRole() == Role.DEVELOPPEUR)
-                    .toList();
-            project.setDeveloppeurs(developpeurs);
+        if (request.getDeveloppeurIds() != null) {
+            System.out.println("=== Mise à jour des développeurs ===");
+            System.out.println("DeveloppeurIds reçus: " + request.getDeveloppeurIds());
+            
+            // Gérer la mise à jour des développeurs de manière sûre
+            if (request.getDeveloppeurIds().isEmpty()) {
+                System.out.println("Liste des développeurs vide - suppression de tous les développeurs");
+                // Créer une nouvelle liste vide
+                project.setDeveloppeurs(new ArrayList<>());
+                System.out.println("Nouvelle liste vide créée");
+            } else {
+                System.out.println("Mise à jour avec " + request.getDeveloppeurIds().size() + " développeurs");
+                // Récupérer les nouveaux développeurs
+                List<User> newDeveloppeurs = userRepository.findAllById(request.getDeveloppeurIds()).stream()
+                        .filter(user -> user.getRole() == Role.DEVELOPPEUR)
+                        .toList();
+                
+                System.out.println("Développeurs trouvés: " + newDeveloppeurs.size());
+                
+                // Créer une nouvelle liste avec les développeurs
+                project.setDeveloppeurs(new ArrayList<>(newDeveloppeurs));
+                System.out.println("Développeurs mis à jour: " + project.getDeveloppeurs().size());
+            }
         }
         if (request.getProgression() != null) project.setProgression(request.getProgression());
 
+        System.out.println("=== Sauvegarde du projet ===");
+        System.out.println("Développeurs avant sauvegarde: " + (project.getDeveloppeurs() != null ? project.getDeveloppeurs().size() : "null"));
+        
         Project updatedProject = projetRepository.save(project);
+        
+        System.out.println("Projet sauvegardé avec succès");
+        System.out.println("Développeurs après sauvegarde: " + (updatedProject.getDeveloppeurs() != null ? updatedProject.getDeveloppeurs().size() : "null"));
 
         LogRequest logRequest = new LogRequest();
         logRequest.setAction(TypeOperation.MODIFICATION);
@@ -304,14 +347,20 @@ public class ProjetServiceImpl implements ProjetService {
             throw new ResourceNotFoundException("Aucun développeur valide trouvé dans la liste fournie");
         }
 
-        List<User> currentDevelopers = project.getDeveloppeurs();
+        // Créer une nouvelle liste avec les développeurs existants + nouveaux
+        List<User> currentDevelopers = project.getDeveloppeurs() != null ? 
+            new ArrayList<>(project.getDeveloppeurs()) : new ArrayList<>();
+        
+        // Gérer l'ajout de développeurs de manière sûre
         for (User dev : newDevelopers) {
             if (!currentDevelopers.contains(dev)) {
                 currentDevelopers.add(dev);
             }
         }
-
+        
+        // Mettre à jour la liste des développeurs
         project.setDeveloppeurs(currentDevelopers);
+
         projetRepository.save(project);
     }
 

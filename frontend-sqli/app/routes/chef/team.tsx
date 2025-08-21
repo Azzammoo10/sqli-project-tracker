@@ -6,8 +6,8 @@ import {
 } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavChef from '../../components/NavChef';
-import { authService } from '../../services/api';
-import { chefDashboardService } from '../../services/chefDashboardService';
+import { authService } from '~/services/api';
+import { chefDashboardService } from '~/services/chefDashboardService';
 import toast from 'react-hot-toast';
 import {useNavigate} from "react-router-dom";
 
@@ -234,23 +234,38 @@ export default function ChefTeam() {
       <div className="flex h-screen bg-gray-50">
         <NavChef user={user} onLogout={handleLogout} />
         <div className="flex-1 overflow-auto">
-          {/* Header simplifié */}
-          <div className="bg-white border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Mon Équipe</h1>
-                <p className="text-sm text-gray-600">
-                  {team.length} membre{team.length > 1 ? 's' : ''} • {filteredAndSortedTeam.length} affiché{filteredAndSortedTeam.length > 1 ? 's' : ''}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => window.location.reload()}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                  title="Actualiser"
-                >
-                  <RotateCcw className="h-5 w-5" />
-                </button>
+          {/* Bannière */}
+          <div className="p-6">
+            <div className="w-full">
+              <div className="relative rounded-xl text-white p-6 shadow-md bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66]">
+                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                      <Users className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-3xl font-bold tracking-tight">Mon Équipe</h1>
+                      <p className="text-white/90 text-lg">Gérez et suivez les performances de votre équipe</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
+                      Total: <b>{team.length}</b> membre{team.length > 1 ? 's' : ''}
+                    </span>
+
+                    <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
+                      Affichés: <b>{filteredAndSortedTeam.length}</b>
+                    </span>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-200 font-medium"
+                      title="Actualiser"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Actualiser
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

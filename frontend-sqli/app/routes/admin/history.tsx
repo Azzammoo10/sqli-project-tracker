@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Search, Clock, User, Activity, FileText, Calendar, FilterX,
-  ChevronLeft, ChevronRight, X, RotateCcw
+    Search, Clock, User, Activity, FileText, Calendar, FilterX,
+    ChevronLeft, ChevronRight, X, RotateCcw, HistoryIcon
 } from 'lucide-react';
 import NavAdmin from '../../components/NavAdmin';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -186,17 +186,16 @@ export default function AdminHistory() {
           {/* Header pleine largeur */}
           <div className="p-6">
             <div className="w-full">
-              <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
-                <div
-                  className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
-                  style={{
-                    background: 'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'
-                  }}
-                />
-                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                  <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">Historique des Actions</h1>
-                    <p className="text-white/85">Suivi des opérations sur les entités du système</p>
+              <div className="relative rounded-xl text-white p-6 shadow-md bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66]">
+                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                      <HistoryIcon className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-3xl font-bold tracking-tight">Historique des Actions</h1>
+                      <p className="text-white/90 text-lg">Suivi des opérations sur les entités du système</p>
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">

@@ -170,20 +170,15 @@ export default function AdminUsers() {
           {/* Header harmonisé */}
           <div className="p-6">
             <div className="w-full">
-              <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
-                <div
-                  className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
-                  style={{
-                    background:
-                      'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)'
-                  }}
-                />
-                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <User className="h-6 w-6 text-white/90" />
+              <div className="relative rounded-xl text-white p-6 shadow-md bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66]">
+                <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                      <User className="h-6 w-6 text-white" />
+                    </div>
                     <div>
-                      <h1 className="text-2xl font-semibold tracking-tight">Gestion des Utilisateurs</h1>
-                      <p className="text-white/85">Filtre, recherche et accès aux profils</p>
+                      <h1 className="text-3xl font-bold tracking-tight">Gestion des Utilisateurs</h1>
+                      <p className="text-white/90 text-lg">Filtre, recherche et accès aux profils</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">

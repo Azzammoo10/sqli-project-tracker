@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Clock,
-  Users,
-  Play,
-  Square,
-  Activity,
-  Target,
-  FolderOpen,
-  Settings,
-  RefreshCw
+    Clock,
+    Users,
+    Play,
+    Square,
+    Activity,
+    Target,
+    FolderOpen,
+    Settings,
+    RefreshCw, BarChart3
 } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavDev from '../../components/NavDev';
@@ -50,8 +50,8 @@ export default function DevDashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const userData = await authService.getCurrentUser();
-      setUser(userData);
+        const userData = await authService.getCurrentUser();
+        setUser(userData);
 
       const userTasks = await taskService.getByUser();
       setTasks(userTasks);
@@ -64,13 +64,13 @@ export default function DevDashboard() {
         { id: 2, username: 'Bob Dev', role: 'Développeur', currentTask: 'Tests unitaires' },
         { id: 3, username: 'Charlie Dev', role: 'Développeur', currentTask: 'Documentation' }
       ]);
-    } catch (error: any) {
+      } catch (error: any) {
       console.error('Erreur lors du chargement:', error);
-      toast.error('Erreur lors du chargement des données');
-    } finally {
-      setLoading(false);
-    }
-  };
+        toast.error('Erreur lors du chargement des données');
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const handleLogout = async () => {
     try {
@@ -134,8 +134,8 @@ export default function DevDashboard() {
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
-  if (loading) {
-    return (
+    if (loading) {
+      return (
       <ProtectedRoute allowedRoles={['DEVELOPPEUR']}>
         <div className="flex h-screen bg-gray-50">
           <NavDev user={user} onLogout={handleLogout} />
@@ -161,34 +161,35 @@ export default function DevDashboard() {
                       </div>
                     </div>
                   ))}
-                </div>
-              </div>
             </div>
+          </div>
+        </div>
           </main>
         </div>
       </ProtectedRoute>
-    );
-  }
+      );
+    }
 
-  return (
+    return (
     <ProtectedRoute allowedRoles={['DEVELOPPEUR']}>
       <div className="flex h-screen bg-gray-50">
         <NavDev user={user} onLogout={handleLogout} />
-
+        
         <main className="flex-1 overflow-auto">
           {/* Banner harmonisée */}
           <div className="p-6">
-            <div className="relative rounded-xl text-white p-5 shadow-md bg-[#372362]">
-              <div
-                className="pointer-events-none absolute inset-0 rounded-xl opacity-20"
-                style={{ background: 'radial-gradient(1200px 300px at 10% -10%, #ffffff 0%, transparent 60%)' }}
-              />
+            <div className="relative rounded-xl text-white p-6 shadow-md bg-gradient-to-br from-[#1F1B2E] via-[#2E2347] to-[#3D2B66]">
               <div className="relative flex items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-semibold tracking-tight">Tableau de bord</h1>
-                  <p className="text-white/85">
-                    Bienvenue, {user?.username} • {new Date().toLocaleTimeString('fr-FR')}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                    <BarChart3 className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
+                    <p className="text-white/90 text-lg">
+                      Bienvenue, {user?.username} • {new Date().toLocaleTimeString('fr-FR')}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
@@ -260,10 +261,10 @@ export default function DevDashboard() {
                   </div>
                   <div className="p-3 bg-purple-50 rounded-lg">
                     <Users className="w-6 h-6 text-purple-600" />
-                  </div>
-                </div>
-              </div>
             </div>
+          </div>
+        </div>
+      </div>
 
             {/* Grille principale */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

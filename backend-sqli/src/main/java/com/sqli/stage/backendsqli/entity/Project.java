@@ -11,7 +11,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "projects") // ou "project_project" si tu veux mapper la table PostgreSQL existante
@@ -61,7 +62,7 @@ public class Project {
     @JsonIgnoreProperties("project")
     private List<Task> tasks;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "project_developpeurs",
             joinColumns = @JoinColumn(name = "project_id"),
