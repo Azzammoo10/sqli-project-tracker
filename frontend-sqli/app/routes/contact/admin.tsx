@@ -77,7 +77,7 @@ export default function ContactAdminPage() {
                     value={formData.username}
                     onChange={handleInputChange}
                     placeholder="azqamazz"
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent text-gray-900"
                     required
                   />
                 </div>
@@ -99,7 +99,7 @@ export default function ContactAdminPage() {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="ex: name@domain.com"
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent"
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent text-gray-900"
                     required
                   />
                 </div>
@@ -121,7 +121,7 @@ export default function ContactAdminPage() {
                     onChange={handleInputChange}
                     placeholder="Enter your problem here"
                     rows={4}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent resize-none"
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent resize-none text-gray-900"
                     required
                   />
                 </div>
