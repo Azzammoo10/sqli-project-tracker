@@ -14,6 +14,7 @@
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.11.0",
     "chart.js": "^4.5.0",
+    "html2pdf.js": "^0.10.3",
     "isbot": "^5.1.27",
     "lucide-react": "^0.539.0",
     "react": "^19.1.0",
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@react-router/dev": "^7.7.1",
     "@tailwindcss/vite": "^4.1.4",
+    "@types/html2pdf.js": "^0.10.0",
     "@types/node": "^20",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",

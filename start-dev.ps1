@@ -35,12 +35,85 @@ $ngrokUrl = Wait-ForNgrok
 Write-Host "URL ngrok detectee: $ngrokUrl" -ForegroundColor Green
 
 # Mise à jour du fichier qrCodeService.ts
-Write-Host "Mise a jour de qrCodeService.ts..." -ForegroundColor Cyan
+# --- Params ---
 $qrCodeServicePath = "frontend-sqli/app/services/qrCodeService.ts"
+$targetPort = 5173
+$maxRetries = 15
+$delaySeconds = 1
+
+Write-Host "Recherche du tunnel ngrok pour localhost:$targetPort..." -ForegroundColor Cyan
+
+function Get-NgrokUrlForPort([int]$port, [int]$retries, [int]$delaySec) {
+    for ($i = 1; $i -le $retries; $i++) {
+        try {
+            $resp = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -Method GET -TimeoutSec 2 -ErrorAction Stop
+
+            if ($resp -and $resp.tunnels) {
+                # Filtrer sur le tunnel qui pointe vers le port demandé
+                $tunnels = $resp.tunnels | Where-Object {
+                    # ngrok retourne typiquement "http://localhost:5173" ou "http://127.0.0.1:5173"
+                    $_.config.addr -match "://(localhost|127\.0\.0\.1):$port($|/)"
+                }
+
+                if ($tunnels) {
+                    # Prioriser l'URL publique en HTTPS si dispo
+                    $httpsTunnel = $tunnels | Where-Object { $_.public_url -like "https://*" } | Select-Object -First 1
+                    $chosen = if ($httpsTunnel) { $httpsTunnel } else { $tunnels | Select-Object -First 1 }
+
+                    if ($null -ne $chosen.public_url) {
+                        return $chosen.public_url
+                    }
+                }
+            }
+        } catch {
+            # API pas prête ou ngrok pas lancé
+        }
+
+        Start-Sleep -Seconds $delaySec
+    }
+
+    return $null
+}
+
+$ngrokUrl = Get-NgrokUrlForPort -port $targetPort -retries $maxRetries -delaySec $delaySeconds
+
+if (-not $ngrokUrl) {
+    Write-Host "Échec: impossible de trouver une URL ngrok pour localhost:$targetPort via l'API 4040." -ForegroundColor Red
+    Write-Host "Vérifie que ngrok tourne et qu'un tunnel pointe vers le port $targetPort." -ForegroundColor Yellow
+    exit 1
+}
+
+Write-Host "URL ngrok détectée pour $targetPort : $ngrokUrl" -ForegroundColor Green
+
+# --- Mise à jour du fichier ---
+if (-not (Test-Path $qrCodeServicePath)) {
+    Write-Host "Fichier introuvable: $qrCodeServicePath" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Mise à jour de qrCodeService.ts..." -ForegroundColor Cyan
+
+# Remplace toute URL https://*.ngrok-free.app par celle détectée
+# (conserve le chemin qui suit l'hôte le cas échéant)
+# Exemple: https://XXXX.ngrok-free.app/api -> devient https://NEW.ngrok-free.app/api
 $content = Get-Content $qrCodeServicePath -Raw
-$updatedContent = $content -replace 'https://[a-zA-Z0-9-]+\.ngrok-free\.app', $ngrokUrl
-Set-Content $qrCodeServicePath $updatedContent -NoNewline
-Write-Host "qrCodeService.ts mis a jour" -ForegroundColor Green
+
+# Pattern: capture l'hôte ngrok et un éventuel chemin à conserver
+$pattern = "https://[a-zA-Z0-9-]+\.ngrok-free\.app(?<rest>/[^\s`"'\)\]]*)?"
+
+# Remplacement: nouvel host + le chemin capturé si présent
+$replacement = "${ngrokUrl}`$1"
+# Comme on a nommé le groupe (?<rest>...), référençons-le comme ${rest}
+# PowerShell -replace n'autorise pas la syntaxe ${rest} directement,
+# on fait une 2e passe pour corriger si besoin :
+$updated = [Regex]::Replace($content, $pattern, { param($m)
+    $rest = $m.Groups["rest"].Value
+    return "$ngrokUrl$rest"
+})
+
+Set-Content $qrCodeServicePath $updated -NoNewline
+Write-Host "qrCodeService.ts mis à jour avec $ngrokUrl" -ForegroundColor Green
+
 
 # Mise à jour du fichier QRCodeService.java (backend)
 Write-Host "Mise a jour de QRCodeService.java..." -ForegroundColor Cyan

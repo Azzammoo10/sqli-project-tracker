@@ -34,6 +34,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/projects/*/public").permitAll() // Endpoint projet public
+                        .requestMatchers("/api/projects/*/pdf").permitAll() // Endpoint PDF public
                         .requestMatchers("/api/qrcode/**").permitAll() // Endpoints QR Code
                         .requestMatchers("/api/projects/public/**").permitAll()
                         .requestMatchers("/api/admin/users/by-role/**").hasAnyRole("ADMIN", "CHEF_DE_PROJET")

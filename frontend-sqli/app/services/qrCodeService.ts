@@ -16,7 +16,7 @@ export const qrCodeService = {
   // Générer l'URL de la page publique accessible depuis le téléphone
   generateProjectPublicUrl: (projectId: number): string => {
     // URL ngrok pour le frontend (port 5173)
-    const frontendNgrokUrl = 'https://b545267bc47b.ngrok-free.app';
+    const frontendNgrokUrl = 'https://d398c847be52.ngrok-free.app';
     return `${frontendNgrokUrl}/project/${projectId}`;
   },
 
@@ -41,7 +41,7 @@ export const qrCodeService = {
    * @param projectId ID du projet
    * @param projectName Nom du projet
    */
-  downloadQRCode: async (projectId: number, projectName: string): Promise<void> => {
+      downloadQRCode: async (projectId: number, projectName: string): Promise<void> => {
     try {
       const url = qrCodeService.generateProjectQRCode(projectId, projectName);
       const response = await fetch(url);
