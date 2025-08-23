@@ -362,6 +362,16 @@ public class ProjetServiceImpl implements ProjetService {
         project.setDeveloppeurs(currentDevelopers);
 
         projetRepository.save(project);
+
+        // Log de l'action d'assignation
+        String username = getCurrentUser().getUsername();
+        historiqueService.logAction(new LogRequest(
+                TypeOperation.ASSIGN_TO_PROJECT,
+                "Développeurs assignés au projet '" + project.getTitre() + "' par " + username + " : " + 
+                newDevelopers.stream().map(User::getUsername).collect(Collectors.joining(", ")),
+                project.getId(),
+                EntityName.PROJECT
+        ));
     }
 
     @Override

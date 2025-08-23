@@ -12,6 +12,8 @@ export default [
   route("admin/users/:id/edit", "routes/admin/users/edit.tsx"),  
   route("admin/projects", "routes/admin/projects.tsx"),
   route("admin/history", "routes/admin/history.tsx"),
+  route("admin/contact-requests", "routes/admin/contact-requests.tsx"),
+
   route("admin/settings", "routes/admin/settings.tsx"),
   route("/admin/projects/:id", "routes/admin/project-details.tsx"),
 
@@ -40,6 +42,8 @@ export default [
   route("client/projects", "routes/client/projects.tsx"),
   route("client/projects/:id", "routes/client/project-details.tsx"),
   route("client/settings", "routes/client/settings.tsx"),
+
+
 
   // Route publique pour les projets (accessible via QR code)
   route("project/:id", "routes/project-public.tsx"),

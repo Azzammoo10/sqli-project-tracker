@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavChef from '../../components/NavChef';
-import { authService } from '~/services/api';
 import { chefDashboardService } from '~/services/chefDashboardService';
 import { projectService } from '~/services/projectService';
 import type {
@@ -44,14 +43,27 @@ export default function ChefDashboard() {
   const [taskStatus, setTaskStatus] = useState<ChartData[]>([]);
   const [selectedType, setSelectedType] = useState<string | null>(null);
 
-  useEffect(() => { loadDashboardData(); }, []);
+  useEffect(() => {
+    // Récupérer l'utilisateur depuis localStorage
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+      } catch (error) {
+        console.error('Erreur parsing utilisateur:', error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        navigate('/auth/login');
+      }
+    }
+    
+    loadDashboardData();
+  }, [navigate]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-
-      const userData = await authService.getCurrentUser();
-      setUser(userData);
 
       const dashboardData = await chefDashboardService.getFullDashboardData();
 
@@ -101,7 +113,9 @@ export default function ChefDashboard() {
 
   const handleLogout = async () => {
     try {
-      await authService.logout();
+      // Nettoyer localStorage et rediriger
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       navigate('/auth/login');
       toast.success('Déconnexion réussie');
     } catch {

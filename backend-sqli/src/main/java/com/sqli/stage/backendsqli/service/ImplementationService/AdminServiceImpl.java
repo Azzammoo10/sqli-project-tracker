@@ -23,6 +23,10 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import com.sqli.stage.backendsqli.entity.Project;
+import com.sqli.stage.backendsqli.service.HistoriqueService;
+import com.sqli.stage.backendsqli.dto.HistoriqueDTO.LogRequest;
+import com.sqli.stage.backendsqli.entity.Enums.EntityName;
+import com.sqli.stage.backendsqli.entity.Enums.TypeOperation;
 
 @RequiredArgsConstructor
 @Service
@@ -34,6 +38,7 @@ public class AdminServiceImpl implements AdminService {
     private final ProjetRepository projetRepository;
     private final TaskRepository taskRepository;
     private final HistoriqueRepository historiqueRepository;
+    private final HistoriqueService historiqueService;
 
     private String generateUsername(String nom, Role role) {
         String username = "";
@@ -74,12 +79,13 @@ public class AdminServiceImpl implements AdminService {
         }
 
         User user = new User();
-        Role role = inferRoleFromJobTitle(request.getJobTitle());
+        // Utiliser le rôle envoyé depuis le frontend au lieu d'inférer
+        Role role = request.getRole() != null ? request.getRole() : Role.DEVELOPPEUR;
         user.setNom(request.getNom());
         user.setEmail(request.getEmail());
         user.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
         user.setRole(role);
-        user.setUsername(generateUsername(request.getNom(), request.getRole()));
+        user.setUsername(generateUsername(request.getNom(), role));
         user.setEnabled(true);
         user.setJobTitle(request.getJobTitle());
         user.setDepartment(request.getDepartment());
@@ -252,6 +258,14 @@ public class AdminServiceImpl implements AdminService {
         user.setEnabled(true);
         User enabledUser = userRepository.save(user);
 
+        // Log de l'action
+        historiqueService.logAction(new LogRequest(
+                TypeOperation.ENABLE_USER,
+                "Utilisateur activé : " + enabledUser.getUsername(),
+                enabledUser.getId(),
+                EntityName.USER
+        ));
+
         return new UserResponse(
                 enabledUser.getId(),
                 enabledUser.getUsername(),
@@ -271,6 +285,14 @@ public class AdminServiceImpl implements AdminService {
 
         user.setEnabled(false);
         User disabledUser = userRepository.save(user);
+
+        // Log de l'action
+        historiqueService.logAction(new LogRequest(
+                TypeOperation.DISABLE_USER,
+                "Utilisateur désactivé : " + disabledUser.getUsername(),
+                disabledUser.getId(),
+                EntityName.USER
+        ));
 
         return new UserResponse(
                 disabledUser.getId(),

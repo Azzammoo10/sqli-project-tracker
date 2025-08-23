@@ -71,6 +71,10 @@ export default function CreateUser() {
     }
     setSubmitting(true);
     try {
+      // Debug: afficher la valeur du rôle avant envoi
+      console.log('Role sélectionné dans le formulaire:', form.role);
+      console.log('Type du rôle:', typeof form.role);
+      
       // On envoie tel quel, sans transformation
       const payload: CreateUserRequestBackend = {
         nom: form.nom.trim(),
@@ -81,6 +85,10 @@ export default function CreateUser() {
         department: form.department as Department,
         phone: form.phone?.trim() || undefined,
       };
+      
+      // Debug: afficher le payload complet
+      console.log('Payload envoyé au backend:', payload);
+      
       await userService.createUser(payload);
       toast.success('Utilisateur créé avec succès !');
       navigate('/admin/users');

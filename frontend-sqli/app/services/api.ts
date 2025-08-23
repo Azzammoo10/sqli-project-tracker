@@ -10,12 +10,23 @@ const apiClient = axios.create({
   },
 });
 
+// Fonction utilitaire pour vérifier si localStorage est disponible
+const isLocalStorageAvailable = () => {
+  try {
+    return typeof window !== 'undefined' && window.localStorage;
+  } catch {
+    return false;
+  }
+};
+
 // Intercepteur pour ajouter le token JWT à chaque requête
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (isLocalStorageAvailable()) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -28,10 +39,12 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && isLocalStorageAvailable()) {
       // Token expiré ou invalide
       localStorage.removeItem('token');
-      window.location.href = '/auth/login';
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -55,6 +68,7 @@ export interface LoginResponse {
 export interface ContactRequest {
   username: string;
   email: string;
+  type: string;
   description: string;
 }
 
@@ -67,7 +81,9 @@ export const authService = {
 
   logout: async (): Promise<void> => {
     await apiClient.post('/auth/logout');
-    localStorage.removeItem('token');
+    if (isLocalStorageAvailable()) {
+      localStorage.removeItem('token');
+    }
   },
 
   getCurrentUser: async () => {
@@ -78,8 +94,18 @@ export const authService = {
 
 export const contactService = {
   sendContactRequest: async (contactData: ContactRequest): Promise<void> => {
-    // Note: Vous devrez créer cet endpoint dans votre backend
     await apiClient.post('/contact/send', contactData);
+  },
+  getContactTypes: async (): Promise<string[]> => {
+    const response = await apiClient.get('/contact/types');
+    return response.data;
+  },
+  getAllContacts: async (): Promise<any[]> => {
+    const response = await apiClient.get('/contact');
+    return response.data;
+  },
+  markAsProcessed: async (id: number): Promise<void> => {
+    await apiClient.put(`/contact/${id}/process`);
   },
 };
 

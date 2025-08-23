@@ -36,8 +36,7 @@ export default function LoginPage() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!formData.username || !formData.motDePasse) {
       toast.error("Merci de remplir tous les champs.");
       return;
@@ -45,13 +44,38 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
+      // Stocker les logs dans sessionStorage pour debug
+      const debugLogs: string[] = [];
+      const originalLog = console.log;
+      const originalError = console.error;
+      
+      console.log = (...args) => {
+        const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+        debugLogs.push(`LOG: ${message}`);
+        originalLog(...args);
+      };
+      
+      console.error = (...args) => {
+        const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+        debugLogs.push(`ERROR: ${message}`);
+        originalError(...args);
+      };
+      
+      console.log('=== DÉBUT LOGIN ===');
+      console.log('Form data:', formData);
+      
       const res = await authService.login(formData);
+      console.log('Login response:', res);
+      
       const data: LoginResponse =
         (res && typeof res === "object" && "data" in res)
           ? (res as { data: LoginResponse }).data
           : (res as LoginResponse);
 
+      console.log('Parsed data:', data);
+
       if (!data?.token || !data?.role) {
+        console.error('Missing token or role:', { token: !!data?.token, role: data?.role });
         toast.error("Réponse invalide du serveur (token/role manquants).");
         return;
       }
@@ -63,8 +87,10 @@ export default function LoginPage() {
         role: data.role,
       };
 
+      console.log('Setting localStorage...');
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(userData));
+      console.log('LocalStorage set successfully');
 
       toast.success("Connexion réussie !");
 
@@ -78,13 +104,20 @@ export default function LoginPage() {
       const roleKey = String(data.role).toUpperCase();
       const targetPath = targetByRole[roleKey] ?? "/auth/login";
 
+      console.log('Role:', data.role);
+      console.log('Role key:', roleKey);
+      console.log('Target path:', targetPath);
+      console.log('Current location:', window.location.pathname);
+
+      console.log('Calling navigate...');
       navigate(targetPath, { replace: true });
-      setTimeout(() => {
-        if (window.location.pathname !== targetPath) {
-          window.location.href = targetPath;
-        }
-      }, 500);
+      console.log('Navigate called successfully');
+      
     } catch (error: any) {
+      console.error('=== LOGIN ERROR ===');
+      console.error('Error details:', error);
+      console.error('Error response:', error?.response);
+      
       const errorMessage =
         error?.response?.data?.message ||
         error?.message ||
@@ -92,6 +125,12 @@ export default function LoginPage() {
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
+      console.log('=== FIN LOGIN ===');
+      
+      // Sauvegarder les logs pour debug
+      sessionStorage.setItem('loginDebugLogs', JSON.stringify(debugLogs));
+      
+      // Restaurer les fonctions console originales
     }
   };
 
@@ -110,7 +149,7 @@ export default function LoginPage() {
             </div>
 
             {/* Formulaire */}
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form className="space-y-6">
               {/* Username */}
               <div>
                 <label
@@ -175,13 +214,14 @@ export default function LoginPage() {
 
               {/* Boutons */}
               <div className="space-y-4">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-[#4B2A7B] text-white py-3 px-4 rounded-lg font-medium hover:bg-[#5B3A8B] focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isLoading ? "Connexion..." : "Login now"}
-                </button>
+                                            <button
+                              type="button"
+                              disabled={isLoading}
+                              onClick={handleSubmit}
+                              className="w-full bg-[#4B2A7B] text-white py-3 px-4 rounded-lg font-medium hover:bg-[#5B3A8B] focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {isLoading ? "Connexion..." : "Login now"}
+                            </button>
 
                 <Link
                   to="/contact/admin"

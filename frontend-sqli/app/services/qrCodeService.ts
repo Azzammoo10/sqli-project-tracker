@@ -16,7 +16,7 @@ export const qrCodeService = {
   // Générer l'URL de la page publique accessible depuis le téléphone
   generateProjectPublicUrl: (projectId: number): string => {
     // URL ngrok pour le frontend (port 5173)
-    const frontendNgrokUrl = 'https://710d298f2b4d.ngrok-free.app';
+    const frontendNgrokUrl = 'https://8ae1916d763c.ngrok-free.app';
     return `${frontendNgrokUrl}/project/${projectId}`;
   },
 

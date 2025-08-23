@@ -1,87 +1,107 @@
-// src/components/ProtectedRoute.tsx
-import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom"; // ⬅️ bien "react-router-dom"
-import { Activity } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authService } from '../services/api';
 
-type Props = {
+interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: string[];
-};
+}
 
-const targetByRole: Record<string, string> = {
-  ADMIN: "/admin/dashboard",
-  CHEF_DE_PROJET: "/chef/dashboard",
-  DEVELOPPEUR: "/dev/dashboard",
-  CLIENT: "/client/dashboard",
-};
-
-export default function ProtectedRoute({ children, allowedRoles }: Props) {
+export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    console.log("🔒 ProtectedRoute - Vérification de l'authentification");
-    console.log("📍 Route actuelle:", location.pathname);
-    console.log("🎭 Rôles autorisés:", allowedRoles);
-    
-    const token = localStorage.getItem("token");
-    const rawUser = localStorage.getItem("user");
+    const checkAuth = async () => {
+      try {
+        console.log('=== PROTECTED ROUTE CHECK ===');
+        console.log('Current path:', window.location.pathname);
+        console.log('Allowed roles:', allowedRoles);
+        
+        const token = localStorage.getItem('token');
+        console.log('Token exists:', !!token);
+        
+        if (!token) {
+          console.log('No token, redirecting to login');
+          navigate('/auth/login');
+          return;
+        }
 
-    console.log("🔑 Token présent:", !!token);
-    console.log("👤 User présent:", !!rawUser);
-
-    // 1) Non authentifié → login
-    if (!token || !rawUser) {
-      console.log("❌ Non authentifié, redirection vers login");
-      navigate("/auth/login", { replace: true, state: { from: location } });
-      setLoading(false);
-      return;
-    }
-
-    // 2) Rôle
-    let role = "";
-    try {
-      const userData = JSON.parse(rawUser);
-      role = String(userData.role || "").toUpperCase();
-      console.log("🎭 Rôle de l'utilisateur:", role);
-      console.log("👤 Données utilisateur:", userData);
-    } catch (error) {
-      console.error("❌ Erreur parsing user data:", error);
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
-      navigate("/auth/login", { replace: true });
-      setLoading(false);
-      return;
-    }
-
-    // 3) Autorisation
-    if (allowedRoles?.length) {
-      const wanted = allowedRoles.map((r) => r.toUpperCase());
-      const isAllowed = role && wanted.includes(role);
-      console.log("🔍 Vérification autorisation:", { role, wanted, isAllowed });
-      
-      if (!isAllowed) {
-        console.log("❌ Rôle non autorisé, redirection vers:", targetByRole[role] ?? "/auth/login");
-        navigate(targetByRole[role] ?? "/auth/login", { replace: true });
-        setLoading(false);
+        // Vérifier si l'utilisateur est en localStorage
+        const storedUser = localStorage.getItem('user');
+        console.log('Stored user exists:', !!storedUser);
+        
+        if (storedUser) {
+          try {
+            const userData = JSON.parse(storedUser);
+            console.log('User data:', userData);
+            setUser(userData);
+            
+            // Vérifier les rôles si spécifiés
+            if (allowedRoles && !allowedRoles.includes(userData.role)) {
+              console.log('Role not allowed, redirecting to login');
+              navigate('/auth/login');
+              return;
+            }
+            console.log('User authenticated successfully');
+          } catch (parseError) {
+            console.error('Error parsing user data:', parseError);
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            navigate('/auth/login');
+            return;
+          }
+        } else {
+          // Essayer de récupérer l'utilisateur depuis l'API
+          console.log('No stored user, fetching from API');
+          try {
+            const currentUser = await authService.getCurrentUser();
+            console.log('API user data:', currentUser);
+            setUser(currentUser);
+            localStorage.setItem('user', JSON.stringify(currentUser));
+            
+            if (allowedRoles && !allowedRoles.includes(currentUser.role)) {
+              console.log('API user role not allowed, redirecting to login');
+              navigate('/auth/login');
+              return;
+            }
+          } catch (error) {
+            console.error('Erreur lors de la récupération de l\'utilisateur:', error);
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            navigate('/auth/login');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Erreur d\'authentification:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/auth/login');
         return;
+      } finally {
+        setIsLoading(false);
+        console.log('=== PROTECTED ROUTE CHECK DONE ===');
       }
-    }
+    };
 
-    console.log("✅ Authentification réussie, affichage du contenu");
-    setLoading(false);
-  }, [allowedRoles, location, navigate]);
+    checkAuth();
+  }, [navigate, allowedRoles]);
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
-          <Activity className="h-8 w-8 animate-spin text-[#4B2A7B] mx-auto mb-4" />
-          <p className="text-gray-600">Vérification de l'authentification...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4B2A7B] mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
         </div>
       </div>
     );
+  }
+
+  if (!user) {
+    return null;
   }
 
   return <>{children}</>;

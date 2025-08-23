@@ -134,6 +134,14 @@ public class TaskserviceImpl implements Taskservice {
                 EntityName.TASK
         ));
 
+        // Log de l'assignation du développeur à la tâche
+        historiqueService.logAction(new LogRequest(
+                TypeOperation.ASSIGN_TASK,
+                "Tâche '" + saved.getTitre() + "' assignée à " + developpeur.getUsername() + " lors de la création",
+                saved.getId(),
+                EntityName.TASK
+        ));
+
         return mapToReponse(saved);
     }
 
@@ -226,73 +234,33 @@ public class TaskserviceImpl implements Taskservice {
         return tasks.stream().map(this::mapToReponse).collect(Collectors.toList());
     }
 
+    // Priority tasks for chef
     @Override
     public List<TaskResponse> getPriorityTasksForChef() {
-        String currentUsername = getCurrentUser().getUsername();
-        User currentChef = userRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("Chef de projet non trouvé"));
+        User current = getCurrentUser();
         
-        // Récupérer les projets du chef connecté
-        List<Project> chefProjects = projetRepository.findByCreatedByUsername(currentUsername);
-        List<Integer> projectIds = chefProjects.stream().map(Project::getId).toList();
-        
-        System.out.println("=== DEBUG: getPriorityTasksForChef ===");
-        System.out.println("Chef connecté: " + currentUsername);
-        System.out.println("Projets du chef: " + chefProjects.size());
-        System.out.println("Project IDs: " + projectIds);
-        
-        if (projectIds.isEmpty()) {
-            System.out.println("Aucun projet trouvé pour le chef");
-            return new ArrayList<>();
+        // Vérifier que l'utilisateur est un chef de projet
+        if (current.getRole() != Role.CHEF_DE_PROJET) {
+            throw new AccessdeniedException("Seuls les chefs de projet peuvent accéder à cette fonctionnalité.");
         }
         
-        // Récupérer toutes les tâches des projets du chef
-        List<Task> allTasks = taskRepoistory.findByProjectIdIn(projectIds);
-        System.out.println("Total des tâches trouvées: " + allTasks.size());
+        // Récupérer toutes les tâches des projets gérés par ce chef
+        List<Task> chefTasks = taskRepoistory.findByProjectCreatedById(current.getId());
         
-        // Afficher les détails de chaque tâche pour debug
-        allTasks.forEach(task -> {
-            System.out.println("Tâche: " + task.getTitre() + 
-                             " | Priorité: " + task.getPriorite() + 
-                             " | Statut: " + task.getStatut() + 
-                             " | Projet: " + task.getProject().getTitre());
+        // Trier par priorité (HAUTE, MOYENNE, BASSE)
+        chefTasks.sort((t1, t2) -> {
+            if (t1.getPriorite() == Priorite.ELEVEE && t2.getPriorite() != Priorite.ELEVEE) return -1;
+            if (t1.getPriorite() == Priorite.MOYENNE && t2.getPriorite() == Priorite.BASSE) return -1;
+            if (t1.getPriorite() == Priorite.BASSE && t2.getPriorite() != Priorite.BASSE) return 1;
+            return 0;
         });
         
-        // Filtrer les tâches prioritaires avec une logique plus large
-        List<Task> priorityTasks = allTasks.stream()
-                .filter(task -> {
-                    // Priorité élevée ou critique
-                    boolean isHighPriority = task.getPriorite() == com.sqli.stage.backendsqli.entity.Enums.Priorite.ELEVEE || 
-                                          task.getPriorite() == com.sqli.stage.backendsqli.entity.Enums.Priorite.CRITIQUE;
-                    
-                    // Statut qui nécessite attention
-                    boolean needsAttention = task.getStatut() == StatutTache.NON_COMMENCE || 
-                                          task.getStatut() == StatutTache.EN_COURS || 
-                                          task.getStatut() == StatutTache.BLOQUE;
-                    
-                    // Tâches en retard (date de fin dépassée)
-                    boolean isOverdue = task.getDateFin() != null && 
-                                      task.getDateFin().isBefore(java.time.LocalDate.now()) && 
-                                      task.getStatut() != StatutTache.TERMINE;
-                    
-                    return isHighPriority || needsAttention || isOverdue;
-                })
-                .sorted(Comparator.comparing(Task::getPriorite, Comparator.reverseOrder())
-                        .thenComparing(Task::getDateFin))
-                .collect(Collectors.toList());
-        
-        System.out.println("Tâches prioritaires filtrées: " + priorityTasks.size());
-        priorityTasks.forEach(task -> {
-            System.out.println("Tâche prioritaire: " + task.getTitre() + 
-                             " | Priorité: " + task.getPriorite() + 
-                             " | Statut: " + task.getStatut());
-        });
-        
-        return priorityTasks.stream()
+        return chefTasks.stream()
                 .map(this::mapToReponse)
                 .collect(Collectors.toList());
     }
-
+    
+    
 
     @Override
     public List<TaskResponse> getTasksByProject(int projectId) {
@@ -428,9 +396,13 @@ public class TaskserviceImpl implements Taskservice {
         // ⬇️ Mise à jour immédiate de la progression projet
         projetService.updateProjectProgress(task.getProject().getId());
 
-        // (Optionnel) log + notif
-        //logDone(task);
-        // notificationService.notifyProjectProgressUpdated(task.getProject().getId());
+        // Log de l'action
+        historiqueService.logAction(new LogRequest(
+                TypeOperation.CHANGE_STATUS,
+                "Tâche marquée comme terminée : " + task.getTitre(),
+                task.getId(),
+                EntityName.TASK
+        ));
 
         return mapToReponse(task);
     }
@@ -456,6 +428,14 @@ public class TaskserviceImpl implements Taskservice {
 
             // ⬇️ Mise à jour immédiate de la progression projet
             projetService.updateProjectProgress(task.getProject().getId());
+
+            // Log de l'action
+            historiqueService.logAction(new LogRequest(
+                    TypeOperation.CHANGE_STATUS,
+                    "Tâche marquée comme en cours : " + task.getTitre(),
+                    task.getId(),
+                    EntityName.TASK
+            ));
 
             // (Optionnel) log + notif
             //logDone(task);
@@ -509,6 +489,14 @@ public class TaskserviceImpl implements Taskservice {
 
         // ⬇️ Mise à jour immédiate de la progression projet
         projetService.updateProjectProgress(task.getProject().getId());
+
+        // Log de l'action
+        historiqueService.logAction(new LogRequest(
+                TypeOperation.CHANGE_STATUS,
+                "Tâche marquée comme bloquée : " + task.getTitre(),
+                task.getId(),
+                EntityName.TASK
+        ));
 
         return mapToReponse(task);
     }

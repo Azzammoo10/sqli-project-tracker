@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, MessageSquare } from 'lucide-react';
+import { User, Mail, MessageSquare, AlertTriangle } from 'lucide-react';
 import { contactService } from '../../services/api';
 import toast from 'react-hot-toast';
 import serverIllustration from '../../assets/images/undraw_server-cluster_7ugi.svg';
@@ -11,22 +11,96 @@ export default function ContactAdminPage() {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
+    type: '',
     description: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [contactTypes, setContactTypes] = useState<Array<{value: string, label: string}>>([]);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  
+    setFormData(prev => {
+      // si on change le type et que ce n’est plus AUTRE → vider la description
+      if (name === 'type' && value !== 'AUTRE') {
+        return { ...prev, type: value, description: '' };
+      }
+      return { ...prev, [name]: value };
+    });
+  
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+  
+
+  // Charger les types de contact disponibles
+  useEffect(() => {
+    const loadContactTypes = async () => {
+      try {
+        const types = await contactService.getContactTypes();
+        setContactTypes(types.map((type: string) => ({
+          value: type,
+          label: type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+        })));
+      } catch (error) {
+        console.error('Erreur lors du chargement des types de contact:', error);
+        // Types par défaut en cas d'erreur
+        setContactTypes([
+          { value: 'MOT_DE_PASSE_OUBLIE', label: 'Mot de passe oublié' },
+          { value: 'COMPTE_BLOQUE', label: 'Compte bloqué' },
+          { value: 'PROBLEME_CONNEXION', label: 'Problème de connexion' },
+          { value: 'DEMANDE_ACCES', label: 'Demande d\'accès' },
+          { value: 'BUG_APPLICATION', label: 'Bug dans l\'application' },
+          { value: 'DEMANDE_FONCTIONNALITE', label: 'Demande de nouvelle fonctionnalité' },
+          { value: 'PROBLEME_PERFORMANCE', label: 'Problème de performance' },
+          { value: 'AUTRE', label: 'Autre' }
+        ]);
+      }
+    };
+
+    loadContactTypes();
+  }, []);
+
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+
+    if (!formData.username.trim()) {
+      errors.username = 'Le nom d\'utilisateur est obligatoire';
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = 'L\'email est obligatoire';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Format d\'email invalide';
+    }
+
+    if (!formData.type) {
+      errors.type = 'Le type de réclamation est obligatoire';
+    }
+
+    if (formData.type === 'AUTRE' && !formData.description.trim()) {
+      errors.description = 'La description est obligatoire pour le type "Autre"';
+    }
+    
+
+    // Description est optionnelle, pas de validation requise
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Valider le formulaire
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -77,10 +151,18 @@ export default function ContactAdminPage() {
                     value={formData.username}
                     onChange={handleInputChange}
                     placeholder="azqamazz"
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent text-gray-900"
+                    className={`block w-full pl-10 pr-3 py-3 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent text-gray-900 ${
+                      validationErrors.username ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     required
                   />
                 </div>
+                {validationErrors.username && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                    {validationErrors.username}
+                  </p>
+                )}
               </div>
 
               {/* Email */}
@@ -99,33 +181,87 @@ export default function ContactAdminPage() {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="ex: name@domain.com"
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent text-gray-900"
+                    className={`block w-full pl-10 pr-3 py-3 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent text-gray-900 ${
+                      validationErrors.email ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     required
                   />
                 </div>
+                {validationErrors.email && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                    {validationErrors.email}
+                  </p>
+                )}
+              </div>
+
+              {/* Type de Réclamation */}
+              <div>
+                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+                  Type de Réclamation
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <AlertTriangle className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <select
+                    id="type"
+                    name="type"
+                    value={formData.type}
+                    onChange={handleInputChange}
+                    className={`block w-full pl-10 pr-3 py-3 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent text-gray-900 ${
+                      validationErrors.type ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    required
+                  >
+                    <option value="">Sélectionnez un type de réclamation</option>
+                    {contactTypes.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {validationErrors.type && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                    {validationErrors.type}
+                  </p>
+                )}
               </div>
 
               {/* Description Problème */}
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                  Description Problème
-                </label>
-                <div className="relative">
-                  <div className="absolute top-3 left-3 flex items-start pointer-events-none">
-                    <MessageSquare className="h-5 w-5 text-gray-400 mt-0.5" />
-                  </div>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder="Enter your problem here"
-                    rows={4}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent resize-none text-gray-900"
-                    required
-                  />
-                </div>
-              </div>
+              {formData.type === 'AUTRE' && (
+  <div>
+    <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+      Description Problème
+    </label>
+    <div className="relative">
+      <div className="absolute top-3 left-3 flex items-start pointer-events-none">
+        <MessageSquare className="h-5 w-5 text-gray-400 mt-0.5" />
+      </div>
+      <textarea
+        id="description"
+        name="description"
+        value={formData.description}
+        onChange={handleInputChange}
+        placeholder="Décrivez le problème"
+        rows={4}
+        required
+        className={`block w-full pl-10 pr-3 py-3 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent resize-none text-gray-900 ${
+          validationErrors.description ? 'border-red-500' : 'border-gray-300'
+        }`}
+      />
+    </div>
+    {validationErrors.description && (
+      <p className="mt-1 text-sm text-red-600 flex items-center">
+        <AlertTriangle className="h-4 w-4 mr-1" />
+        {validationErrors.description}
+      </p>
+    )}
+  </div>
+)}
+
 
               {/* Boutons */}
               <div className="space-y-4">
