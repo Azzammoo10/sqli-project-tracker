@@ -68,13 +68,24 @@ export default function ChefTasks() {
 
     try {
       setDeletingTaskId(taskToDelete.id);
+      
+      // Appeler la suppression
       await taskService.delete(taskToDelete.id);
+      
+      // Mettre à jour l'état local directement
       setTasks(prev => prev.filter(t => t.id !== taskToDelete.id));
       toast.success('Tâche supprimée avec succès');
       closeDeleteModal();
+      
     } catch (error: any) {
       console.error('Erreur lors de la suppression:', error);
-      toast.error('Erreur lors de la suppression de la tâche');
+      if (error.response?.status === 403) {
+        toast.error('Vous n\'avez pas les droits pour supprimer cette tâche');
+      } else if (error.response?.status === 404) {
+        toast.error('Tâche introuvable');
+      } else {
+        toast.error('Erreur lors de la suppression de la tâche');
+      }
     } finally {
       setDeletingTaskId(null);
     }

@@ -52,7 +52,8 @@ public class UserService {
                 savedUser.getRole(),
                 savedUser.getJobTitle(),
                 savedUser.getDepartment(),
-                savedUser.getPhone()
+                savedUser.getPhone(),
+                savedUser.isEnabled()
         );
     }
 

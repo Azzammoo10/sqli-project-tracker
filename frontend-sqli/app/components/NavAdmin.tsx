@@ -7,7 +7,8 @@ import {
   Clock, 
   Settings, 
   LogOut,
-  User
+  User,
+  AlertTriangle
 } from "lucide-react";
 import sqliLogo from "../assets/images/SQLI-LOGO.png";
 
@@ -29,6 +30,7 @@ export default function NavAdmin({ user, onLogout }: NavAdminProps) {
     { path: "/admin/contact-requests", icon: FileText, label: "Réclamations" },
     { path: "/admin/history", icon: Clock, label: "Historique" },
     { path: "/admin/settings", icon: Settings, label: "Paramètres" },
+
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -88,6 +90,7 @@ export default function NavAdmin({ user, onLogout }: NavAdminProps) {
               </li>
             );
           })}
+          
         </ul>
       </nav>
 

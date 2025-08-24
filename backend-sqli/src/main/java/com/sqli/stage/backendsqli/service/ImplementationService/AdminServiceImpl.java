@@ -101,7 +101,8 @@ public class AdminServiceImpl implements AdminService {
                 savedUser.getRole(),
                 savedUser.getJobTitle(),
                 savedUser.getDepartment(),
-                savedUser.getPhone()
+                savedUser.getPhone(),
+                savedUser.isEnabled()
         );
     }
 
@@ -116,7 +117,8 @@ public class AdminServiceImpl implements AdminService {
                         user.getRole(),
                         user.getJobTitle(),
                         user.getDepartment(),
-                        user.getPhone()
+                        user.getPhone(),
+                        user.isEnabled()
                 ))
                 .collect(Collectors.toList());
     }
@@ -134,7 +136,8 @@ public class AdminServiceImpl implements AdminService {
                 user.getRole(),
                 user.getJobTitle(),
                 user.getDepartment(),
-                user.getPhone()
+                user.getPhone(),
+                user.isEnabled()
         );
     }
 
@@ -151,6 +154,28 @@ public class AdminServiceImpl implements AdminService {
         if (request.getJobTitle() != null) user.setJobTitle(request.getJobTitle());
         if (request.getDepartment() != null) user.setDepartment(request.getDepartment());
         if (request.getPhone() != null) user.setPhone(request.getPhone());
+        
+        // Permettre la modification du statut enabled
+        if (request.getEnabled() != null) {
+            user.setEnabled(request.getEnabled());
+            
+            // Log de l'action de changement de statut
+            if (request.getEnabled()) {
+                historiqueService.logAction(new LogRequest(
+                    TypeOperation.ENABLE_USER,
+                    "Utilisateur activé via update : " + user.getUsername(),
+                    user.getId(),
+                    EntityName.USER
+                ));
+            } else {
+                historiqueService.logAction(new LogRequest(
+                    TypeOperation.DISABLE_USER,
+                    "Utilisateur désactivé via update : " + user.getUsername(),
+                    user.getId(),
+                    EntityName.USER
+                ));
+            }
+        }
 
         User updatedUser = userRepository.save(user);
 
@@ -162,7 +187,8 @@ public class AdminServiceImpl implements AdminService {
                 updatedUser.getRole(),
                 updatedUser.getJobTitle(),
                 updatedUser.getDepartment(),
-                updatedUser.getPhone()
+                updatedUser.getPhone(),
+                updatedUser.isEnabled()
         );
     }
 
@@ -176,57 +202,96 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Impossible de supprimer un administrateur");
         }
 
+        // NOUVELLE APPROCHE: Désactiver l'utilisateur au lieu de le supprimer
+        // Cela préserve l'intégrité des données historiques et évite les erreurs de contraintes
         try {
-            // Supprimer les tâches associées à l'utilisateur
-            if (user.getTasks() != null && !user.getTasks().isEmpty()) {
-                taskRepository.deleteAll(user.getTasks());
-            }
+            // Désactiver l'utilisateur pour qu'il ne puisse plus se connecter
+            user.setEnabled(false);
+            
+            // Optionnel: marquer le nom d'utilisateur comme supprimé pour éviter les conflits
+            String originalUsername = user.getUsername();
+            user.setUsername(originalUsername + "_DELETED_" + System.currentTimeMillis());
+            user.setEmail("deleted_" + System.currentTimeMillis() + "@deleted.com");
+            
+            // Sauvegarder les changements
+            userRepository.save(user);
+            
+            // Logger l'action
+            historiqueService.logAction(new LogRequest(
+                TypeOperation.DISABLE_USER,
+                "Utilisateur supprimé (désactivé) : " + originalUsername,
+                user.getId(),
+                EntityName.USER
+            ));
+            
+            System.out.println("Utilisateur " + originalUsername + " désactivé avec succès au lieu d'être supprimé");
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la désactivation de l'utilisateur : " + e.getMessage());
+        }
+    }
 
-            // Supprimer les enregistrements d'historique associés à l'utilisateur
+    // Méthode pour forcer la suppression complète (à utiliser avec précaution)
+    public void forceDeleteUser(int id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec id : " + id));
+
+        // Vérifier si l'utilisateur est un admin (empêcher la suppression d'admin)
+        if (user.getRole() == Role.ADMIN) {
+            throw new RuntimeException("Impossible de supprimer un administrateur");
+        }
+
+        try {
+            System.out.println("=== FORCE DELETE: Suppression complète de l'utilisateur " + user.getUsername() + " ===");
+            
+            // 1. D'abord, retirer l'utilisateur de tous les projets
+            List<Project> allProjects = projetRepository.findAll();
+            for (Project project : allProjects) {
+                if (project.getDeveloppeurs() != null && project.getDeveloppeurs().contains(user)) {
+                    project.getDeveloppeurs().remove(user);
+                    projetRepository.save(project);
+                    System.out.println("Utilisateur retiré du projet: " + project.getTitre());
+                }
+            }
+            
+            // 2. Supprimer toutes les tâches assignées à cet utilisateur
+            List<Task> userTasks = taskRepository.findByDeveloppeurId(id);
+            if (!userTasks.isEmpty()) {
+                taskRepository.deleteAll(userTasks);
+                System.out.println("Supprimé " + userTasks.size() + " tâches");
+            }
+            
+            // 3. Supprimer les enregistrements d'historique associés à l'utilisateur
             List<Historique> historiques = historiqueRepository.findByUserId(id);
             if (!historiques.isEmpty()) {
                 historiqueRepository.deleteAll(historiques);
+                System.out.println("Supprimé " + historiques.size() + " entrées d'historique");
             }
-
-            // Gérer les projets selon le rôle de l'utilisateur
+            
+            // 4. Si c'est un client, gérer ses projets
             if (user.getRole() == Role.CLIENT) {
-                // Si c'est un client, supprimer tous ses projets
                 List<Project> clientProjects = projetRepository.findByClientId(id);
                 if (!clientProjects.isEmpty()) {
-                    // Supprimer d'abord toutes les tâches de ces projets
                     for (Project project : clientProjects) {
-                        if (project.getTasks() != null && !project.getTasks().isEmpty()) {
-                            taskRepository.deleteAll(project.getTasks());
+                        // Supprimer d'abord toutes les tâches de ces projets
+                        List<Task> projectTasks = taskRepository.findByProjectId(project.getId());
+                        if (!projectTasks.isEmpty()) {
+                            taskRepository.deleteAll(projectTasks);
                         }
                     }
                     // Puis supprimer les projets
                     projetRepository.deleteAll(clientProjects);
-                }
-            } else if (user.getRole() == Role.DEVELOPPEUR || user.getRole() == Role.STAGIAIRE) {
-                // Si c'est un développeur, supprimer ses tâches ET le retirer des projets
-                List<Project> devProjects = projetRepository.findByDeveloppeurId(id);
-                if (!devProjects.isEmpty()) {
-                    for (Project project : devProjects) {
-                        // Supprimer toutes les tâches de ce développeur dans ce projet
-                        if (project.getTasks() != null && !project.getTasks().isEmpty()) {
-                            List<Task> tasksToDelete = project.getTasks().stream()
-                                    .filter(task -> task.getDeveloppeur() != null && task.getDeveloppeur().getId().equals(id))
-                                    .collect(Collectors.toList());
-                            if (!tasksToDelete.isEmpty()) {
-                                taskRepository.deleteAll(tasksToDelete);
-                            }
-                        }
-                        // Retirer le développeur du projet
-                        project.getDeveloppeurs().remove(user);
-                        projetRepository.save(project);
-                    }
+                    System.out.println("Supprimé " + clientProjects.size() + " projets du client");
                 }
             }
-
-            // Maintenant supprimer l'utilisateur
+            
+            // 5. Maintenant supprimer l'utilisateur
             userRepository.deleteById(id);
+            System.out.println("=== FORCE DELETE: Utilisateur " + user.getUsername() + " supprimé avec succès ===");
+            
         } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la suppression de l'utilisateur : " + e.getMessage());
+            System.out.println("=== FORCE DELETE: Erreur lors de la suppression: " + e.getMessage() + " ===");
+            throw new RuntimeException("Erreur lors de la suppression forcée de l'utilisateur : " + e.getMessage());
         }
     }
 
@@ -246,7 +311,8 @@ public class AdminServiceImpl implements AdminService {
                 updatedUser.getRole(),
                 updatedUser.getJobTitle(),
                 updatedUser.getDepartment(),
-                updatedUser.getPhone()
+                updatedUser.getPhone(),
+                updatedUser.isEnabled()
         );
     }
 
@@ -274,7 +340,8 @@ public class AdminServiceImpl implements AdminService {
                 enabledUser.getRole(),
                 enabledUser.getJobTitle(),
                 enabledUser.getDepartment(),
-                enabledUser.getPhone()
+                enabledUser.getPhone(),
+                enabledUser.isEnabled()
         );
     }
 
@@ -302,7 +369,8 @@ public class AdminServiceImpl implements AdminService {
                 disabledUser.getRole(),
                 disabledUser.getJobTitle(),
                 disabledUser.getDepartment(),
-                disabledUser.getPhone()
+                disabledUser.getPhone(),
+                disabledUser.isEnabled()
         );
     }
 
@@ -333,7 +401,8 @@ public class AdminServiceImpl implements AdminService {
                 savedAdmin.getRole(),
                 savedAdmin.getJobTitle(),
                 savedAdmin.getDepartment(),
-                savedAdmin.getPhone()
+                savedAdmin.getPhone(),
+                savedAdmin.isEnabled()
         );
     }
 

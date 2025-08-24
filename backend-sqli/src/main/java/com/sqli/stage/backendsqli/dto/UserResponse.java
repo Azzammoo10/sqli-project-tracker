@@ -20,6 +20,7 @@ public class UserResponse {
     private String jobTitle;
     private TypeDepartment department;
     private String phone;
+    private boolean enabled;
 
 
     public static UserResponse from(User user) {
@@ -32,6 +33,7 @@ public class UserResponse {
                 .jobTitle(user.getJobTitle())
                 .department(user.getDepartment())
                 .phone(user.getPhone())
+                .enabled(user.isEnabled())
                 .build();
     }
 }

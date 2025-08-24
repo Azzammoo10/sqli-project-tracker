@@ -422,7 +422,14 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         
         System.out.println("Développeurs uniques trouvés: " + assignedDevelopers.size());
         
-        return assignedDevelopers.stream()
+        // FILTRE CRITIQUE: Ne garder que les développeurs ENABLED
+        Set<User> enabledDevelopers = assignedDevelopers.stream()
+                .filter(dev -> dev.isEnabled())
+                .collect(Collectors.toSet());
+        
+        System.out.println("Développeurs ENABLED après filtrage: " + enabledDevelopers.size());
+        
+        return enabledDevelopers.stream()
                 .map(dev -> {
                     System.out.println("--- Traitement développeur: " + dev.getUsername() + " (ID: " + dev.getId() + ") ---");
                     

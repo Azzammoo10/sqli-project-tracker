@@ -130,7 +130,7 @@ export default function AdvancedFilters({
                 className="px-4 py-2 rounded-lg font-medium transition-colors bg-[#4B2A7B] text-white hover:bg-[#3D2B66]"
               >
                 <FilterX className="h-4 w-4 inline mr-2" />
-                Réinitialiser tous les filtres
+                Reset
               </button>
             </div>
           )}

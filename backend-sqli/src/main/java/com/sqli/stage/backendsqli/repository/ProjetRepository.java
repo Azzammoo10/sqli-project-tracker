@@ -13,7 +13,8 @@ import java.util.Optional;
 @Repository
 public interface ProjetRepository extends JpaRepository<Project, Integer> {
     Optional<Project> findById(Integer id);
-    List<Project> findByCreatedByUsername(String username);
+    @Query("SELECT p FROM Project p WHERE p.createdBy.username = :username")
+    List<Project> findByCreatedByUsername(@Param("username") String username);
     Optional<Project> findByUuidPublic(String uuid);
     List<Project> findByStatut(StatutProjet statut);
     List<Project> findByTitreContainingIgnoreCase(String keyword);

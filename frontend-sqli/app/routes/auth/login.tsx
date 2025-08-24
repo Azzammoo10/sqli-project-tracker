@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
-import { authService } from "../../services/api";
+import { authService } from "~/services/api";
+
 import toast from "react-hot-toast";
 import secureIllustration from "../../assets/images/undraw_secure.svg";
 import sqliLogo from "../../assets/images/SQLI-LOGO.png";
@@ -26,57 +27,61 @@ export default function LoginPage() {
     motDePasse: "",
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // 👈 état pour l’œil
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Timer pour cacher automatiquement l'erreur après 4 secondes
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 4000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData((prev) => ({ 
       ...prev,
       [name]: value,
     }));
+    // Effacer l'erreur quand l'utilisateur commence à taper
+    if (error) {
+      setError(null);
+    }
   };
 
-  const handleSubmit = async () => {
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit(e as any);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    // Empêcher la soumission par défaut du formulaire
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (!formData.username || !formData.motDePasse) {
-      toast.error("Merci de remplir tous les champs.");
+      setError("Merci de remplir tous les champs.");
       return;
     }
 
+    setError(null);
     setIsLoading(true);
     try {
-      // Stocker les logs dans sessionStorage pour debug
-      const debugLogs: string[] = [];
-      const originalLog = console.log;
-      const originalError = console.error;
-      
-      console.log = (...args) => {
-        const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
-        debugLogs.push(`LOG: ${message}`);
-        originalLog(...args);
-      };
-      
-      console.error = (...args) => {
-        const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
-        debugLogs.push(`ERROR: ${message}`);
-        originalError(...args);
-      };
-      
-      console.log('=== DÉBUT LOGIN ===');
-      console.log('Form data:', formData);
-      
       const res = await authService.login(formData);
-      console.log('Login response:', res);
       
       const data: LoginResponse =
         (res && typeof res === "object" && "data" in res)
           ? (res as { data: LoginResponse }).data
           : (res as LoginResponse);
 
-      console.log('Parsed data:', data);
-
       if (!data?.token || !data?.role) {
-        console.error('Missing token or role:', { token: !!data?.token, role: data?.role });
-        toast.error("Réponse invalide du serveur (token/role manquants).");
+        setError("Réponse invalide du serveur (token/role manquants).");
         return;
       }
 
@@ -87,10 +92,8 @@ export default function LoginPage() {
         role: data.role,
       };
 
-      console.log('Setting localStorage...');
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(userData));
-      console.log('LocalStorage set successfully');
 
       toast.success("Connexion réussie !");
 
@@ -104,33 +107,33 @@ export default function LoginPage() {
       const roleKey = String(data.role).toUpperCase();
       const targetPath = targetByRole[roleKey] ?? "/auth/login";
 
-      console.log('Role:', data.role);
-      console.log('Role key:', roleKey);
-      console.log('Target path:', targetPath);
-      console.log('Current location:', window.location.pathname);
-
-      console.log('Calling navigate...');
       navigate(targetPath, { replace: true });
-      console.log('Navigate called successfully');
       
     } catch (error: any) {
-      console.error('=== LOGIN ERROR ===');
-      console.error('Error details:', error);
-      console.error('Error response:', error?.response);
       
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Erreur de connexion";
-      toast.error(errorMessage);
+      let errorMessage = "Erreur de connexion";
+      
+      if (error?.response?.data) {
+        const errorData = error.response.data;
+        errorMessage = errorData.message || "Erreur de connexion";
+        
+        // Gérer les différents types d'erreur avec des messages plus spécifiques
+        if (errorData.error === 'USER_NOT_FOUND') {
+          errorMessage = "Nom d'utilisateur incorrect";
+        } else if (errorData.error === 'USER_DISABLED') {
+          errorMessage = "Votre compte est désactivé. Veuillez contacter l'administrateur.";
+        } else if (errorData.error === 'INVALID_CREDENTIALS') {
+          errorMessage = "Mot de passe incorrect";
+        } else if (errorData.error === 'INVALID_TOKEN') {
+          errorMessage = "Token d'authentification invalide";
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
-      console.log('=== FIN LOGIN ===');
-      
-      // Sauvegarder les logs pour debug
-      sessionStorage.setItem('loginDebugLogs', JSON.stringify(debugLogs));
-      
-      // Restaurer les fonctions console originales
     }
   };
 
@@ -149,7 +152,23 @@ export default function LoginPage() {
             </div>
 
             {/* Formulaire */}
-            <form className="space-y-6">
+            <form 
+              className="space-y-6" 
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+              }}
+            >
+              {/* Affichage des erreurs */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center space-x-2">
+                  <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm font-medium">{error}</span>
+                </div>
+              )}
               {/* Username */}
               <div>
                 <label
@@ -168,6 +187,7 @@ export default function LoginPage() {
                     name="username"
                     value={formData.username}
                     onChange={handleInputChange}
+                    onKeyPress={handleKeyPress}
                     placeholder="username.IT*"
                     className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent text-black"
                     required
@@ -188,11 +208,12 @@ export default function LoginPage() {
                     <Lock className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
-                    type={showPassword ? "text" : "password"} // 👈 toggle visible
+                    type={showPassword ? "text" : "password"}
                     id="motDePasse"
                     name="motDePasse"
                     value={formData.motDePasse}
                     onChange={handleInputChange}
+                    onKeyPress={handleKeyPress}
                     placeholder="••••••••"
                     className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:border-transparent text-black"
                     required
@@ -214,14 +235,17 @@ export default function LoginPage() {
 
               {/* Boutons */}
               <div className="space-y-4">
-                                            <button
-                              type="button"
-                              disabled={isLoading}
-                              onClick={handleSubmit}
-                              className="w-full bg-[#4B2A7B] text-white py-3 px-4 rounded-lg font-medium hover:bg-[#5B3A8B] focus:outline-none focus:ring-2 focus:ring-[#4B2A7B] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                              {isLoading ? "Connexion..." : "Login now"}
-                            </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }}
+                  className="w-full bg-[#4B2A8B] text-white py-3 px-4 rounded-lg font-medium hover:bg-[#5B2A8B] focus:outline-none focus:ring-2 focus:ring-[#4B2A8B] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoading ? "Connexion..." : "Login now"}
+                </button>
 
                 <Link
                   to="/contact/admin"
@@ -245,6 +269,7 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+      
     </div>
   );
 }

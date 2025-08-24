@@ -25,6 +25,7 @@ export interface User {
   nom?: string;     
   prenom?: string;
   dateCreation?: string;
+  enabled?: boolean;
 }
 
 export interface CreateUserRequestBackend {
@@ -45,6 +46,7 @@ export interface UpdateUserRequest {
   department?: Department;
   phone?: string;
   actif?: boolean;
+  enabled?: boolean;
 }
 
 export interface UserStats {
@@ -79,8 +81,13 @@ export const userService = {
     await apiClient.delete(`/admin/users/${id}`);
   },
 
-  toggleUserStatus: async (id: number): Promise<User> => {
-    const { data } = await apiClient.patch(`/admin/users/${id}/toggle-status`);
+  enableUser: async (id: number): Promise<User> => {
+    const { data } = await apiClient.put(`/admin/users/${id}/enable`);
+    return data;
+  },
+
+  disableUser: async (id: number): Promise<User> => {
+    const { data } = await apiClient.put(`/admin/users/${id}/disable`);
     return data;
   },
 

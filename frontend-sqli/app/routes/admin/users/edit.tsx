@@ -34,7 +34,7 @@ export default function EditUser() {
 
   // State de formulaire pour l'édition (pas de password ici)
   const [form, setForm] = useState<Required<Pick<User,
-    'nom' | 'email' | 'role' | 'department' | 'jobTitle' | 'phone' | 'actif'
+    'nom' | 'email' | 'role' | 'department' | 'jobTitle' | 'phone' | 'actif' | 'enabled'
   >>>({
     nom: '',
     email: '',
@@ -43,6 +43,7 @@ export default function EditUser() {
     jobTitle: '',
     phone: '',
     actif: true,
+    enabled: true,
   });
 
   // Charger mes infos + l'utilisateur à éditer
@@ -64,6 +65,7 @@ export default function EditUser() {
           jobTitle: u.jobTitle ?? '',
           phone: u.phone ?? '',
           actif: u.actif ?? true,
+          enabled: u.enabled ?? true,
         });
       } catch (e: any) {
         console.error(e);
@@ -102,6 +104,7 @@ export default function EditUser() {
         department: form.department as Department,
         phone: form.phone?.trim() || undefined,
         actif: form.actif,
+        enabled: form.enabled,
       };
 
       await userService.updateUser(userId, payload);
@@ -306,22 +309,28 @@ export default function EditUser() {
                   </div>
                 </div>
 
-                {/* Statut */}
+                {/* Statut d'activation */}
                 <div className="lg:col-span-2">
                   <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                    Statut
+                    Statut d'activation
                   </label>
                   <button
                     type="button"
-                    onClick={() => setForm(f => ({ ...f, actif: !f.actif }))}
+                    onClick={() => setForm(f => ({ ...f, enabled: !f.enabled }))}
                     className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border transition
-                      ${form.actif
+                      ${form.enabled
                         ? 'border-green-600 text-green-700 bg-green-50'
-                        : 'border-gray-300 text-gray-700 bg-gray-50'}`}
+                        : 'border-red-600 text-red-700 bg-red-50'}`}
                   >
                     <ShieldCheck className="h-4 w-4" />
-                    {form.actif ? 'Actif' : 'Inactif'}
+                    {form.enabled ? 'Activé' : 'Désactivé'}
                   </button>
+                  <p className="text-sm text-gray-600 mt-2">
+                    {form.enabled 
+                      ? 'L\'utilisateur peut se connecter et accéder au système'
+                      : 'L\'utilisateur ne peut pas se connecter au système'
+                    }
+                  </p>
                 </div>
               </div>
 

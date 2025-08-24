@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Search, Plus, Trash2, Edit, User, Activity, RotateCcw, FilterX, AlertTriangle, X
+  Search, Plus, Trash2, Edit, User, Activity, RotateCcw, FilterX, AlertTriangle, X,
+  CheckCircle
 } from 'lucide-react';
 import NavAdmin from '../../components/NavAdmin';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -115,6 +116,8 @@ export default function AdminUsers() {
       setDeletingUserId(null);
     }
   };
+
+
 
   const resetAll = () => {
     setQ('');
@@ -264,6 +267,7 @@ export default function AdminUsers() {
                       <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
                       <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Username</th>
                       <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Rôle</th>
+                      <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Statut</th>
                       <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
@@ -286,7 +290,7 @@ export default function AdminUsers() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {u.role?.replace('_', ' ') ?? '—'}
+                          {u.jobTitle ?? '—'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {u.email ?? '—'}
@@ -299,6 +303,13 @@ export default function AdminUsers() {
                             {u.role?.replace('_', ' ') ?? '—'}
                           </span>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            u.enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {u.enabled ? 'Actif' : 'Inactif'}
+                          </span>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center gap-2">
                             <button
@@ -308,6 +319,7 @@ export default function AdminUsers() {
                             >
                               <Edit className="h-4 w-4" />
                             </button>
+
                             <button
                               onClick={() => openDeleteModal(u)}
                               className="text-red-600 hover:text-red-800"

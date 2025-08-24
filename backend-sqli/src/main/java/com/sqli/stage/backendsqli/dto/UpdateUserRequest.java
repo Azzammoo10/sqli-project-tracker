@@ -22,4 +22,5 @@ public class UpdateUserRequest {
     private String jobTitle;
     private TypeDepartment department;
     private String phone;
+    private Boolean enabled;
 }

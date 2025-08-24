@@ -14,6 +14,10 @@ import HistoryHeader from '../../components/HistoryHeader';
 import AdvancedFilters from '../../components/AdvancedFilters';
 import HistoryTable from '../../components/HistoryTable';
 
+// Fonction utilitaire pour formater les chaînes
+const pretty = (s: string) =>
+  s?.toLowerCase().replace(/_/g, ' ').replace(/^\w/, c => c?.toUpperCase()) ?? '';
+
 export default function AdminHistory() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);

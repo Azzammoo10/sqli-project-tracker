@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, MessageSquare, AlertTriangle } from 'lucide-react';
 import { contactService } from '../../services/api';
 import toast from 'react-hot-toast';
-import serverIllustration from '../../assets/images/undraw_server-cluster_7ugi.svg';
+import serverIllustration from '../../assets/images/secure-server-animate.svg';
 import sqliLogo from '../../assets/images/SQLI-LOGO.png';
 
 export default function ContactAdminPage() {
@@ -291,8 +291,8 @@ export default function ContactAdminPage() {
               <img 
                 src={serverIllustration} 
                 alt="Server Cluster" 
-                className="w-full max-w-md mx-auto"
-              />
+                className="w-[400px] max-w-none mx-auto"
+                />
             </div>
           </div>
         </div>

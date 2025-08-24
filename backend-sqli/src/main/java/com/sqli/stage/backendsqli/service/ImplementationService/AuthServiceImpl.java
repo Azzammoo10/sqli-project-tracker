@@ -1,3 +1,4 @@
+
 package com.sqli.stage.backendsqli.service.ImplementationService;
 
 import com.sqli.stage.backendsqli.dto.HistoriqueDTO.LogRequest;
@@ -7,6 +8,9 @@ import com.sqli.stage.backendsqli.entity.Enums.EntityName;
 import com.sqli.stage.backendsqli.entity.Enums.TypeOperation;
 import com.sqli.stage.backendsqli.entity.User;
 import com.sqli.stage.backendsqli.exception.InvalidTokenException;
+import com.sqli.stage.backendsqli.exception.InvalidCredentialsException;
+import com.sqli.stage.backendsqli.exception.UserNotFoundException;
+import com.sqli.stage.backendsqli.exception.UserDisabledException;
 import com.sqli.stage.backendsqli.repository.UserRepository;
 import com.sqli.stage.backendsqli.security.JwtUtil;
 import com.sqli.stage.backendsqli.service.AuthService;
@@ -31,13 +35,17 @@ public class AuthServiceImpl implements AuthService {
     public LoginResponse login(LoginRequest request) {
         System.out.println("Tentative de connexion pour : " + request.getUsername());
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("Nom d'utilisateur incorrect"));
+                .orElseThrow(() -> new UserNotFoundException("Nom d'utilisateur incorrect"));
 
         System.out.println("Utilisateur trouvé : " + user.getUsername());
 
+        // Vérifier si l'utilisateur est activé AVANT de vérifier le mot de passe
+        if (!user.isEnabled()) {
+            throw new UserDisabledException("Votre compte est désactivé. Veuillez contacter l'administrateur.");
+        }
 
         if (!passwordEncoder.matches(request.getMotDePasse(), user.getMotDePasse())) {
-            throw new RuntimeException("Mot de passe incorrect");
+            throw new InvalidCredentialsException("Mot de passe incorrect");
         }
 
         String token = jwtUtil.generateToken(user.getUsername(), user.getRole().name(),user.getId());

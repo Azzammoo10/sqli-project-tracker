@@ -26,12 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.HashMap;
-import java.util.ArrayList;
 
 @RequiredArgsConstructor
 @Service
@@ -188,21 +184,63 @@ public class TaskserviceImpl implements Taskservice {
 
 
     @Override
+    @Transactional
     public void deleteTask(int id) {
         Task task = taskRepoistory.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("task introuvable avec l'id : " + id));
 
-        if(task.getProject().getCreatedBy().getId() != getCurrentUser().getId()){
+        if(!Objects.equals(task.getProject().getCreatedBy().getId(), getCurrentUser().getId())){
             throw new AccessdeniedException("Vous n'avez pas les droits de mise a jour pour cette task");
         }
-        taskRepoistory.deleteById(id);
 
-        LogRequest logRequest = new LogRequest();
-        logRequest.setAction(TypeOperation.SUPPRESSION);
-        logRequest.setDescription("Création du tache '" + task.getTitre() + "' (ID: " + task.getId() + ") par " + getCurrentUser().getUsername());
-        logRequest.setEntityId(task.getId());
-        logRequest.setEntityName(EntityName.TASK);
-        historiqueService.logAction(logRequest);
+        try {
+            System.out.println("=== SUPPRESSION TÂCHE: Début de la suppression de la tâche " + task.getTitre() + " ===");
+            
+            // 1. Désassigner la tâche du développeur
+            if (task.getDeveloppeur() != null) {
+                User developpeur = task.getDeveloppeur();
+                System.out.println("Désassignation du développeur: " + developpeur.getUsername());
+                
+                // Retirer la tâche de la liste des tâches du développeur
+                if (developpeur.getTasks() != null) {
+                    developpeur.getTasks().removeIf(t -> t.getId().equals(task.getId()));
+                }
+                userRepository.save(developpeur);
+            }
+            
+            // 2. Retirer la tâche du projet
+            Project project = task.getProject();
+            if (project.getTasks() != null) {
+                project.getTasks().removeIf(t -> t.getId().equals(task.getId()));
+                projetRepository.save(project);
+                System.out.println("Tâche retirée du projet: " + project.getTitre());
+            }
+            
+            // 3. Supprimer les pointages associés (AccountAnalyticLine)
+            if (task.getPointages() != null && !task.getPointages().isEmpty()) {
+                System.out.println("Suppression de " + task.getPointages().size() + " pointages");
+                // Les pointages seront supprimés automatiquement grâce au cascade = CascadeType.ALL
+            }
+            
+            // 4. Maintenant supprimer la tâche
+            taskRepoistory.deleteById(id);
+            System.out.println("=== SUPPRESSION TÂCHE: Tâche " + task.getTitre() + " supprimée avec succès ===");
+
+            // 5. Mettre à jour la progression du projet
+            projetService.updateProjectProgress(project.getId());
+
+            // 6. Log de l'action
+            LogRequest logRequest = new LogRequest();
+            logRequest.setAction(TypeOperation.SUPPRESSION);
+            logRequest.setDescription("Suppression de la tâche '" + task.getTitre() + "' (ID: " + task.getId() + ") par " + getCurrentUser().getUsername());
+            logRequest.setEntityId(task.getId());
+            logRequest.setEntityName(EntityName.TASK);
+            historiqueService.logAction(logRequest);
+            
+        } catch (Exception e) {
+            System.out.println("=== SUPPRESSION TÂCHE: Erreur lors de la suppression: " + e.getMessage() + " ===");
+            throw new RuntimeException("Erreur lors de la suppression de la tâche : " + e.getMessage());
+        }
     }
 
     @Override
