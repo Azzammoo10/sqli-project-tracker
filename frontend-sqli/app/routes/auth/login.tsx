@@ -4,7 +4,7 @@ import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { authService } from "~/services/api";
 
 import toast from "react-hot-toast";
-import secureIllustration from "../../assets/images/undraw_secure.svg";
+import secureIllustration from "../../assets/images/secure-login-animate.svg";
 import sqliLogo from "../../assets/images/SQLI-LOGO.png";
 
 type LoginForm = {
@@ -263,7 +263,7 @@ export default function LoginPage() {
               <img
                 src={secureIllustration}
                 alt="Secure Login"
-                className="w-full max-w-md mx-auto"
+                className="w-[400px] max-w-none mx-auto"
               />
             </div>
           </div>
