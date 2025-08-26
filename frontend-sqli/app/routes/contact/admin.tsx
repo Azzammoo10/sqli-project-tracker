@@ -291,7 +291,7 @@ export default function ContactAdminPage() {
               <img 
                 src={serverIllustration} 
                 alt="Server Cluster" 
-                className="w-[400px] max-w-none mx-auto"
+                className="w-[420px] max-w-none mx-auto"
                 />
             </div>
           </div>
