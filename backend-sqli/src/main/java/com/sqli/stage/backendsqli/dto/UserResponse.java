@@ -1,4 +1,5 @@
 package com.sqli.stage.backendsqli.dto;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.sqli.stage.backendsqli.entity.Enums.Role;
 import com.sqli.stage.backendsqli.entity.Enums.TypeDepartment;
 import com.sqli.stage.backendsqli.entity.User;
@@ -21,8 +22,7 @@ public class UserResponse {
     private TypeDepartment department;
     private String phone;
     private boolean enabled;
-
-
+    
     public static UserResponse from(User user) {
         return UserResponse.builder()
                 .id(user.getId())

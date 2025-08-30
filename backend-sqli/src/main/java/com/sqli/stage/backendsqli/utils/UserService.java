@@ -44,17 +44,7 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        return new UserResponse(
-                savedUser.getId(),
-                savedUser.getUsername(),
-                savedUser.getEmail(),
-                savedUser.getNom(),
-                savedUser.getRole(),
-                savedUser.getJobTitle(),
-                savedUser.getDepartment(),
-                savedUser.getPhone(),
-                savedUser.isEnabled()
-        );
+        return UserResponse.from(savedUser);
     }
 
     public boolean existsByEmail(String email) {

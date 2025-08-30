@@ -59,7 +59,7 @@ public class AdminServiceImpl implements AdminService {
             };
 
             int random = ThreadLocalRandom.current().nextInt(1000, 10000);
-            username = cleanNom + "." + roleCode + "-sqli" + random;
+            username = cleanNom + "." + roleCode + "-Sqli" + random;
             attempts++;
             if (attempts > 10) {
                 throw new RuntimeException("Impossible de générer un username unique");
@@ -88,38 +88,18 @@ public class AdminServiceImpl implements AdminService {
         user.setUsername(generateUsername(request.getNom(), role));
         user.setEnabled(true);
         user.setJobTitle(request.getJobTitle());
-        user.setDepartment(request.getDepartment());
+                user.setDepartment(request.getDepartment());
         user.setPhone(request.getPhone());
-
+        
         User savedUser = userRepository.save(user);
 
-        return new UserResponse(
-                savedUser.getId(),
-                savedUser.getUsername(),
-                savedUser.getEmail(),
-                savedUser.getNom(),
-                savedUser.getRole(),
-                savedUser.getJobTitle(),
-                savedUser.getDepartment(),
-                savedUser.getPhone(),
-                savedUser.isEnabled()
-        );
+        return UserResponse.from(savedUser);
     }
 
     @Override
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll().stream()
-                .map(user -> new UserResponse(
-                        user.getId(),
-                        user.getUsername(),
-                        user.getEmail(),
-                        user.getNom(),
-                        user.getRole(),
-                        user.getJobTitle(),
-                        user.getDepartment(),
-                        user.getPhone(),
-                        user.isEnabled()
-                ))
+                .map(UserResponse::from)
                 .collect(Collectors.toList());
     }
 
@@ -128,17 +108,7 @@ public class AdminServiceImpl implements AdminService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec l'id : " + id));
 
-        return new UserResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getNom(),
-                user.getRole(),
-                user.getJobTitle(),
-                user.getDepartment(),
-                user.getPhone(),
-                user.isEnabled()
-        );
+        return UserResponse.from(user);
     }
 
     @Override
@@ -148,8 +118,9 @@ public class AdminServiceImpl implements AdminService {
 
         if (request.getNom() != null) user.setNom(request.getNom());
         if (request.getEmail() != null) user.setEmail(request.getEmail());
-        if (request.getMotDePasse() != null)
+        if (request.getMotDePasse() != null) {
             user.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
+        }
         if (request.getRole() != null) user.setRole(request.getRole());
         if (request.getJobTitle() != null) user.setJobTitle(request.getJobTitle());
         if (request.getDepartment() != null) user.setDepartment(request.getDepartment());
@@ -179,17 +150,7 @@ public class AdminServiceImpl implements AdminService {
 
         User updatedUser = userRepository.save(user);
 
-        return new UserResponse(
-                updatedUser.getId(),
-                updatedUser.getUsername(),
-                updatedUser.getEmail(),
-                updatedUser.getNom(),
-                updatedUser.getRole(),
-                updatedUser.getJobTitle(),
-                updatedUser.getDepartment(),
-                updatedUser.getPhone(),
-                updatedUser.isEnabled()
-        );
+        return UserResponse.from(updatedUser);
     }
 
     @Override
@@ -202,32 +163,117 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Impossible de supprimer un administrateur");
         }
 
-        // NOUVELLE APPROCHE: Désactiver l'utilisateur au lieu de le supprimer
-        // Cela préserve l'intégrité des données historiques et évite les erreurs de contraintes
         try {
-            // Désactiver l'utilisateur pour qu'il ne puisse plus se connecter
-            user.setEnabled(false);
+            System.out.println("=== SUPPRESSION SÉCURISÉE DE L'UTILISATEUR " + user.getUsername() + " ===");
             
-            // Optionnel: marquer le nom d'utilisateur comme supprimé pour éviter les conflits
+            // 1. Gérer les projets où l'utilisateur est client
+            if (user.getRole() == Role.CLIENT) {
+                List<Project> clientProjects = projetRepository.findByClientId(id);
+                if (!clientProjects.isEmpty()) {
+                    System.out.println("⚠️  ATTENTION: L'utilisateur est client de " + clientProjects.size() + " projet(s)");
+                    System.out.println("   Ces projets seront marqués comme 'SANS CLIENT'");
+                    
+                    for (Project project : clientProjects) {
+                        project.setClient(null); // Retirer la référence au client
+                        projetRepository.save(project);
+                        System.out.println("   Projet '" + project.getTitre() + "' marqué comme sans client");
+                    }
+                }
+            }
+            
+            // 2. Gérer les projets où l'utilisateur est créateur
+            List<Project> createdProjects = projetRepository.findByCreatedById(id);
+            if (!createdProjects.isEmpty()) {
+                System.out.println("⚠️  ATTENTION: L'utilisateur est créateur de " + createdProjects.size() + " projet(s)");
+                System.out.println("   Ces projets seront marqués comme créés par 'SYSTÈME'");
+                
+                // Trouver un admin pour remplacer le créateur
+                User adminUser = userRepository.findByRole(Role.ADMIN).stream().findFirst()
+                    .orElseThrow(() -> new RuntimeException("Aucun admin trouvé pour remplacer le créateur"));
+                
+                for (Project project : createdProjects) {
+                    project.setCreatedBy(adminUser);
+                    projetRepository.save(project);
+                    System.out.println("   Projet '" + project.getTitre() + "' créateur remplacé par " + adminUser.getUsername());
+                }
+            }
+            
+            // 3. Retirer l'utilisateur de tous les projets où il est développeur
+            List<Project> allProjects = projetRepository.findAll();
+            int projectsUpdated = 0;
+            for (Project project : allProjects) {
+                if (project.getDeveloppeurs() != null && project.getDeveloppeurs().contains(user)) {
+                    project.getDeveloppeurs().remove(user);
+                    projetRepository.save(project);
+                    projectsUpdated++;
+                    System.out.println("   Utilisateur retiré du projet: " + project.getTitre());
+                }
+            }
+            if (projectsUpdated > 0) {
+                System.out.println("   Total: " + projectsUpdated + " projet(s) mis à jour");
+            }
+            
+            // 4. Gérer les tâches assignées à cet utilisateur
+            List<Task> userTasks = taskRepository.findByDeveloppeurId(id);
+            if (!userTasks.isEmpty()) {
+                System.out.println("⚠️  ATTENTION: " + userTasks.size() + " tâche(s) assignée(s) à cet utilisateur");
+                System.out.println("   Ces tâches seront marquées comme 'NON ASSIGNÉES'");
+                
+                // Trouver un développeur disponible pour réassigner les tâches
+                User replacementDev = userRepository.findByRole(Role.DEVELOPPEUR).stream()
+                    .filter(u -> !u.getId().equals(id) && u.isEnabled())
+                    .findFirst()
+                    .orElse(null);
+                
+                for (Task task : userTasks) {
+                    if (replacementDev != null) {
+                        task.setDeveloppeur(replacementDev);
+                        System.out.println("   Tâche '" + task.getTitre() + "' réassignée à " + replacementDev.getUsername());
+                    } else {
+                        task.setDeveloppeur(null); // Marquer comme non assignée
+                        System.out.println("   Tâche '" + task.getTitre() + "' marquée comme non assignée");
+                    }
+                    taskRepository.save(task);
+                }
+            }
+            
+            // 5. Gérer l'historique (garder les logs mais marquer l'utilisateur comme supprimé)
+            List<Historique> userHistoriques = historiqueRepository.findByUserId(id);
+            if (!userHistoriques.isEmpty()) {
+                System.out.println("   " + userHistoriques.size() + " entrée(s) d'historique conservée(s)");
+            }
+            
+            // 6. Désactiver l'utilisateur au lieu de le supprimer
             String originalUsername = user.getUsername();
-            user.setUsername(originalUsername + "_DELETED_" + System.currentTimeMillis());
+            String originalEmail = user.getEmail();
+            
+            user.setEnabled(false);
+            user.setUsername("DELETED_" + originalUsername + "_" + System.currentTimeMillis());
             user.setEmail("deleted_" + System.currentTimeMillis() + "@deleted.com");
+            user.setNom("Utilisateur Supprimé");
+            user.setJobTitle("Supprimé");
+            user.setPhone("N/A");
             
-            // Sauvegarder les changements
-            userRepository.save(user);
+            User deletedUser = userRepository.save(user);
             
-            // Logger l'action
+            // 7. Logger l'action de suppression
             historiqueService.logAction(new LogRequest(
                 TypeOperation.DISABLE_USER,
-                "Utilisateur supprimé (désactivé) : " + originalUsername,
-                user.getId(),
+                "Utilisateur supprimé (désactivé) : " + originalUsername + " (ID: " + id + ")",
+                deletedUser.getId(),
                 EntityName.USER
             ));
             
-            System.out.println("Utilisateur " + originalUsername + " désactivé avec succès au lieu d'être supprimé");
+            System.out.println("✅ SUPPRESSION TERMINÉE AVEC SUCCÈS !");
+            System.out.println("   Utilisateur: " + originalUsername + " (ID: " + id + ")");
+            System.out.println("   Email original: " + originalEmail);
+            System.out.println("   Statut: Désactivé et marqué comme supprimé");
+            System.out.println("   Historique: Conservé pour traçabilité");
             
         } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la désactivation de l'utilisateur : " + e.getMessage());
+            System.err.println("❌ ERREUR LORS DE LA SUPPRESSION: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Erreur lors de la suppression sécurisée de l'utilisateur : " + e.getMessage());
         }
     }
 
@@ -303,17 +349,7 @@ public class AdminServiceImpl implements AdminService {
         user.setRole(role);
         User updatedUser = userRepository.save(user);
 
-        return new UserResponse(
-                updatedUser.getId(),
-                updatedUser.getUsername(),
-                updatedUser.getEmail(),
-                updatedUser.getNom(),
-                updatedUser.getRole(),
-                updatedUser.getJobTitle(),
-                updatedUser.getDepartment(),
-                updatedUser.getPhone(),
-                updatedUser.isEnabled()
-        );
+        return UserResponse.from(updatedUser);
     }
 
     @Override
@@ -332,17 +368,7 @@ public class AdminServiceImpl implements AdminService {
                 EntityName.USER
         ));
 
-        return new UserResponse(
-                enabledUser.getId(),
-                enabledUser.getUsername(),
-                enabledUser.getEmail(),
-                enabledUser.getNom(),
-                enabledUser.getRole(),
-                enabledUser.getJobTitle(),
-                enabledUser.getDepartment(),
-                enabledUser.getPhone(),
-                enabledUser.isEnabled()
-        );
+        return UserResponse.from(enabledUser);
     }
 
     @Override
@@ -361,17 +387,7 @@ public class AdminServiceImpl implements AdminService {
                 EntityName.USER
         ));
 
-        return new UserResponse(
-                disabledUser.getId(),
-                disabledUser.getUsername(),
-                disabledUser.getEmail(),
-                disabledUser.getNom(),
-                disabledUser.getRole(),
-                disabledUser.getJobTitle(),
-                disabledUser.getDepartment(),
-                disabledUser.getPhone(),
-                disabledUser.isEnabled()
-        );
+        return UserResponse.from(disabledUser);
     }
 
     @Override
@@ -393,17 +409,7 @@ public class AdminServiceImpl implements AdminService {
 
         User savedAdmin = userRepository.save(user);
 
-        return new UserResponse(
-                savedAdmin.getId(),
-                savedAdmin.getUsername(),
-                savedAdmin.getEmail(),
-                savedAdmin.getNom(),
-                savedAdmin.getRole(),
-                savedAdmin.getJobTitle(),
-                savedAdmin.getDepartment(),
-                savedAdmin.getPhone(),
-                savedAdmin.isEnabled()
-        );
+        return UserResponse.from(savedAdmin);
     }
 
     @Override
@@ -438,5 +444,6 @@ public class AdminServiceImpl implements AdminService {
 
         return Role.DEVELOPPEUR;
     }
+
 
 }

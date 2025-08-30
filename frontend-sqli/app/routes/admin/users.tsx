@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Search, Plus, Trash2, Edit, User, Activity, RotateCcw, FilterX, AlertTriangle, X,
-  CheckCircle
+  Search, Plus, Trash2, Edit, User, Activity, RotateCcw, FilterX, AlertTriangle, X
 } from 'lucide-react';
 import NavAdmin from '../../components/NavAdmin';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -116,8 +115,6 @@ export default function AdminUsers() {
       setDeletingUserId(null);
     }
   };
-
-
 
   const resetAll = () => {
     setQ('');
