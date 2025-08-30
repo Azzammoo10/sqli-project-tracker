@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sqli.stage.backendsqli.controller.AnalyticsController;
 import com.sqli.stage.backendsqli.controller.ProjetController;
 import com.sqli.stage.backendsqli.controller.TaskController;
-import com.sqli.stage.backendsqli.dto.*;
 import com.sqli.stage.backendsqli.dto.AnalyticDTO.*;
 import com.sqli.stage.backendsqli.dto.ProjectDTO.*;
 import com.sqli.stage.backendsqli.dto.TaskDTO.*;
