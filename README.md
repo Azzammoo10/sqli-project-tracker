@@ -2,11 +2,11 @@
 
 <div align="center">
 
-![SQLI Logo](frontend-sqli/app/assets/images/SQLI-LOGO.png)
+![SQLI Logo](frontend-sqli/app/assets/images/logoanimmeSQLI.gif)
 
 **Portail web intelligent pour la gestion collaborative de projets clients**
 
-*Développé pour SQLI Rabat & RFC Digital Rabat*
+*Développé pour SQLI Rabat*
 
 [![React](https://img.shields.io/badge/React-19.1.0-blue.svg)](https://reactjs.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.3-green.svg)](https://spring.io/projects/spring-boot)
@@ -46,7 +46,7 @@ Le **Portail Intelligent de Suivi des Projets Clients** est une application web 
 
 ### 👥 Équipe de Développement
 - **[Mohamed AZZAM](https://github.com/Azzammoo10)** - Développeur Full Stack
-- **[Aya Ouahi](https://github.com/Ayaaa9)** - Développeuse Full Stack
+
 
 ---
 
@@ -76,6 +76,9 @@ Le **Portail Intelligent de Suivi des Projets Clients** est une application web 
 
 #### Gestion des Projets
 ![Projects Management](Screen/Admin/projects.png)
+
+#### Gestion des Réclamations
+![Reclamations Management](Screen/Admin/Reclamation.png)
 
 #### Historique des Actions
 ![Logs](Screen/Admin/logs.png)
@@ -136,6 +139,9 @@ Le **Portail Intelligent de Suivi des Projets Clients** est une application web 
 
 #### Liste des Projets
 ![Client Projects](Screen/Cli/projects.png)
+
+#### Accès QR Code Mobile
+![QR Code Mobile](Screen/Cli/qrcodePhone.png)
 
 </div>
 
@@ -377,17 +383,17 @@ Authorization: Bearer <jwt_token>
 | **Développeur** | **GitHub** | **Rôle** |
 |-----------------|------------|----------|
 | **Mohamed AZZAM** | [@Azzammoo10](https://github.com/Azzammoo10) | Full Stack Developer |
-| **Aya Ouahi** | [@Ayaaa9](https://github.com/Ayaaa9) | Full Stack Developer |
+
 
 ### 📧 Informations de Contact
 
-- **GitHub** : [@Azzammoo10](https://github.com/Azzammoo10), [@Ayaaa9](https://github.com/Ayaaa9)
+- **GitHub** : [@Azzammoo10](https://github.com/Azzammoo10)
 - **Email** : Via profils GitHub
 - **LinkedIn** : À venir
 
 ### 🏢 Entreprise
 
-- **SQLI Rabat** & **RFC Digital Rabat**
+- **SQLI Rabat** 
 - **Type** : Projet de Fin d'Année (Stage)
 - **Date** : Août 2025
 
@@ -435,7 +441,7 @@ Authorization: Bearer <jwt_token>
 
 <div align="center">
 
-**🚀 Projet développé avec passion pour SQLI Rabat & RFC Digital Rabat**
+**🚀 Projet développé avec passion pour SQLI Rabat**
 
 *Dernière mise à jour : Août 2025 | Version : 1.0.0 | Statut : Production Ready*
 

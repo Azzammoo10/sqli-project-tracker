@@ -7,7 +7,6 @@ import com.sqli.stage.backendsqli.dto.UserResponse;
 import com.sqli.stage.backendsqli.entity.Enums.EntityName;
 import com.sqli.stage.backendsqli.entity.Enums.TypeOperation;
 import com.sqli.stage.backendsqli.entity.User;
-import com.sqli.stage.backendsqli.exception.InvalidTokenException;
 import com.sqli.stage.backendsqli.exception.ResourceNotFoundException;
 import com.sqli.stage.backendsqli.repository.UserRepository;
 import com.sqli.stage.backendsqli.security.TokenBlacklist;

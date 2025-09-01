@@ -23,7 +23,6 @@ import com.sqli.stage.backendsqli.repository.ProjetRepository;
 import com.sqli.stage.backendsqli.repository.TaskRepository;
 import com.sqli.stage.backendsqli.repository.UserRepository;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 

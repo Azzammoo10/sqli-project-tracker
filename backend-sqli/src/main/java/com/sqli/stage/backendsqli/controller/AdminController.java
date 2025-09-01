@@ -2,8 +2,6 @@ package com.sqli.stage.backendsqli.controller;
 
 import com.sqli.stage.backendsqli.dto.*;
 import com.sqli.stage.backendsqli.entity.Enums.Role;
-import com.sqli.stage.backendsqli.exception.EmailAlreadyExistsException;
-import com.sqli.stage.backendsqli.exception.ResourceNotFoundException;
 import com.sqli.stage.backendsqli.service.AdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

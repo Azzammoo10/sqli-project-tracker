@@ -3,7 +3,6 @@ package com.sqli.stage.backendsqli.controller;
 import com.sqli.stage.backendsqli.dto.ProjectDTO.*;
 import com.sqli.stage.backendsqli.entity.Enums.StatutProjet;
 import com.sqli.stage.backendsqli.entity.Project;
-import com.sqli.stage.backendsqli.exception.ResourceNotFoundException;
 import com.sqli.stage.backendsqli.repository.ProjetRepository;
 import com.sqli.stage.backendsqli.service.ProjetService;
 import jakarta.validation.Valid;
