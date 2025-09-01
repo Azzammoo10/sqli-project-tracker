@@ -26,6 +26,7 @@
 - [⚡ Fonctionnalités](#-fonctionnalités)
 - [🚀 Installation](#-installation)
 - [🔧 Configuration](#-configuration)
+- [📱 Scripts de Démarrage](#-scripts-de-démarrage)
 - [📊 API Documentation](#-api-documentation)
 - [🤝 Contribution](#-contribution)
 - [📞 Contact](#-contact)
@@ -276,14 +277,83 @@ cd stage-sqli
 # 2. Configuration de la base de données
 # Créer une base PostgreSQL et configurer application.properties
 
-# 3. Démarrer le backend
+# 3. Démarrer l'environnement complet avec le script PowerShell
+.\start-dev.ps1
+
+# OU démarrage manuel :
+# 3a. Démarrer le backend
 cd backend-sqli
 ./mvnw spring-boot:run
 
-# 4. Démarrer le frontend (nouveau terminal)
+# 3b. Démarrer le frontend (nouveau terminal)
 cd frontend-sqli
 npm install
 npm run dev
+```
+
+### 🚀 Démarrage Automatique avec start-dev.ps1
+
+Le script `start-dev.ps1` automatise complètement le démarrage de l'environnement de développement :
+
+#### 📋 Prérequis
+- **PowerShell** : Version 5.1+ (inclus avec Windows 10/11)
+- **ngrok** : Installé et configuré avec `ngrok.yml`
+- **Java 17+** : Pour le backend Spring Boot
+- **Node.js 18+** : Pour le frontend React
+- **PostgreSQL** : Base de données configurée
+
+#### 🎯 Fonctionnalités du Script
+- ✅ **Démarrage automatique de ngrok** avec configuration
+- ✅ **Détection automatique des tunnels** ngrok
+- ✅ **Mise à jour automatique** des URLs dans les services
+- ✅ **Démarrage séquentiel** du backend puis frontend
+- ✅ **Gestion des ports** et des dépendances
+- ✅ **Mise à jour des QR codes** avec les nouvelles URLs
+
+#### 🔧 Utilisation
+
+```powershell
+# 1. Ouvrir PowerShell en tant qu'administrateur
+# 2. Naviguer vers le répertoire du projet
+cd C:\Users\AZZAM\Desktop\Projet_Stage_4IIR\stage-sqli
+
+# 3. Exécuter le script
+.\start-dev.ps1
+
+# 4. Attendre que tous les services démarrent
+# 5. L'application sera accessible sur :
+#    - Frontend : http://localhost:5173
+#    - Backend : http://localhost:8080
+#    - ngrok : https://XXXX.ngrok-free.app
+```
+
+#### 📱 Mise à Jour Automatique des QR Codes
+
+Le script met automatiquement à jour :
+- `frontend-sqli/app/services/qrCodeService.ts`
+- `backend-sqli/src/main/java/com/sqli/stage/backendsqli/service/QRCodeService.java`
+
+Avec les nouvelles URLs ngrok pour permettre l'accès mobile via QR codes.
+
+#### ⚠️ Résolution des Problèmes
+
+**Erreur "ngrok n'est pas reconnu" :**
+```powershell
+# Ajouter ngrok au PATH ou utiliser le chemin complet
+C:\Users\AZZAM\AppData\Local\ngrok\ngrok.exe start --all --config ngrok.yml
+```
+
+**Erreur de permissions PowerShell :**
+```powershell
+# Exécuter en tant qu'administrateur ou changer la politique
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+**Ports déjà utilisés :**
+```powershell
+# Vérifier les processus sur les ports
+netstat -ano | findstr :8080
+netstat -ano | findstr :5173
 ```
 
 ---
@@ -314,6 +384,103 @@ jwt.expiration=86400000
 ```typescript
 // services/api.ts
 const API_BASE_URL = 'http://localhost:8080/api';
+```
+
+### 🌍 Configuration ngrok
+
+Pour l'accès mobile et le partage de l'application :
+
+#### 📁 Fichier ngrok.yml
+```yaml
+version: "2"
+authtoken: "your_ngrok_auth_token"
+tunnels:
+  frontend:
+    addr: 5173
+    proto: http
+  backend:
+    addr: 8080
+    proto: http
+```
+
+#### 🔑 Obtenir un Token ngrok
+1. Créer un compte sur [ngrok.com](https://ngrok.com)
+2. Récupérer le token d'authentification
+3. Remplacer `your_ngrok_auth_token` dans `ngrok.yml`
+
+#### 📱 Accès Mobile
+- **QR Code automatique** : Le script `start-dev.ps1` met à jour automatiquement les URLs
+- **Accès direct** : Utiliser l'URL ngrok générée
+- **Partage** : Envoyer l'URL ngrok aux testeurs
+
+---
+
+## 📱 Scripts de Démarrage
+
+### 🚀 start-dev.ps1 - Démarrage Automatique Complet
+
+Le script `start-dev.ps1` est la solution recommandée pour démarrer l'environnement de développement complet.
+
+#### 🎯 Avantages
+- **Démarrage en un clic** de tous les services
+- **Configuration automatique** des tunnels ngrok
+- **Mise à jour automatique** des URLs dans le code
+- **Gestion des dépendances** entre services
+- **Interface utilisateur claire** avec statuts
+
+#### 🔧 Utilisation Avancée
+
+```powershell
+# Vérifier que ngrok est installé
+ngrok version
+
+# Vérifier la configuration
+Get-Content ngrok.yml
+
+# Exécuter avec logs détaillés
+.\start-dev.ps1 | Tee-Object -FilePath "startup.log"
+
+# Arrêter tous les services
+Get-Process -Name "java", "node", "ngrok" | Stop-Process -Force
+```
+
+#### 📊 Monitoring des Services
+
+Le script affiche en temps réel :
+- ✅ **ngrok** : Statut des tunnels et URLs générées
+- ✅ **Backend** : Démarrage Spring Boot et base de données
+- ✅ **Frontend** : Serveur de développement Vite
+- ✅ **URLs** : Liens d'accès locaux et publics
+
+#### 🚨 Dépannage Avancé
+
+**Problème de ports :**
+```powershell
+# Libérer les ports utilisés
+netstat -ano | findstr :8080
+taskkill /PID <PID> /F
+
+netstat -ano | findstr :5173
+taskkill /PID <PID> /F
+```
+
+**Problème de base de données :**
+```powershell
+# Vérifier la connexion PostgreSQL
+Test-NetConnection -ComputerName localhost -Port 5432
+
+# Redémarrer le service PostgreSQL
+Restart-Service postgresql-x64-15
+```
+
+**Problème de ngrok :**
+```powershell
+# Vérifier l'API ngrok
+Invoke-RestMethod -Uri "http://localhost:4040/api/tunnels"
+
+# Redémarrer ngrok manuellement
+Stop-Process -Name "ngrok" -Force
+Start-Process -FilePath "ngrok" -ArgumentList "start", "--all", "--config", "ngrok.yml"
 ```
 
 ---
