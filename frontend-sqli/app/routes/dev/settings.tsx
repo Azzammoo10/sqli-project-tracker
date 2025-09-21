@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+
 import {
     Activity, Mail, User as UserIcon, BadgeCheck, Save, Phone, Briefcase,
     Upload, X, Globe, ShieldCheck, Calendar as Cal, Edit, Settings
@@ -8,6 +9,7 @@ import NavDev from '../../components/NavDev';
 import { authService } from '../../services/api';
 import { userService, type Role, type Department } from '../../services/userService';
 import toast from 'react-hot-toast';
+import {useNavigate} from "react-router-dom";
 
 type Profile = {
   id: number; username: string; email: string; role: Role | string;
@@ -31,7 +33,9 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 );
 
 export default function DevSettings() {
-  const [user, setUser] = useState<Profile | null>(null);
+    const navigate = useNavigate();
+
+    const [user, setUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -82,6 +86,16 @@ export default function DevSettings() {
     } catch { toast.error('Erreur lors de la sauvegarde'); }
   };
 
+    const handleLogout = async () => {
+        try {
+            await authService.logout();
+            navigate('/auth/login');
+            toast.success('Déconnexion réussie');
+        } catch {
+            toast.error('Erreur lors de la déconnexion');
+        }
+    };
+
   const handleCancel = () => { setForm(origRef.current); setAvatarPreview(null); setIsEditing(false); };
   const pickAvatar = (f: File) => { const r = new FileReader(); r.onload = () => setAvatarPreview(String(r.result)); r.readAsDataURL(f); setIsEditing(true); };
 
@@ -101,7 +115,7 @@ export default function DevSettings() {
   return (
     <ProtectedRoute allowedRoles={['DEVELOPPEUR']}>
       <div className="flex h-screen bg-gradient-to-b from-[#f6f4fb] to-[#fbfcfe]">
-        <NavDev user={user} />
+        <NavDev user={user} onLogout={handleLogout} />
 
         <div className="flex-1 overflow-auto">
           {/* Header harmonisé */}

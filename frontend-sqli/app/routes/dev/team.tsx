@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Users,
   Mail,
@@ -15,8 +16,8 @@ import {
 } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import NavDev from '../../components/NavDev';
-import { authService } from '../../services/api';
-import { projectService, type Project } from '../../services/projectService';
+import { authService } from '~/services/api';
+import { projectService, type Project } from '~/services/projectService';
 import toast from 'react-hot-toast';
 
 interface TeamMember {
@@ -35,12 +36,23 @@ interface TeamMember {
 }
 
 export default function DevTeam() {
+  const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<TeamMember[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
+
+    const handleLogout = async () => {
+        try {
+            await authService.logout();
+            navigate('/auth/login');
+            toast.success('Déconnexion réussie');
+        } catch {
+            toast.error('Erreur lors de la déconnexion');
+        }
+    };
 
   useEffect(() => { loadTeamData(); }, []);
 
@@ -145,8 +157,8 @@ export default function DevTeam() {
     return (
       <ProtectedRoute allowedRoles={['DEVELOPPEUR']}>
         <div className="flex h-screen bg-gray-50">
-          <NavDev user={user} onLogout={() => {}} />
-          <main className="flex-1 overflow-auto">
+            <NavDev user={user} onLogout={handleLogout} />
+            <main className="flex-1 overflow-auto">
             <div className="max-w-7xl mx-auto px-6 py-8">
               <div className="animate-pulse space-y-6">
                 <div className="h-8 bg-gray-200 rounded w-1/3"></div>
@@ -169,7 +181,7 @@ export default function DevTeam() {
   return (
     <ProtectedRoute allowedRoles={['DEVELOPPEUR']}>
       <div className="flex h-screen bg-gray-50">
-        <NavDev user={user} onLogout={() => {}} />
+        <NavDev user={user} onLogout={handleLogout} />
 
         <main className="flex-1 overflow-auto">
           {/* Banner harmonisée */}

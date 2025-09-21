@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Activity, Mail, User as UserIcon, BadgeCheck, Save, Phone, Briefcase,
   Upload, X, Globe, ShieldCheck, Calendar as Cal, Edit
@@ -31,8 +32,20 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 );
 
 export default function ChefSettings() {
+  const navigate = useNavigate();
   const [user, setUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      navigate('/auth/login');
+      toast.success('Déconnexion réussie');
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      toast.error('Erreur lors de la déconnexion');
+    }
+  };
 
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<Partial<Profile>>({});
@@ -87,7 +100,7 @@ export default function ChefSettings() {
 
   if (loading) return (
     <div className="flex h-screen">
-      <NavChef user={user ?? undefined} />
+      <NavChef user={user ?? undefined} onLogout={handleLogout} />
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <Activity className="h-8 w-8 animate-spin text-[#4B2A7B] mx-auto mb-4" />
@@ -101,7 +114,7 @@ export default function ChefSettings() {
   return (
     <ProtectedRoute allowedRoles={['CHEF_DE_PROJET']}>
       <div className="flex h-screen bg-gradient-to-b from-[#f6f4fb] to-[#fbfcfe]">
-        <NavChef user={user} />
+        <NavChef user={user} onLogout={handleLogout} />
 
         <div className="flex-1 overflow-auto">
           {/* Header harmonisé */}
