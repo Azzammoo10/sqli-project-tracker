@@ -6,6 +6,7 @@ import com.sqli.stage.backendsqli.entity.User;
 import com.sqli.stage.backendsqli.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +15,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Component
 @RequiredArgsConstructor
+@Profile("!test")
 public class InitUserData implements CommandLineRunner {
 
     private final UserRepository userRepository;

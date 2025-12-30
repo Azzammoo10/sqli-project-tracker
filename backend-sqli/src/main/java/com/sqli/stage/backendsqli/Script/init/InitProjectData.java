@@ -7,6 +7,7 @@ import com.sqli.stage.backendsqli.repository.ProjetRepository;
 import com.sqli.stage.backendsqli.repository.TaskRepository;
 import com.sqli.stage.backendsqli.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -18,6 +19,7 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
+@Profile("!test")
 public class InitProjectData {
 
     private final ProjetRepository projetRepository;
@@ -27,6 +29,19 @@ public class InitProjectData {
     @PostConstruct
     public void initProjects() {
         if (projetRepository.count() > 0) return;
+
+        // Vérifier si les utilisateurs requis existent
+        if (userRepository.count() < 10) {
+            System.out.println("⏭️ SKIP: Pas assez d'utilisateurs pour initialiser les projets de démo");
+            System.out.println("   (Minimum 10 utilisateurs requis, " + userRepository.count() + " trouvés)");
+            return;
+        }
+
+        // Vérifier si les utilisateurs spécifiques existent
+        if (userRepository.findById(2).isEmpty()) {
+            System.out.println("⏭️ SKIP: Utilisateur ID 2 (Taha Chef) non trouvé - initialisation des projets ignorée");
+            return;
+        }
 
         System.out.println("🚀 INITIALISATION DES PROJETS ET TÂCHES");
         System.out.println("========================================");
