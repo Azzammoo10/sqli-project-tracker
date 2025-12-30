@@ -1,0 +1,72 @@
+# =========================
+# Backend (Spring Boot / Java)
+# =========================
+backend-sqli/target/
+backend-sqli/*.class
+backend-sqli/*.jar
+backend-sqli/*.war
+backend-sqli/*.log
+backend-sqli/.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+backend-sqli/.idea/
+backend-sqli/*.iml
+backend-sqli/.vscode/
+
+# =========================
+# Frontend (React / Node.js)
+# =========================
+frontend-sqli/node_modules/
+frontend-sqli/build/
+frontend-sqli/dist/
+frontend-sqli/.cache/
+frontend-sqli/*.log
+
+# =========================
+# Environnement
+# =========================
+.env
+.env.local
+.env.*.local
+*.env
+
+# =========================
+# Docker
+# =========================
+docker-compose.override.yml
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+
+# =========================
+# Temporaires
+# =========================
+*.tmp
+*.temp
+start-backend.bat
+start-frontend.bat
+
+# =========================
+# IDE
+# =========================
+.idea/
+.vscode/
+*.iml
+
+# =========================
+# Coverage
+# =========================
+coverage/
+*.lcov

@@ -71,7 +71,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public UserResponse createUser(CreateUserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new EmailAlreadyExistsException("Email déjà utilisé");
+                throw new EmailAlreadyExistsException("Email déjà utilisé");
         }
 
         if (!strongPasswordValidator.isValid(request.getMotDePasse(), null)) {

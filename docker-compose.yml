@@ -1,0 +1,93 @@
+# Docker Compose pour l'environnement de développement et production
+version: '3.8'
+
+services:
+  # Base de données PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: sqli-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sqli_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - sqli-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend Spring Boot
+  backend:
+    build:
+      context: ./backend-sqli
+      dockerfile: Dockerfile
+    container_name: sqli-backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sqli_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_SECRET: ${JWT_SECRET:-4302c0d7354bfd9011b1cecc8a958336e895c384ff0acdbb4f19e3742410577e}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sqli-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./frontend-sqli
+      dockerfile: Dockerfile
+    container_name: sqli-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    ports:
+      - "5173:3000"
+    depends_on:
+      - backend
+    networks:
+      - sqli-network
+
+  # Nginx Reverse Proxy (optionnel)
+  nginx:
+    image: nginx:alpine
+    container_name: sqli-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - sqli-network
+    profiles:
+      - production
+
+networks:
+  sqli-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

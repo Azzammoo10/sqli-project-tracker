@@ -23,7 +23,7 @@ public class QRCodeService {
     public byte[] generateProjectQRCode(Long projectId, String projectName) throws WriterException, IOException {
         // URL qui sera encodée dans le QR code - utiliser l'URL ngrok du frontend
         // Le frontend aura une page publique qui appelle l'API backend
-        String projectUrl = "https://2eae519c76a9.ngrok-free.app/project/" + projectId;
+        String projectUrl = "https://694dfe35b326.ngrok-free.app/project/" + projectId;
         
         // Créer le contenu du QR code - juste l'URL de la page publique
         String qrContent = projectUrl;
