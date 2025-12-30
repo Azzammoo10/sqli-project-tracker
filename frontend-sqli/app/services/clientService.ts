@@ -82,8 +82,8 @@ export const clientService = {
     } catch (error) {
       console.error('❌ Erreur récupération stats client:', error);
       // Fallback: calculer les stats à partir des projets
-      const projects = await this.getClientProjects();
-      return this.calculateStatsFromProjects(projects);
+      const projects = await clientService.getClientProjects();
+      return clientService.calculateStatsFromProjects(projects);
     }
   },
 
@@ -95,8 +95,8 @@ export const clientService = {
     } catch (error) {
       console.error('❌ Erreur récupération timeline:', error);
       // Fallback: créer timeline à partir des projets
-      const projects = await this.getClientProjects();
-      return projects.map(p => ({
+      const projects = await clientService.getClientProjects();
+      return projects.map((p: ClientProject) => ({
         id: p.id,
         titre: p.titre,
         progression: p.progression,

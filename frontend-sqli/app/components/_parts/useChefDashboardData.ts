@@ -69,9 +69,9 @@ export function useChefDashboardData() {
 
                 const [s, build, teamDashRaw, trendData, chefProjects, allTasks, tStats] = await Promise.all([
                     projectService.getProjectStats(),
-                    apiClient.get('/analytics/projects/build').then(r => r.data),
-                    apiClient.get('/analytics/dashboard/team').then(r => r.data),
-                    dashboardService.getTrendData(),
+                    apiClient.get('/analytics/projects/build').then(r => r.data).catch(() => []),
+                    apiClient.get('/analytics/dashboard/team').then(r => r.data).catch(() => []),
+                    dashboardService.getTrendData().catch(() => []),
                     projectService.getProjectsByChef(),
                     taskService.getAll(),
                     taskService.getStats(),
@@ -79,14 +79,14 @@ export function useChefDashboardData() {
 
                 setStats(s);
                 setBuildProjects(build ?? []);
-                let teamNorm = normalizeTeam(teamDashRaw);
+                let teamNorm: TeamMember[] = normalizeTeam(teamDashRaw);
 
                  if ((!teamNorm || teamNorm.length === 0) && (chefProjects?.length ?? 0) > 0) {
                      teamNorm = Array.from(
                             new Map(
                                 (chefProjects ?? [])
                                     .flatMap((p: any) => p.developpeurs ?? [])
-                                    .map((d: any) => [
+                                    .map((d: any): [number, TeamMember] => [
                                         d.id,
                                         {
                                             id: d.id,

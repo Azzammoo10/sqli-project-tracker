@@ -13,7 +13,7 @@ export default function ClientStatsCards({ stats }: ClientStatsCardsProps) {
       title: "Projets totaux",
       value: stats.totalProjects,
       change: `${stats.activeProjects} en cours`,
-      color: "blue",
+      color: "blue" as const,
       description: "Nombre total de vos projets"
     },
     {
@@ -21,7 +21,7 @@ export default function ClientStatsCards({ stats }: ClientStatsCardsProps) {
       title: "Progression moyenne",
       value: `${stats.averageProgress}%`,
       change: `${stats.completedProjects} terminés`,
-      color: "green",
+      color: "green" as const,
       description: "Progression globale de vos projets"
     },
     {
@@ -29,7 +29,7 @@ export default function ClientStatsCards({ stats }: ClientStatsCardsProps) {
       title: "Équipe",
       value: stats.totalDevelopers,
       change: `${stats.totalTasks} tâches`,
-      color: "purple",
+      color: "purple" as const,
       description: "Développeurs sur vos projets"
     },
     {
@@ -37,7 +37,7 @@ export default function ClientStatsCards({ stats }: ClientStatsCardsProps) {
       title: "Tâches en cours",
       value: stats.inProgressTasks,
       change: `${stats.completedTasks} terminées`,
-      color: "orange",
+      color: "orange" as const,
       description: "Tâches actuellement en cours"
     }
   ];

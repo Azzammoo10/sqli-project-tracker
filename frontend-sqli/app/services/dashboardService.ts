@@ -97,6 +97,15 @@ export const dashboardService = {
     return data;
   },
 
+  getTrendData: async (): Promise<Array<{ label: string; value: number }>> => {
+    try {
+      const { data } = await apiClient.get('/analytics/trend');
+      return data;
+    } catch {
+      return [];
+    }
+  },
+
   getTeamDashboard: async () => {
     const { data } = await apiClient.get('/analytics/dashboard/team');
     return data;

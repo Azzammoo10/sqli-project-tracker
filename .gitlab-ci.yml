@@ -46,23 +46,15 @@ backend:build:
     - changes:
         - backend-sqli/**/*
 
-# Tests du backend
+# Tests du backend (utilise H2 en mémoire)
 backend:test:
   stage: test
   image: maven:3.9.6-eclipse-temurin-17
-  services:
-    - name: postgres:15-alpine
-      alias: postgres
   variables:
-    POSTGRES_DB: sqli_db_test
-    POSTGRES_USER: postgres
-    POSTGRES_PASSWORD: postgres
-    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sqli_db_test
-    SPRING_DATASOURCE_USERNAME: postgres
-    SPRING_DATASOURCE_PASSWORD: postgres
+    MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
   script:
     - cd backend-sqli
-    - mvn test -B
+    - mvn test -B -Dspring.profiles.active=test
   artifacts:
     when: always
     paths:

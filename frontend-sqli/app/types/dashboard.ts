@@ -9,6 +9,9 @@ export interface DashboardStats {
   pendingTasks: number;
   teamMembers: number;
   averageCompletionRate: number;
+  monthlyGrowth?: number;
+  weeklyTasksCompleted?: number;
+  upcomingDeadlines?: number;
 }
 
 export interface ProjectOverview {
