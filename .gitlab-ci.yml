@@ -257,16 +257,19 @@ sonarqube:full-project:
       - .sonar/cache
   script:
     - echo "📊 Analyse SonarQube globale du projet..."
-    
-    # Vérification des variables
+
     - |
       if [ -z "$SONAR_HOST_URL" ] || [ -z "$SONAR_TOKEN" ]; then
-        echo "⚠️  Variables SonarQube absentes"
-        echo "Configurez SONAR_HOST_URL et SONAR_TOKEN dans CI/CD Settings"
+        echo "Variables SonarQube absentes"
         exit 0
       fi
-    
-    # Lancer SonarQube Scanner - CORRECTION: Une seule ligne sans backslashes
+
+    # Compilation backend pour générer target/classes
+    - cd backend-sqli
+    - mvn -B -DskipTests compile
+    - cd ..
+
+    # Lancement analyse Sonar
     - >
       sonar-scanner
       -Dsonar.projectKey=sqli-platform
@@ -284,8 +287,8 @@ sonarqube:full-project:
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/target/**
       -Dsonar.qualitygate.wait=true
-    
-    - echo "✅ Analyse terminée - Consultez ${SONAR_HOST_URL}/dashboard?id=sqli-platform"
+      
+      - echo "✅ Analyse terminée - Consultez ${SONAR_HOST_URL}/dashboard?id=sqli-platform"
     
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
