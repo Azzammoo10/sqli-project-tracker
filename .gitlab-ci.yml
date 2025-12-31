@@ -259,7 +259,7 @@ sonarqube:backend:
   script:
     - cd backend-sqli
     - echo "📊 Analyse SonarQube du backend..."
-    - mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar -Dsonar.projectKey=sqli-backend -Dsonar.projectName="SQLI Backend" -Dsonar.organization=sqli-projects -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_TOKEN} -Dsonar.java.binaries=target/classes -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml -Dsonar.sources=src/main/java -Dsonar.tests=src/test/java -Dsonar.java.source=17
+    - mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar -Dsonar.projectKey=sonarqube:backend -Dsonar.projectName="SQLI Backend" -Dsonar.organization=sqli-projects -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_TOKEN} -Dsonar.java.binaries=target/classes -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml -Dsonar.sources=src/main/java -Dsonar.tests=src/test/java -Dsonar.java.source=17
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
@@ -282,7 +282,7 @@ sonarqube:frontend:
   script:
     - cd frontend-sqli
     - echo "📊 Analyse SonarQube du frontend..."
-    - sonar-scanner -Dsonar.projectKey=sqli-frontend -Dsonar.projectName="SQLI Frontend" -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.organization=sqli-projects -Dsonar.token=${SONAR_TOKEN} -Dsonar.sources=app -Dsonar.tests=app -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info -Dsonar.typescript.tsconfigPath=tsconfig.json -Dsonar.qualitygate.wait=true
+    - sonar-scanner -Dsonar.projectKey=sonarqube:frontend -Dsonar.projectName="SQLI Frontend" -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.organization=sqli-projects -Dsonar.token=${SONAR_TOKEN} -Dsonar.sources=app -Dsonar.tests=app -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info -Dsonar.typescript.tsconfigPath=tsconfig.json -Dsonar.qualitygate.wait=true
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
