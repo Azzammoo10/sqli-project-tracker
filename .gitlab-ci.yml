@@ -270,6 +270,7 @@ sonarqube:full-project:
     - >
       sonar-scanner
       -Dsonar.projectKey=sqli-platform
+      -Dsonar.organization=sqli-projects
       -Dsonar.projectName="SQLI Full Platform"
       -Dsonar.host.url=$SONAR_HOST_URL
       -Dsonar.token=$SONAR_TOKEN
