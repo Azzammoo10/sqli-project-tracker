@@ -1,242 +1,650 @@
-# GitLab CI/CD Pipeline pour SQLI Stage Project
+# ============================================================================
+# GitLab CI/CD Pipeline Optimisé - SQLI Stage Project
+# ============================================================================
 # Backend: Spring Boot 3.5.3 (Java 17)
 # Frontend: React Router 7 (Node.js 20)
+# Features: Tests, Quality (SonarQube), Docker, Deploy
+# ============================================================================
 
-# Variables globales
+# ============================================================================
+# VARIABLES GLOBALES
+# ============================================================================
 variables:
+  # Maven
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
-  MAVEN_CLI_OPTS: "-B -DskipTests"
+  MAVEN_CLI_OPTS: "-B --no-transfer-progress"
+  
+  # Docker
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: "/certs"
-  # Images Docker (à personnaliser avec votre registry)
+  DOCKER_BUILDKIT: 1
+  
+  # Images Docker (utilise GitLab Container Registry)
   BACKEND_IMAGE: $CI_REGISTRY_IMAGE/backend
   FRONTEND_IMAGE: $CI_REGISTRY_IMAGE/frontend
+  
+  # SonarQube
+  SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+  SONAR_HOST_URL: "${SONAR_HOST_URL}"  # À définir dans CI/CD Settings
+  
+  # Versions
+  JAVA_VERSION: "17"
+  NODE_VERSION: "20"
+  MAVEN_VERSION: "3.9.6"
 
-# Cache pour accélérer les builds
+# ============================================================================
+# CACHE OPTIMISÉ
+# ============================================================================
 cache:
-  key: ${CI_COMMIT_REF_SLUG}
+  key:
+    files:
+      - backend-sqli/pom.xml
+      - frontend-sqli/package-lock.json
+    prefix: ${CI_COMMIT_REF_SLUG}
   paths:
     - .m2/repository/
     - frontend-sqli/node_modules/
+    - .sonar/cache/
+  policy: pull-push
 
-# Stages du pipeline
+# ============================================================================
+# STAGES DU PIPELINE
+# ============================================================================
 stages:
   - build
   - test
   - quality
+  - security
   - docker-build
   - deploy
+  - smoke-test
 
-# ==========================================
-# BACKEND JOBS
-# ==========================================
+# ============================================================================
+# TEMPLATES RÉUTILISABLES
+# ============================================================================
 
-# Build du backend
-backend:build:
-  stage: build
+# Template pour les jobs Maven
+.maven_template: &maven_template
   image: maven:3.9.6-eclipse-temurin-17
-  script:
+  before_script:
     - cd backend-sqli
-    - mvn clean compile $MAVEN_CLI_OPTS
+    - echo "Maven version:" && mvn --version
+
+# Template pour les jobs Node.js
+.node_template: &node_template
+  image: node:20-alpine
+  before_script:
+    - cd frontend-sqli
+    - echo "Node version:" && node --version
+    - echo "NPM version:" && npm --version
+
+# Template pour les jobs Docker
+.docker_template: &docker_template
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
+# Template pour les déploiements
+.deploy_template: &deploy_template
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client curl
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | base64 -d | ssh-add - > /dev/null 2>&1
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts 2>/dev/null
+
+# ============================================================================
+# STAGE 1: BUILD
+# ============================================================================
+
+# Build Backend (Compile + Package)
+backend:build:
+  <<: *maven_template
+  stage: build
+  script:
+    - echo "🔨 Build du backend Spring Boot..."
+    - mvn clean package -DskipTests $MAVEN_CLI_OPTS
+    - echo "✅ Build terminé"
   artifacts:
+    name: "backend-${CI_COMMIT_SHORT_SHA}"
     paths:
-      - backend-sqli/target/
-    expire_in: 1 hour
+      - backend-sqli/target/*.jar
+      - backend-sqli/target/classes/
+    expire_in: 1 day
   rules:
     - changes:
         - backend-sqli/**/*
+        - pom.xml
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-# Tests du backend (utilise H2 en mémoire)
-backend:test:
-  stage: test
-  image: maven:3.9.6-eclipse-temurin-17
-  variables:
-    MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+# Build Frontend
+frontend:build:
+  <<: *node_template
+  stage: build
   script:
-    - cd backend-sqli
+    - echo "🔨 Build du frontend React..."
+    - npm ci --prefer-offline --no-audit
+    - npm run build
+    - echo "✅ Build terminé"
+    - ls -lh build/
+  artifacts:
+    name: "frontend-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - frontend-sqli/build/
+    expire_in: 1 day
+  rules:
+    - changes:
+        - frontend-sqli/**/*
+        - package.json
+        - package-lock.json
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# ============================================================================
+# STAGE 2: TESTS
+# ============================================================================
+
+# Tests Backend avec JUnit + Jacoco (couverture)
+backend:test:
+  <<: *maven_template
+  stage: test
+  needs:
+    - backend:build
+  script:
+    - echo "🧪 Exécution des tests backend..."
     - mvn test -B -Dspring.profiles.active=test
+    - echo "📊 Génération du rapport de couverture..."
+    - mvn jacoco:report -B || true
+  coverage: '/Total.*?([0-9]{1,3})%/'
   artifacts:
     when: always
+    name: "backend-tests-${CI_COMMIT_SHORT_SHA}"
     paths:
       - backend-sqli/target/surefire-reports/
+      - backend-sqli/target/site/jacoco/
     reports:
       junit: backend-sqli/target/surefire-reports/TEST-*.xml
     expire_in: 1 week
   rules:
     - changes:
         - backend-sqli/**/*
-  needs:
-    - backend:build
-
-# Package du backend (créer le JAR)
-backend:package:
-  stage: build
-  image: maven:3.9.6-eclipse-temurin-17
-  script:
-    - cd backend-sqli
-    - mvn clean package -DskipTests -B
-  artifacts:
-    paths:
-      - backend-sqli/target/*.jar
-    expire_in: 1 week
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-# ==========================================
-# FRONTEND JOBS
-# ==========================================
-
-# Build du frontend
-frontend:build:
-  stage: build
-  image: node:20-alpine
+# Tests Frontend (Jest/Vitest)
+frontend:test:
+  <<: *node_template
+  stage: test
+  needs:
+    - frontend:build
   script:
-    - cd frontend-sqli
-    - npm ci
-    - npm run build
+    - echo "🧪 Exécution des tests frontend..."
+    - npm ci --prefer-offline --no-audit
+    - npm run test -- --coverage --watchAll=false --passWithNoTests || true
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
   artifacts:
+    when: always
+    name: "frontend-tests-${CI_COMMIT_SHORT_SHA}"
     paths:
-      - frontend-sqli/build/
-    expire_in: 1 hour
+      - frontend-sqli/coverage/
+    expire_in: 1 week
   rules:
     - changes:
         - frontend-sqli/**/*
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  allow_failure: true
 
 # Vérification TypeScript
 frontend:typecheck:
+  <<: *node_template
   stage: test
-  image: node:20-alpine
+  needs:
+    - frontend:build
   script:
-    - cd frontend-sqli
-    - npm ci
+    - echo "🔍 Vérification TypeScript..."
+    - npm ci --prefer-offline --no-audit
     - npm run typecheck
   rules:
     - changes:
         - frontend-sqli/**/*
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  allow_failure: false
+
+# Linting Frontend (ESLint)
+frontend:lint:
+  <<: *node_template
+  stage: test
   needs:
     - frontend:build
+  script:
+    - echo "🔍 Linting du code frontend..."
+    - npm ci --prefer-offline --no-audit
+    - npm run lint || true
+  rules:
+    - changes:
+        - frontend-sqli/**/*
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   allow_failure: true
 
-# ==========================================
-# QUALITÉ DU CODE
-# ==========================================
+# ============================================================================
+# STAGE 3: QUALITÉ (SonarQube)
+# ============================================================================
 
-# Analyse SonarQube (optionnel - décommenter si SonarQube est configuré)
-# sonarqube:
-#   stage: quality
-#   image: sonarsource/sonar-scanner-cli:latest
-#   variables:
-#     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-#     GIT_DEPTH: "0"
-#   cache:
-#     key: "${CI_JOB_NAME}"
-#     paths:
-#       - .sonar/cache
-#   script:
-#     - sonar-scanner
-#   rules:
-#     - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
-#   allow_failure: true
-
-# Vérification des dépendances (sécurité)
-dependency-check:
+# Analyse SonarQube Backend
+sonarqube:backend:
   stage: quality
   image: maven:3.9.6-eclipse-temurin-17
+  needs:
+    - backend:build
+    - backend:test
+  variables:
+    GIT_DEPTH: 0
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
   script:
     - cd backend-sqli
-    - mvn dependency:analyze -B || true
+    - echo "📊 Analyse SonarQube du backend..."
+    - |
+      mvn sonar:sonar \
+        -Dsonar.projectKey=sqli-backend \
+        -Dsonar.projectName="SQLI Backend" \
+        -Dsonar.organization=sqli-projects \
+        -Dsonar.host.url=${SONAR_HOST_URL} \
+        -Dsonar.token=${SONAR_TOKEN} \
+        -Dsonar.java.binaries=target/classes \
+        -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
+        -Dsonar.sources=src/main/java \
+        -Dsonar.tests=src/test/java \
+        -Dsonar.java.source=17 \
+        -Dsonar.qualitygate.wait=true
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   allow_failure: true
 
-# ==========================================
-# DOCKER BUILD
-# ==========================================
-
-# Build image Docker backend
-docker:backend:
-  stage: docker-build
-  image: docker:24-dind
-  services:
-    - docker:24-dind
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  script:
-    - docker build -t $BACKEND_IMAGE:$CI_COMMIT_SHA -t $BACKEND_IMAGE:latest ./backend-sqli
-    - docker push $BACKEND_IMAGE:$CI_COMMIT_SHA
-    - docker push $BACKEND_IMAGE:latest
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
-  needs:
-    - backend:package
-    - backend:test
-
-# Build image Docker frontend
-docker:frontend:
-  stage: docker-build
-  image: docker:24-dind
-  services:
-    - docker:24-dind
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  script:
-    - docker build -t $FRONTEND_IMAGE:$CI_COMMIT_SHA -t $FRONTEND_IMAGE:latest ./frontend-sqli
-    - docker push $FRONTEND_IMAGE:$CI_COMMIT_SHA
-    - docker push $FRONTEND_IMAGE:latest
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+# Analyse SonarQube Frontend
+sonarqube:frontend:
+  stage: quality
+  image: sonarsource/sonar-scanner-cli:latest
   needs:
     - frontend:build
-
-# ==========================================
-# DÉPLOIEMENT
-# ==========================================
-
-# Déploiement sur environnement de staging
-deploy:staging:
-  stage: deploy
-  image: alpine:latest
-  before_script:
-    - apk add --no-cache openssh-client
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - frontend:test
+  variables:
+    GIT_DEPTH: 0
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
   script:
-    - echo "Déploiement sur le serveur staging..."
-    - ssh $STAGING_USER@$STAGING_HOST "cd /opt/sqli-app && docker-compose pull && docker-compose up -d"
+    - cd frontend-sqli
+    - echo "📊 Analyse SonarQube du frontend..."
+    - |
+      sonar-scanner \
+        -Dsonar.projectKey=sqli-frontend \
+        -Dsonar.projectName="SQLI Frontend" \
+        -Dsonar.host.url=${SONAR_HOST_URL} \
+        -Dsonar.organization=sqli-projects \
+        -Dsonar.token=${SONAR_TOKEN} \
+        -Dsonar.sources=app \
+        -Dsonar.tests=app \
+        -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx \
+        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+        -Dsonar.typescript.tsconfigPath=tsconfig.json \
+        -Dsonar.qualitygate.wait=true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  allow_failure: true
+
+# ============================================================================
+# STAGE 4: SÉCURITÉ
+# ============================================================================
+
+# Analyse des dépendances (OWASP Dependency Check)
+security:dependency-check:
+  <<: *maven_template
+  stage: security
+  needs:
+    - backend:build
+  script:
+    - echo "🔒 Analyse de sécurité des dépendances..."
+    - mvn org.owasp:dependency-check-maven:check -B || true
+  artifacts:
+    when: always
+    paths:
+      - backend-sqli/target/dependency-check-report.html
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  allow_failure: true
+
+# Scan de sécurité des secrets (GitLeaks)
+security:secrets-scan:
+  stage: security
+  image: zricethezav/gitleaks:latest
+  script:
+    - echo "🔍 Scan des secrets exposés..."
+    - gitleaks detect --source . --verbose --no-git || true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  allow_failure: true
+
+# ============================================================================
+# STAGE 5: DOCKER BUILD
+# ============================================================================
+
+# Build image Docker Backend
+docker:backend:
+  <<: *docker_template
+  stage: docker-build
+  needs:
+    - backend:build
+    - backend:test
+  script:
+    - echo "🐳 Build de l'image Docker backend..."
+    - export VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}
+    - echo "Version: $VERSION"
+    
+    - cd backend-sqli
+    - |
+      docker build \
+        --build-arg JAR_FILE=target/*.jar \
+        --tag $BACKEND_IMAGE:$VERSION \
+        --tag $BACKEND_IMAGE:$CI_COMMIT_REF_SLUG \
+        .
+    
+    - docker push $BACKEND_IMAGE:$VERSION
+    - docker push $BACKEND_IMAGE:$CI_COMMIT_REF_SLUG
+    
+    # Push 'latest' uniquement pour main
+    - |
+      if [ "$CI_COMMIT_BRANCH" == "main" ]; then
+        docker tag $BACKEND_IMAGE:$VERSION $BACKEND_IMAGE:latest
+        docker push $BACKEND_IMAGE:latest
+        echo "✅ Image 'latest' poussée"
+      fi
+    
+    - echo "✅ Image backend publiée: $BACKEND_IMAGE:$VERSION"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_TAG
+
+# Build image Docker Frontend
+docker:frontend:
+  <<: *docker_template
+  stage: docker-build
+  needs:
+    - frontend:build
+    - frontend:test
+  script:
+    - echo "🐳 Build de l'image Docker frontend..."
+    - export VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}
+    - echo "Version: $VERSION"
+    
+    - cd frontend-sqli
+    - |
+      docker build \
+        --tag $FRONTEND_IMAGE:$VERSION \
+        --tag $FRONTEND_IMAGE:$CI_COMMIT_REF_SLUG \
+        .
+    
+    - docker push $FRONTEND_IMAGE:$VERSION
+    - docker push $FRONTEND_IMAGE:$CI_COMMIT_REF_SLUG
+    
+    # Push 'latest' uniquement pour main
+    - |
+      if [ "$CI_COMMIT_BRANCH" == "main" ]; then
+        docker tag $FRONTEND_IMAGE:$VERSION $FRONTEND_IMAGE:latest
+        docker push $FRONTEND_IMAGE:latest
+        echo "✅ Image 'latest' poussée"
+      fi
+    
+    - echo "✅ Image frontend publiée: $FRONTEND_IMAGE:$VERSION"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_TAG
+
+# ============================================================================
+# STAGE 6: DÉPLOIEMENT
+# ============================================================================
+
+# Déploiement Staging
+deploy:staging:
+  <<: *deploy_template
+  stage: deploy
+  needs:
+    - docker:backend
+    - docker:frontend
+  variables:
+    DEPLOY_HOST: $STAGING_HOST
+    DEPLOY_USER: $STAGING_USER
+  script:
+    - echo "🚀 Déploiement sur STAGING..."
+    - export VERSION=$CI_COMMIT_SHORT_SHA
+    
+    # Création du fichier .env sur le serveur
+    - |
+      ssh $DEPLOY_USER@$DEPLOY_HOST "cat > /opt/sqli-app/.env << EOF
+      JWT_SECRET=$JWT_SECRET
+      POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      BACKEND_IMAGE=$BACKEND_IMAGE:$VERSION
+      FRONTEND_IMAGE=$FRONTEND_IMAGE:$VERSION
+      ENVIRONMENT=staging
+      EOF"
+    
+    # Copie des fichiers docker-compose
+    - scp docker-compose.yml $DEPLOY_USER@$DEPLOY_HOST:/opt/sqli-app/
+    
+    # Pull des nouvelles images et déploiement
+    - |
+      ssh $DEPLOY_USER@$DEPLOY_HOST "
+        cd /opt/sqli-app && \
+        docker-compose pull backend frontend && \
+        docker-compose up -d --no-deps backend frontend && \
+        docker-compose up -d
+      "
+    
+    - echo "⏳ Attente du démarrage des services..."
+    - sleep 15
+    
+    - echo "✅ Déploiement staging terminé"
   environment:
     name: staging
     url: https://staging.sqli-app.com
+    on_stop: stop:staging
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
-  when: manual
+      when: manual
+  allow_failure: false
+
+# Déploiement Production
+deploy:production:
+  <<: *deploy_template
+  stage: deploy
   needs:
     - docker:backend
     - docker:frontend
-
-# Déploiement sur environnement de production
-deploy:production:
-  stage: deploy
-  image: alpine:latest
-  before_script:
-    - apk add --no-cache openssh-client
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+  variables:
+    DEPLOY_HOST: $PROD_HOST
+    DEPLOY_USER: $PROD_USER
   script:
-    - echo "Déploiement sur le serveur de production..."
-    - ssh $PROD_USER@$PROD_HOST "cd /opt/sqli-app && docker-compose pull && docker-compose up -d"
+    - echo "🚀 Déploiement sur PRODUCTION..."
+    - export VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}
+    
+    # Création du fichier .env sur le serveur
+    - |
+      ssh $DEPLOY_USER@$DEPLOY_HOST "cat > /opt/sqli-app/.env << EOF
+      JWT_SECRET=$JWT_SECRET_PROD
+      POSTGRES_PASSWORD=$POSTGRES_PASSWORD_PROD
+      BACKEND_IMAGE=$BACKEND_IMAGE:$VERSION
+      FRONTEND_IMAGE=$FRONTEND_IMAGE:$VERSION
+      ENVIRONMENT=production
+      EOF"
+    
+    # Copie des fichiers docker-compose
+    - scp docker-compose.yml $DEPLOY_USER@$DEPLOY_HOST:/opt/sqli-app/
+    
+    # Backup de la base de données
+    - |
+      ssh $DEPLOY_USER@$DEPLOY_HOST "
+        cd /opt/sqli-app && \
+        docker-compose exec -T postgres pg_dump -U postgres sqli_db > backup_\$(date +%Y%m%d_%H%M%S).sql || true
+      "
+    
+    # Pull des nouvelles images et déploiement
+    - |
+      ssh $DEPLOY_USER@$DEPLOY_HOST "
+        cd /opt/sqli-app && \
+        docker-compose pull backend frontend && \
+        docker-compose up -d --no-deps backend frontend && \
+        docker-compose up -d
+      "
+    
+    - echo "⏳ Attente du démarrage des services..."
+    - sleep 20
+    
+    - echo "✅ Déploiement production terminé"
   environment:
     name: production
     url: https://sqli-app.com
+    on_stop: stop:production
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-  when: manual
+      when: manual
+    - if: $CI_COMMIT_TAG
+      when: manual
+  allow_failure: false
+
+# Arrêt de l'environnement staging
+stop:staging:
+  <<: *deploy_template
+  stage: deploy
+  variables:
+    DEPLOY_HOST: $STAGING_HOST
+    DEPLOY_USER: $STAGING_USER
+    GIT_STRATEGY: none
+  script:
+    - echo "🛑 Arrêt de l'environnement staging..."
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /opt/sqli-app && docker-compose down"
+  environment:
+    name: staging
+    action: stop
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: manual
+
+# Arrêt de l'environnement production
+stop:production:
+  <<: *deploy_template
+  stage: deploy
+  variables:
+    DEPLOY_HOST: $PROD_HOST
+    DEPLOY_USER: $PROD_USER
+    GIT_STRATEGY: none
+  script:
+    - echo "🛑 Arrêt de l'environnement production..."
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /opt/sqli-app && docker-compose down"
+  environment:
+    name: production
+    action: stop
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+
+# ============================================================================
+# STAGE 7: SMOKE TESTS POST-DÉPLOIEMENT
+# ============================================================================
+
+# Tests de fumée Staging
+smoke:staging:
+  stage: smoke-test
+  image: curlimages/curl:latest
   needs:
-    - docker:backend
-    - docker:frontend
+    - deploy:staging
+  script:
+    - echo "🧪 Tests de fumée sur staging..."
+    - sleep 10
+    
+    # Test backend health
+    - |
+      echo "Vérification du backend..."
+      curl -f -m 10 https://staging.sqli-app.com/actuator/health || exit 1
+    
+    # Test frontend
+    - |
+      echo "Vérification du frontend..."
+      curl -f -m 10 https://staging.sqli-app.com || exit 1
+    
+    - echo "✅ Tous les tests de fumée passent"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+  allow_failure: false
+  retry: 2
+
+# Tests de fumée Production
+smoke:production:
+  stage: smoke-test
+  image: curlimages/curl:latest
+  needs:
+    - deploy:production
+  script:
+    - echo "🧪 Tests de fumée sur production..."
+    - sleep 15
+    
+    # Test backend health
+    - |
+      echo "Vérification du backend..."
+      curl -f -m 10 https://sqli-app.com/actuator/health || exit 1
+    
+    # Test frontend
+    - |
+      echo "Vérification du frontend..."
+      curl -f -m 10 https://sqli-app.com || exit 1
+    
+    - echo "✅ Tous les tests de fumée passent"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+  allow_failure: false
+  retry: 2
+
+# ============================================================================
+# JOBS SPÉCIAUX
+# ============================================================================
+
+# Nettoyage des anciennes images Docker
+cleanup:docker:
+  stage: .post
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - echo "🧹 Nettoyage des images Docker obsolètes..."
+    - docker system prune -af --filter "until=168h"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  allow_failure: true
