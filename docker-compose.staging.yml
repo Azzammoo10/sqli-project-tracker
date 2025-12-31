@@ -1,0 +1,33 @@
+# Docker Compose - Override pour staging
+version: '3.8'
+
+services:
+  postgres:
+    # Mot de passe depuis variable GitLab CI/CD
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # ✅ Variable sécurisée
+    # Ne pas exposer le port en staging (sécurité)
+    ports: []
+
+  backend:
+    image: ${BACKEND_IMAGE}  # ✅ Image depuis GitLab Registry
+    environment:
+      SPRING_PROFILES_ACTIVE: staging
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      ENVIRONMENT: staging
+    ports: []  # ✅ Pas d'exposition directe, utiliser Nginx
+
+  frontend:
+    image: ${FRONTEND_IMAGE}  # ✅ Image depuis GitLab Registry
+    environment:
+      NODE_ENV: production
+      VITE_API_URL: https://staging-api.sqli-app.com
+    ports: []  # ✅ Pas d'exposition directe
+
+  nginx:
+    profiles: []  # ✅ Activé par défaut en staging
+
+volumes:
+  postgres_data:
+    name: sqli_postgres_staging_data

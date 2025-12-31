@@ -1,25 +1,40 @@
-# Docker Compose pour le développement local (uniquement la base de données)
+# Docker Compose - Override pour développement local
 version: '3.8'
 
 services:
-  # Base de données PostgreSQL pour le développement
   postgres:
-    image: postgres:15-alpine
-    container_name: sqli-postgres-dev
-    restart: unless-stopped
     environment:
-      POSTGRES_DB: sqli_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
+      POSTGRES_PASSWORD: postgres  # ✅ OK pour dev local
     ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - "5432:5432"  # ✅ Exposé pour accès depuis l'IDE
+
+  backend:
+    build:
+      context: ./backend-sqli
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_PASSWORD: postgres  # ✅ OK pour dev local
+      JWT_SECRET: dev-secret-not-for-production-4302c0d7354bfd9011b1cecc8a958336e895c384ff0acdbb4f19e3742410577e
+      ENVIRONMENT: development
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend-sqli/src:/app/src  # ✅ Hot reload possible
+
+  frontend:
+    build:
+      context: ./frontend-sqli
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:8080
+    ports:
+      - "5173:3000"  # ✅ Vite dev server
+    volumes:
+      - ./frontend-sqli/src:/app/src  # ✅ Hot reload
+      - /app/node_modules
 
 volumes:
-  postgres_dev_data:
+  postgres_data:
+    name: sqli_postgres_dev_data

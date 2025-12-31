@@ -1,4 +1,4 @@
-# Docker Compose pour l'environnement de développement et production
+# Docker Compose - Configuration de base
 version: '3.8'
 
 services:
@@ -8,36 +8,50 @@ services:
     container_name: sqli-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: sqli_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-sqli_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # ✅ Depuis variable/fichier .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     networks:
       - sqli-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Backend Spring Boot
   backend:
+    image: ${BACKEND_IMAGE:-sqli-backend:latest}  # ✅ Peut être override par CI/CD
     build:
       context: ./backend-sqli
       dockerfile: Dockerfile
     container_name: sqli-backend
     restart: unless-stopped
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sqli_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
-      SPRING_PROFILES_ACTIVE: prod
-      JWT_SECRET: ${JWT_SECRET:-4302c0d7354bfd9011b1cecc8a958336e895c384ff0acdbb4f19e3742410577e}
+      # Base de données
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-sqli_db}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}  # ✅ Depuis variable
+      
+      # Sécurité
+      JWT_SECRET: ${JWT_SECRET}  # ✅ Obligatoire, pas de fallback
+      
+      # Profil Spring
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE:-prod}
+      
+      # Environnement
+      ENVIRONMENT: ${ENVIRONMENT:-production}
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,24 +61,36 @@ services:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
-      start_period: 60s
-      retries: 3
+      start_period: 90s  # ✅ Augmenté pour Spring Boot
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Frontend React
   frontend:
+    image: ${FRONTEND_IMAGE:-sqli-frontend:latest}  # ✅ Peut être override par CI/CD
     build:
       context: ./frontend-sqli
       dockerfile: Dockerfile
     container_name: sqli-frontend
     restart: unless-stopped
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-production}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
     ports:
-      - "5173:3000"
+      - "${FRONTEND_PORT:-3000}:3000"  # ✅ Corrigé : 3000:3000
     depends_on:
       - backend
     networks:
       - sqli-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Nginx Reverse Proxy (optionnel)
   nginx:
@@ -83,7 +109,12 @@ services:
     networks:
       - sqli-network
     profiles:
-      - production
+      - with-nginx
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   sqli-network:
@@ -91,3 +122,4 @@ networks:
 
 volumes:
   postgres_data:
+    name: sqli_postgres_data

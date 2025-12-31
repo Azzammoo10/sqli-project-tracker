@@ -1,5 +1,5 @@
 # ============================================================================
-# GitLab CI/CD Pipeline Optimisé - SQLI Stage Project
+# GitLab CI/CD Pipeline Optimisé - SQLI Stage Project (CORRIGÉ)
 # ============================================================================
 # Backend: Spring Boot 3.5.3 (Java 17)
 # Frontend: React Router 7 (Node.js 20)
@@ -23,9 +23,9 @@ variables:
   BACKEND_IMAGE: $CI_REGISTRY_IMAGE/backend
   FRONTEND_IMAGE: $CI_REGISTRY_IMAGE/frontend
   
-  # SonarQube
+  # SonarQube - CORRECTION: Valeurs par défaut si non définies
   SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-  SONAR_HOST_URL: "${SONAR_HOST_URL}"  # À définir dans CI/CD Settings
+  SONAR_HOST_URL: "${SONAR_HOST_URL}"
   
   # Versions
   JAVA_VERSION: "17"
@@ -259,7 +259,23 @@ sonarqube:backend:
   script:
     - cd backend-sqli
     - echo "📊 Analyse SonarQube du backend..."
-    - mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar -Dsonar.projectKey=sonarqube:backend -Dsonar.projectName="SQLI Backend" -Dsonar.organization=sqli-projects -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_TOKEN} -Dsonar.java.binaries=target/classes -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml -Dsonar.sources=src/main/java -Dsonar.tests=src/test/java -Dsonar.java.source=17
+    # CORRECTION: Vérifier que les variables SonarQube sont définies
+    - |
+      if [ -z "$SONAR_HOST_URL" ] || [ -z "$SONAR_TOKEN" ]; then
+        echo "⚠️  Variables SonarQube non définies (SONAR_HOST_URL ou SONAR_TOKEN)"
+        echo "ℹ️  Veuillez configurer ces variables dans Settings > CI/CD > Variables"
+        exit 0
+      fi
+    - mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar 
+      -Dsonar.projectKey=sqli-backend 
+      -Dsonar.projectName="SQLI Backend" 
+      -Dsonar.host.url=${SONAR_HOST_URL} 
+      -Dsonar.token=${SONAR_TOKEN} 
+      -Dsonar.java.binaries=target/classes 
+      -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml 
+      -Dsonar.sources=src/main/java 
+      -Dsonar.tests=src/test/java 
+      -Dsonar.java.source=17
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
@@ -282,7 +298,24 @@ sonarqube:frontend:
   script:
     - cd frontend-sqli
     - echo "📊 Analyse SonarQube du frontend..."
-    - sonar-scanner -Dsonar.projectKey=sonarqube:frontend -Dsonar.projectName="SQLI Frontend" -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.organization=sqli-projects -Dsonar.token=${SONAR_TOKEN} -Dsonar.sources=app -Dsonar.tests=app -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info -Dsonar.typescript.tsconfigPath=tsconfig.json -Dsonar.qualitygate.wait=true
+    # CORRECTION: Vérifier que les variables SonarQube sont définies
+    - |
+      if [ -z "$SONAR_HOST_URL" ] || [ -z "$SONAR_TOKEN" ]; then
+        echo "⚠️  Variables SonarQube non définies (SONAR_HOST_URL ou SONAR_TOKEN)"
+        echo "ℹ️  Veuillez configurer ces variables dans Settings > CI/CD > Variables"
+        exit 0
+      fi
+    - sonar-scanner 
+      -Dsonar.projectKey=sqli-frontend 
+      -Dsonar.projectName="SQLI Frontend" 
+      -Dsonar.host.url=${SONAR_HOST_URL} 
+      -Dsonar.token=${SONAR_TOKEN} 
+      -Dsonar.sources=app 
+      -Dsonar.tests=app 
+      -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx 
+      -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info 
+      -Dsonar.typescript.tsconfigPath=tsconfig.json 
+      -Dsonar.qualitygate.wait=true
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
@@ -313,9 +346,12 @@ security:dependency-check:
   allow_failure: true
 
 # Scan de sécurité des secrets (GitLeaks)
+# CORRECTION: Ajouter entrypoint vide pour éviter le conflit avec sh
 security:secrets-scan:
   stage: security
-  image: zricethezav/gitleaks:latest
+  image: 
+    name: zricethezav/gitleaks:latest
+    entrypoint: [""]
   script:
     - echo "🔍 Scan des secrets exposés..."
     - gitleaks detect --source . --verbose --no-git

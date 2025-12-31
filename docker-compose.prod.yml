@@ -1,0 +1,51 @@
+# Docker Compose - Override pour production
+version: '3.8'
+
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_PROD}  # ✅ Variable prod séparée
+    ports: []  # ✅ Jamais exposé en production
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups  # ✅ Volume pour backups
+
+  backend:
+    image: ${BACKEND_IMAGE}
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD_PROD}
+      JWT_SECRET: ${JWT_SECRET_PROD}
+      ENVIRONMENT: production
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  frontend:
+    image: ${FRONTEND_IMAGE}
+    environment:
+      NODE_ENV: production
+      VITE_API_URL: https://api.sqli-app.com
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  nginx:
+    profiles: []  # ✅ Activé par défaut en production
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro  # ✅ Certificats SSL
+
+volumes:
+  postgres_data:
+    name: sqli_postgres_prod_data                 # ✅ Contient ".env"
