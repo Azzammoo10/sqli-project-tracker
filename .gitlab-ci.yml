@@ -242,86 +242,45 @@ frontend:lint:
 # ============================================================================
 # STAGE 3: QUALITÉ (SonarQube)
 # ============================================================================
-
-# Analyse SonarQube Backend
-sonarqube:backend:
-  stage: quality
-  image: maven:3.9.6-eclipse-temurin-17
-  needs:
-    - backend:build
-    - backend:test
-  variables:
-    GIT_DEPTH: 0
-  cache:
-    key: "${CI_JOB_NAME}"
-    paths:
-      - .sonar/cache
-  script:
-    - cd backend-sqli
-    - echo "📊 Analyse SonarQube du backend..."
-    # CORRECTION: Vérifier que les variables SonarQube sont définies
-    - |
-      if [ -z "$SONAR_HOST_URL" ] || [ -z "$SONAR_TOKEN" ]; then
-        echo "⚠️  Variables SonarQube non définies (SONAR_HOST_URL ou SONAR_TOKEN)"
-        echo "ℹ️  Veuillez configurer ces variables dans Settings > CI/CD > Variables"
-        exit 0
-      fi
-    - mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar 
-      -Dsonar.projectKey=sqli-backend 
-      -Dsonar.projectName="SQLI Backend" 
-      -Dsonar.host.url=${SONAR_HOST_URL} 
-      -Dsonar.token=${SONAR_TOKEN} 
-      -Dsonar.java.binaries=target/classes 
-      -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml 
-      -Dsonar.sources=src/main/java 
-      -Dsonar.tests=src/test/java 
-      -Dsonar.java.source=17
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "develop"
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  allow_failure: true
-
-# Analyse SonarQube Frontend
-sonarqube:frontend:
+sonarqube:full-project:
   stage: quality
   image: sonarsource/sonar-scanner-cli:latest
   needs:
-    - frontend:build
+    - backend:test
     - frontend:test
   variables:
     GIT_DEPTH: 0
   cache:
-    key: "${CI_JOB_NAME}"
+    key: sonar
     paths:
       - .sonar/cache
   script:
-    - cd frontend-sqli
-    - echo "📊 Analyse SonarQube du frontend..."
-    # CORRECTION: Vérifier que les variables SonarQube sont définies
+    - echo "Analyse SonarQube globale du projet..."
+
     - |
       if [ -z "$SONAR_HOST_URL" ] || [ -z "$SONAR_TOKEN" ]; then
-        echo "⚠️  Variables SonarQube non définies (SONAR_HOST_URL ou SONAR_TOKEN)"
-        echo "ℹ️  Veuillez configurer ces variables dans Settings > CI/CD > Variables"
+        echo "Variables SonarQube absentes"
         exit 0
       fi
-    - sonar-scanner 
-      -Dsonar.projectKey=sqli-frontend 
-      -Dsonar.projectName="SQLI Frontend" 
-      -Dsonar.host.url=${SONAR_HOST_URL} 
-      -Dsonar.token=${SONAR_TOKEN} 
-      -Dsonar.sources=app 
-      -Dsonar.tests=app 
-      -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx 
-      -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info 
-      -Dsonar.typescript.tsconfigPath=tsconfig.json 
-      -Dsonar.qualitygate.wait=true
+
+    - sonar-scanner \
+        -Dsonar.projectKey=sqli-platform \
+        -Dsonar.projectName="SQLI Full Platform" \
+        -Dsonar.host.url=$SONAR_HOST_URL \
+        -Dsonar.token=$SONAR_TOKEN \
+        -Dsonar.sources=backend-sqli/src/main/java,frontend-sqli/app \
+        -Dsonar.tests=backend-sqli/src/test/java,frontend-sqli/app \
+        -Dsonar.java.binaries=backend-sqli/target/classes \
+        -Dsonar.coverage.jacoco.xmlReportPaths=backend-sqli/target/site/jacoco/jacoco.xml \
+        -Dsonar.javascript.lcov.reportPaths=frontend-sqli/coverage/lcov.info \
+        -Dsonar.typescript.tsconfigPath=frontend-sqli/tsconfig.json \
+        -Dsonar.sourceEncoding=UTF-8 \
+        -Dsonar.qualitygate.wait=true
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  allow_failure: true
-
+  allow_failure: false
 # ============================================================================
 # STAGE 4: SÉCURITÉ
 # ============================================================================
