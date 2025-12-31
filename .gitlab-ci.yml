@@ -259,19 +259,7 @@ sonarqube:backend:
   script:
     - cd backend-sqli
     - echo "📊 Analyse SonarQube du backend..."
-    - |
-      mvn sonar:sonar \
-        -Dsonar.projectKey=sqli-backend \
-        -Dsonar.projectName="SQLI Backend" \
-        -Dsonar.organization=sqli-projects \
-        -Dsonar.host.url=${SONAR_HOST_URL} \
-        -Dsonar.token=${SONAR_TOKEN} \
-        -Dsonar.java.binaries=target/classes \
-        -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
-        -Dsonar.sources=src/main/java \
-        -Dsonar.tests=src/test/java \
-        -Dsonar.java.source=17 \
-        -Dsonar.qualitygate.wait=true
+    - mvn sonar:sonar -Dsonar.projectKey=sqli-backend -Dsonar.projectName="SQLI Backend" -Dsonar.organization=sqli-projects -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_TOKEN} -Dsonar.java.binaries=target/classes -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml -Dsonar.sources=src/main/java -Dsonar.tests=src/test/java -Dsonar.java.source=17 -Dsonar.qualitygate.wait=true
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
@@ -294,19 +282,7 @@ sonarqube:frontend:
   script:
     - cd frontend-sqli
     - echo "📊 Analyse SonarQube du frontend..."
-    - |
-      sonar-scanner \
-        -Dsonar.projectKey=sqli-frontend \
-        -Dsonar.projectName="SQLI Frontend" \
-        -Dsonar.host.url=${SONAR_HOST_URL} \
-        -Dsonar.organization=sqli-projects \
-        -Dsonar.token=${SONAR_TOKEN} \
-        -Dsonar.sources=app \
-        -Dsonar.tests=app \
-        -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx \
-        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-        -Dsonar.typescript.tsconfigPath=tsconfig.json \
-        -Dsonar.qualitygate.wait=true
+    - sonar-scanner -Dsonar.projectKey=sqli-frontend -Dsonar.projectName="SQLI Frontend" -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.organization=sqli-projects -Dsonar.token=${SONAR_TOKEN} -Dsonar.sources=app -Dsonar.tests=app -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info -Dsonar.typescript.tsconfigPath=tsconfig.json -Dsonar.qualitygate.wait=true
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
@@ -363,28 +339,13 @@ docker:backend:
   script:
     - echo "🐳 Build de l'image Docker backend..."
     - export VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}
-    - echo "Version: $VERSION"
-    
+    - echo "Version $VERSION"
     - cd backend-sqli
-    - |
-      docker build \
-        --build-arg JAR_FILE=target/*.jar \
-        --tag $BACKEND_IMAGE:$VERSION \
-        --tag $BACKEND_IMAGE:$CI_COMMIT_REF_SLUG \
-        .
-    
+    - docker build --build-arg JAR_FILE=target/*.jar --tag $BACKEND_IMAGE:$VERSION --tag $BACKEND_IMAGE:$CI_COMMIT_REF_SLUG .
     - docker push $BACKEND_IMAGE:$VERSION
     - docker push $BACKEND_IMAGE:$CI_COMMIT_REF_SLUG
-    
-    # Push 'latest' uniquement pour main
-    - |
-      if [ "$CI_COMMIT_BRANCH" == "main" ]; then
-        docker tag $BACKEND_IMAGE:$VERSION $BACKEND_IMAGE:latest
-        docker push $BACKEND_IMAGE:latest
-        echo "✅ Image 'latest' poussée"
-      fi
-    
-    - echo "✅ Image backend publiée: $BACKEND_IMAGE:$VERSION"
+    - if [ "$CI_COMMIT_BRANCH" == "main" ]; then docker tag $BACKEND_IMAGE:$VERSION $BACKEND_IMAGE:latest && docker push $BACKEND_IMAGE:latest; fi
+    - echo "✅ Image backend publiée"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
@@ -400,27 +361,13 @@ docker:frontend:
   script:
     - echo "🐳 Build de l'image Docker frontend..."
     - export VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}
-    - echo "Version: $VERSION"
-    
+    - echo "Version $VERSION"
     - cd frontend-sqli
-    - |
-      docker build \
-        --tag $FRONTEND_IMAGE:$VERSION \
-        --tag $FRONTEND_IMAGE:$CI_COMMIT_REF_SLUG \
-        .
-    
+    - docker build --tag $FRONTEND_IMAGE:$VERSION --tag $FRONTEND_IMAGE:$CI_COMMIT_REF_SLUG .
     - docker push $FRONTEND_IMAGE:$VERSION
     - docker push $FRONTEND_IMAGE:$CI_COMMIT_REF_SLUG
-    
-    # Push 'latest' uniquement pour main
-    - |
-      if [ "$CI_COMMIT_BRANCH" == "main" ]; then
-        docker tag $FRONTEND_IMAGE:$VERSION $FRONTEND_IMAGE:latest
-        docker push $FRONTEND_IMAGE:latest
-        echo "✅ Image 'latest' poussée"
-      fi
-    
-    - echo "✅ Image frontend publiée: $FRONTEND_IMAGE:$VERSION"
+    - if [ "$CI_COMMIT_BRANCH" == "main" ]; then docker tag $FRONTEND_IMAGE:$VERSION $FRONTEND_IMAGE:latest && docker push $FRONTEND_IMAGE:latest; fi
+    - echo "✅ Image frontend publiée"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
@@ -443,32 +390,11 @@ deploy:staging:
   script:
     - echo "🚀 Déploiement sur STAGING..."
     - export VERSION=$CI_COMMIT_SHORT_SHA
-    
-    # Création du fichier .env sur le serveur
-    - |
-      ssh $DEPLOY_USER@$DEPLOY_HOST "cat > /opt/sqli-app/.env << EOF
-      JWT_SECRET=$JWT_SECRET
-      POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-      BACKEND_IMAGE=$BACKEND_IMAGE:$VERSION
-      FRONTEND_IMAGE=$FRONTEND_IMAGE:$VERSION
-      ENVIRONMENT=staging
-      EOF"
-    
-    # Copie des fichiers docker-compose
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "echo 'JWT_SECRET=$JWT_SECRET' > /opt/sqli-app/.env && echo 'POSTGRES_PASSWORD=$POSTGRES_PASSWORD' >> /opt/sqli-app/.env && echo 'BACKEND_IMAGE=$BACKEND_IMAGE:$VERSION' >> /opt/sqli-app/.env && echo 'FRONTEND_IMAGE=$FRONTEND_IMAGE:$VERSION' >> /opt/sqli-app/.env && echo 'ENVIRONMENT=staging' >> /opt/sqli-app/.env"
     - scp docker-compose.yml $DEPLOY_USER@$DEPLOY_HOST:/opt/sqli-app/
-    
-    # Pull des nouvelles images et déploiement
-    - |
-      ssh $DEPLOY_USER@$DEPLOY_HOST "
-        cd /opt/sqli-app && \
-        docker-compose pull backend frontend && \
-        docker-compose up -d --no-deps backend frontend && \
-        docker-compose up -d
-      "
-    
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /opt/sqli-app && docker-compose pull backend frontend && docker-compose up -d"
     - echo "⏳ Attente du démarrage des services..."
     - sleep 15
-    
     - echo "✅ Déploiement staging terminé"
   environment:
     name: staging
@@ -492,39 +418,12 @@ deploy:production:
   script:
     - echo "🚀 Déploiement sur PRODUCTION..."
     - export VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}
-    
-    # Création du fichier .env sur le serveur
-    - |
-      ssh $DEPLOY_USER@$DEPLOY_HOST "cat > /opt/sqli-app/.env << EOF
-      JWT_SECRET=$JWT_SECRET_PROD
-      POSTGRES_PASSWORD=$POSTGRES_PASSWORD_PROD
-      BACKEND_IMAGE=$BACKEND_IMAGE:$VERSION
-      FRONTEND_IMAGE=$FRONTEND_IMAGE:$VERSION
-      ENVIRONMENT=production
-      EOF"
-    
-    # Copie des fichiers docker-compose
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "echo 'JWT_SECRET=$JWT_SECRET_PROD' > /opt/sqli-app/.env && echo 'POSTGRES_PASSWORD=$POSTGRES_PASSWORD_PROD' >> /opt/sqli-app/.env && echo 'BACKEND_IMAGE=$BACKEND_IMAGE:$VERSION' >> /opt/sqli-app/.env && echo 'FRONTEND_IMAGE=$FRONTEND_IMAGE:$VERSION' >> /opt/sqli-app/.env && echo 'ENVIRONMENT=production' >> /opt/sqli-app/.env"
     - scp docker-compose.yml $DEPLOY_USER@$DEPLOY_HOST:/opt/sqli-app/
-    
-    # Backup de la base de données
-    - |
-      ssh $DEPLOY_USER@$DEPLOY_HOST "
-        cd /opt/sqli-app && \
-        docker-compose exec -T postgres pg_dump -U postgres sqli_db > backup_\$(date +%Y%m%d_%H%M%S).sql || true
-      "
-    
-    # Pull des nouvelles images et déploiement
-    - |
-      ssh $DEPLOY_USER@$DEPLOY_HOST "
-        cd /opt/sqli-app && \
-        docker-compose pull backend frontend && \
-        docker-compose up -d --no-deps backend frontend && \
-        docker-compose up -d
-      "
-    
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /opt/sqli-app && docker-compose exec -T postgres pg_dump -U postgres sqli_db > backup_$(date +%Y%m%d_%H%M%S).sql || true"
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /opt/sqli-app && docker-compose pull backend frontend && docker-compose up -d"
     - echo "⏳ Attente du démarrage des services..."
     - sleep 20
-    
     - echo "✅ Déploiement production terminé"
   environment:
     name: production
@@ -586,17 +485,10 @@ smoke:staging:
   script:
     - echo "🧪 Tests de fumée sur staging..."
     - sleep 10
-    
-    # Test backend health
-    - |
-      echo "Vérification du backend..."
-      curl -f -m 10 https://staging.sqli-app.com/actuator/health || exit 1
-    
-    # Test frontend
-    - |
-      echo "Vérification du frontend..."
-      curl -f -m 10 https://staging.sqli-app.com || exit 1
-    
+    - echo "Vérification du backend..."
+    - curl -f -m 10 https://staging.sqli-app.com/actuator/health || exit 1
+    - echo "Vérification du frontend..."
+    - curl -f -m 10 https://staging.sqli-app.com || exit 1
     - echo "✅ Tous les tests de fumée passent"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
@@ -612,17 +504,10 @@ smoke:production:
   script:
     - echo "🧪 Tests de fumée sur production..."
     - sleep 15
-    
-    # Test backend health
-    - |
-      echo "Vérification du backend..."
-      curl -f -m 10 https://sqli-app.com/actuator/health || exit 1
-    
-    # Test frontend
-    - |
-      echo "Vérification du frontend..."
-      curl -f -m 10 https://sqli-app.com || exit 1
-    
+    - echo "Vérification du backend..."
+    - curl -f -m 10 https://sqli-app.com/actuator/health || exit 1
+    - echo "Vérification du frontend..."
+    - curl -f -m 10 https://sqli-app.com || exit 1
     - echo "✅ Tous les tests de fumée passent"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
