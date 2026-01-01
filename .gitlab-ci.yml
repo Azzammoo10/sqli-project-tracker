@@ -56,6 +56,7 @@ stages:
   - quality
   - security
   - docker-build
+  - docker-security
   - deploy
   - smoke-test
 
@@ -355,33 +356,6 @@ security:secrets-scan:
     - if: $CI_COMMIT_BRANCH == "develop"
   allow_failure: false
 
-# Scan de sécurité des images Docker (Trivy)
-security:docker-scan:
-  stage: security
-  image: aquasec/trivy:latest
-  needs:
-    - docker:backend
-    - docker:frontend
-  script:
-    - echo "🔍 Scan de sécurité des images Docker..."
-    - trivy image --severity HIGH,CRITICAL --format json --output trivy-backend-report.json $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA || true
-    - trivy image --severity HIGH,CRITICAL --format json --output trivy-frontend-report.json $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA || true
-    - echo "📊 Résumé des vulnérabilités Backend:"
-    - trivy image --severity HIGH,CRITICAL $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA
-    - echo "📊 Résumé des vulnérabilités Frontend:"
-    - trivy image --severity HIGH,CRITICAL $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA
-  artifacts:
-    when: always
-    paths:
-      - trivy-backend-report.json
-      - trivy-frontend-report.json
-    expire_in: 1 week
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "develop"
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  allow_failure: true
-
 # ============================================================================
 # STAGE 5: DOCKER BUILD
 # ============================================================================
@@ -429,6 +403,36 @@ docker:frontend:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_COMMIT_TAG
+
+# ============================================================================
+# STAGE 5.5: SÉCURITÉ DES IMAGES DOCKER
+# ============================================================================
+
+# Scan de sécurité des images Docker (Trivy)
+security:docker-scan:
+  stage: docker-security
+  image: aquasec/trivy:latest
+  needs:
+    - docker:backend
+    - docker:frontend
+  script:
+    - echo "🔍 Scan de sécurité des images Docker..."
+    - trivy image --severity HIGH,CRITICAL --format json --output trivy-backend-report.json $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA || true
+    - trivy image --severity HIGH,CRITICAL --format json --output trivy-frontend-report.json $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA || true
+    - echo "📊 Résumé des vulnérabilités Backend:"
+    - trivy image --severity HIGH,CRITICAL $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - echo "📊 Résumé des vulnérabilités Frontend:"
+    - trivy image --severity HIGH,CRITICAL $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA
+  artifacts:
+    when: always
+    paths:
+      - trivy-backend-report.json
+      - trivy-frontend-report.json
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+  allow_failure: true
 
 # ============================================================================
 # STAGE 6: DÉPLOIEMENT
