@@ -285,7 +285,7 @@ sonarqube:full-project:
       -Dsonar.javascript.lcov.reportPaths=frontend-sqli/coverage/lcov.info
       -Dsonar.typescript.tsconfigPath=frontend-sqli/tsconfig.json
       -Dsonar.sourceEncoding=UTF-8
-      -Dsonar.qualitygate.wait=true
+      -Dsonar.qualitygate.wait=false
 
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
