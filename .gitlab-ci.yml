@@ -411,7 +411,9 @@ docker:frontend:
 # Scan de sécurité des images Docker (Trivy)
 security:docker-scan:
   stage: docker-security
-  image: aquasec/trivy:latest
+  image: 
+    name: aquasec/trivy:latest
+    entrypoint: [""]
   needs:
     - docker:backend
     - docker:frontend
