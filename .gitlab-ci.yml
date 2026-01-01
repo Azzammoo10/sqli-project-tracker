@@ -25,7 +25,7 @@ variables:
   
   # SonarQube - CORRECTION: Valeurs par défaut si non définies
   SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-  SONAR_HOST_URL: "${SONAR_HOST_URL}"
+  # SONAR_HOST_URL: "${SONAR_HOST_URL}"
   
   # Versions
   JAVA_VERSION: "17"
@@ -247,8 +247,13 @@ sonarqube:full-project:
   stage: quality
   image: sonarsource/sonar-scanner-cli:latest
   needs:
-    - backend:test
-    - frontend:test
+    - job: backend:build
+      artifacts: true
+    - job: backend:test
+      artifacts: true
+    - job: frontend:test
+      artifacts: true
+
   variables:
     GIT_DEPTH: 0
   cache:
