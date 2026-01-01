@@ -147,7 +147,7 @@ public class TaskserviceImpl implements Taskservice {
     public TaskResponse updateTask(int id, TaskRequest request) {
         Task task = taskRepoistory.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("task introuvable avec l'id : " + id));
-        if(task.getProject().getCreatedBy().getId() != getCurrentUser().getId()){
+        if(!Objects.equals(task.getProject().getCreatedBy().getId(), getCurrentUser().getId())){
             throw new AccessdeniedException("Vous n'avez pas les droits de mise a jour pour cette task");
         }
 
