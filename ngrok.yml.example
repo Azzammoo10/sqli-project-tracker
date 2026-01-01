@@ -11,3 +11,6 @@ tunnels:
     addr: 8080
     proto: http
     inspect: true
+    schemes:
+      - http
+      - https

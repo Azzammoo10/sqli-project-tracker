@@ -1,0 +1,17 @@
+# Gitleaks ignore file
+# Ignore false positives in Maven dependencies and build artifacts
+
+# Maven repository (dependencies cache)
+.m2/**
+**/target/**
+**/.m2/**
+
+# OWASP Dependency Check database (contains CVE data, not real secrets)
+**/odc.mv.db
+
+# Node modules
+**/node_modules/**
+
+# Build outputs
+**/build/**
+**/dist/**

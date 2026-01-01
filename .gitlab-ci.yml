@@ -293,6 +293,31 @@ sonarqube:full-project:
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   allow_failure: true
+
+# Rapports de qualité de code détaillés (PMD, Checkstyle, SpotBugs)
+quality:report:
+  stage: quality
+  image: maven:3.9.6-eclipse-temurin-17
+  needs:
+    - backend:test
+  script:
+    - cd backend-sqli
+    - echo "📊 Génération des rapports de qualité..."
+    - mvn site -DskipTests || true
+    - mvn pmd:pmd checkstyle:checkstyle || true
+    - echo "✅ Rapports générés"
+  artifacts:
+    when: always
+    paths:
+      - backend-sqli/target/site/
+      - backend-sqli/target/pmd.xml
+      - backend-sqli/target/checkstyle-result.xml
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+  allow_failure: true
+
 # ============================================================================
 # STAGE 4: SÉCURITÉ
 # ============================================================================
@@ -325,6 +350,32 @@ security:secrets-scan:
   script:
     - echo "🔍 Scan des secrets exposés..."
     - gitleaks detect --source . --verbose --no-git
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+  allow_failure: false
+
+# Scan de sécurité des images Docker (Trivy)
+security:docker-scan:
+  stage: security
+  image: aquasec/trivy:latest
+  needs:
+    - docker:backend
+    - docker:frontend
+  script:
+    - echo "🔍 Scan de sécurité des images Docker..."
+    - trivy image --severity HIGH,CRITICAL --format json --output trivy-backend-report.json $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA || true
+    - trivy image --severity HIGH,CRITICAL --format json --output trivy-frontend-report.json $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA || true
+    - echo "📊 Résumé des vulnérabilités Backend:"
+    - trivy image --severity HIGH,CRITICAL $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - echo "📊 Résumé des vulnérabilités Frontend:"
+    - trivy image --severity HIGH,CRITICAL $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA
+  artifacts:
+    when: always
+    paths:
+      - trivy-backend-report.json
+      - trivy-frontend-report.json
+    expire_in: 1 week
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
@@ -500,6 +551,50 @@ smoke:staging:
     - if: $DEPLOY_ENABLED == "true" && $CI_COMMIT_BRANCH == "develop"
   allow_failure: true
   retry: 2
+
+# Tests de performance avec k6 (DÉSACTIVÉ - Pas de serveur)
+performance:backend:
+  stage: smoke-test
+  image: grafana/k6:latest
+  needs:
+    - deploy:staging
+  script:
+    - |
+      cat > load-test.js << 'EOF'
+      import http from 'k6/http';
+      import { check, sleep } from 'k6';
+      
+      export let options = {
+        stages: [
+          { duration: '30s', target: 10 },  // Ramp-up
+          { duration: '1m', target: 50 },   // Stress
+          { duration: '30s', target: 0 },   // Ramp-down
+        ],
+        thresholds: {
+          http_req_duration: ['p(95)<500'], // 95% des requêtes < 500ms
+          http_req_failed: ['rate<0.1'],    // < 10% d'erreurs
+        },
+      };
+      
+      export default function() {
+        let res = http.get('https://staging.sqli-app.com/actuator/health');
+        check(res, {
+          'status is 200': (r) => r.status === 200,
+          'response time OK': (r) => r.timings.duration < 500,
+        });
+        sleep(1);
+      }
+      EOF
+    - k6 run load-test.js --out json=k6-results.json
+  artifacts:
+    when: always
+    paths:
+      - k6-results.json
+    expire_in: 1 week
+  rules:
+    - if: $DEPLOY_ENABLED == "true" && $CI_COMMIT_BRANCH == "develop"
+      when: manual
+  allow_failure: true
 
 # Tests de fumée Production (DÉSACTIVÉ - Pas de serveur)
 smoke:production:
