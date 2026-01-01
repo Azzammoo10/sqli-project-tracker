@@ -271,25 +271,16 @@ sonarqube:full-project:
         exit 0
       fi
 
-    # Installation du scanner SonarQube
-    - apt-get update && apt-get install -y wget unzip
-    - wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-8.0.1.6346-linux-x64.zip
-    - unzip -q sonar-scanner-cli-8.0.1.6346-linux-x64.zip
-    - export PATH=$PATH:$(pwd)/sonar-scanner-8.0.1.6346-linux-x64/bin
-
-    # Compilation backend pour générer target/classes
+    # Utiliser Maven pour l'analyse SonarQube (backend + frontend combinés)
     - cd backend-sqli
-    - mvn -B -DskipTests compile
-    - cd ..
-
-    # Lancement analyse Sonar
     - >
-      sonar-scanner
+      mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar
       -Dsonar.projectKey=sqli-platform
       -Dsonar.organization=sqli-projects
       -Dsonar.projectName="SQLI Full Platform"
       -Dsonar.host.url=$SONAR_HOST_URL
       -Dsonar.token=$SONAR_TOKEN
+      -Dsonar.projectBaseDir=..
       -Dsonar.sources=backend-sqli/src/main/java,frontend-sqli/app
       -Dsonar.tests=backend-sqli/src/test/java,frontend-sqli/app
       -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx
@@ -300,8 +291,8 @@ sonarqube:full-project:
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/target/**
       -Dsonar.qualitygate.wait=true
-      
-      - echo "✅ Analyse terminée - Consultez ${SONAR_HOST_URL}/dashboard?id=sqli-platform"
+    - cd ..
+    - echo "✅ Analyse terminée - Consultez ${SONAR_HOST_URL}/dashboard?id=sqli-platform"
     
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
