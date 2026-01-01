@@ -240,7 +240,7 @@ frontend:lint:
   allow_failure: true
 
 # ============================================================================
-# STAGE 3: QUALITÉ (SonarQube Unified) - CORRIGÉ
+# STAGE 3: QUALITÉ (SonarQube Unified) - VERSION CORRIGÉE (SYNTAXE)
 # ============================================================================
 sonarqube:full-project:
   stage: quality
@@ -266,28 +266,29 @@ sonarqube:full-project:
         exit 1
       fi
 
-    - sonar-scanner \
-        -Dsonar.organization=sqli-projects \
-        -Dsonar.projectKey=sqli-platform \
-        -Dsonar.projectName="SQLI Full Platform" \
-        -Dsonar.host.url=$SONAR_HOST_URL \
-        -Dsonar.token=$SONAR_TOKEN \
-        -Dsonar.sources=backend-sqli/src/main/java,frontend-sqli/app \
-        -Dsonar.tests=backend-sqli/src/test/java,frontend-sqli/app \
-        -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/*Test.java \
-        -Dsonar.java.binaries=backend-sqli/target/classes \
-        -Dsonar.coverage.jacoco.xmlReportPaths=backend-sqli/target/site/jacoco/jacoco.xml \
-        -Dsonar.javascript.lcov.reportPaths=frontend-sqli/coverage/lcov.info \
-        -Dsonar.typescript.tsconfigPath=frontend-sqli/tsconfig.json \
-        -Dsonar.sourceEncoding=UTF-8 \
-        -Dsonar.qualitygate.wait=true
+    # CORRECTION ICI : Utilisation de ">" pour supprimer les antislashs problématiques
+    - >
+      sonar-scanner
+      -Dsonar.organization=sqli-projects
+      -Dsonar.projectKey=sqli-platform
+      -Dsonar.projectName="SQLI Full Platform"
+      -Dsonar.host.url=$SONAR_HOST_URL
+      -Dsonar.token=$SONAR_TOKEN
+      -Dsonar.sources=backend-sqli/src/main/java,frontend-sqli/app
+      -Dsonar.tests=backend-sqli/src/test/java,frontend-sqli/app
+      -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/*Test.java
+      -Dsonar.java.binaries=backend-sqli/target/classes
+      -Dsonar.coverage.jacoco.xmlReportPaths=backend-sqli/target/site/jacoco/jacoco.xml
+      -Dsonar.javascript.lcov.reportPaths=frontend-sqli/coverage/lcov.info
+      -Dsonar.typescript.tsconfigPath=frontend-sqli/tsconfig.json
+      -Dsonar.sourceEncoding=UTF-8
+      -Dsonar.qualitygate.wait=true
 
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   allow_failure: false
-
 # ============================================================================
 # STAGE 4: SÉCURITÉ
 # ============================================================================
