@@ -1,0 +1,28 @@
+# Gitleaks Configuration
+title = "Gitleaks Configuration for SQLI Project"
+
+[extend]
+# useDefault will extend the base configuration with the default gitleaks config
+useDefault = true
+
+[allowlist]
+description = "Global allowlist for false positives"
+
+# Ignore specific paths (dependencies, build outputs, etc.)
+paths = [
+  '''.m2/.*''',
+  '''.*\.m2/.*''',
+  '''.*/target/.*''',
+  '''.*/node_modules/.*''',
+  '''.*/build/.*''',
+  '''.*/dist/.*''',
+  '''.*odc\.mv\.db.*''',
+  '''.*dependency-check-data.*''',
+]
+
+# Ignore specific regexes (example: localhost URLs are not secrets)
+regexes = [
+  '''localhost''',
+  '''127\.0\.0\.1''',
+  '''0\.0\.0\.0''',
+]

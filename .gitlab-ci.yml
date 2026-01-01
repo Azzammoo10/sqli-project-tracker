@@ -350,7 +350,7 @@ security:secrets-scan:
     entrypoint: [""]
   script:
     - echo "🔍 Scan des secrets exposés..."
-    - gitleaks detect --source . --verbose --no-git
+    - gitleaks detect --source . --config .gitleaks.toml --verbose --no-git
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"

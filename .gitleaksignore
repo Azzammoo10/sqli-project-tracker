@@ -1,17 +1,5 @@
-# Gitleaks ignore file
-# Ignore false positives in Maven dependencies and build artifacts
+# Gitleaks ignore file - Using specific fingerprints
+# Format: file:rule:line
 
-# Maven repository (dependencies cache)
-.m2/**
-**/target/**
-**/.m2/**
-
-# OWASP Dependency Check database (contains CVE data, not real secrets)
-**/odc.mv.db
-
-# Node modules
-**/node_modules/**
-
-# Build outputs
-**/build/**
-**/dist/**
+# OWASP Dependency Check database (false positive - CVE data not real secrets)
+.m2/repository/org/owasp/dependency-check-data/11.0/odc.mv.db:generic-api-key:690312
