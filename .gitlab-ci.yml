@@ -245,7 +245,7 @@ frontend:lint:
 
 sonarqube:full-project:
   stage: quality
-  image: sonarsource/sonar-scanner-cli:latest
+  image: maven:3-openjdk-17
   needs:
     - job: backend:build
       artifacts: true
@@ -256,10 +256,12 @@ sonarqube:full-project:
 
   variables:
     GIT_DEPTH: 0
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
   cache:
     key: sonar
     paths:
       - .sonar/cache
+      - .m2/repository
   script:
     - echo "📊 Analyse SonarQube globale du projet..."
 
@@ -268,6 +270,12 @@ sonarqube:full-project:
         echo "Variables SonarQube absentes"
         exit 0
       fi
+
+    # Installation du scanner SonarQube
+    - apt-get update && apt-get install -y wget unzip
+    - wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-8.0.1.6346-linux-x64.zip
+    - unzip -q sonar-scanner-cli-8.0.1.6346-linux-x64.zip
+    - export PATH=$PATH:$(pwd)/sonar-scanner-8.0.1.6346-linux-x64/bin
 
     # Compilation backend pour générer target/classes
     - cd backend-sqli
