@@ -172,8 +172,8 @@ public class InitProjectData {
             task.setProject(project);
             task.setDeveloppeur(developpeurs.get(i % developpeurs.size())); // Répartir les tâches
             task.setPlannedHours(8 + (i * 4)); // 8h, 12h, 16h, 20h
-            task.setEffectiveHours(task.getStatut() == StatutTache.TERMINE ? task.getPlannedHours() : 0);
-            task.setRemainingHours(task.getStatut() == StatutTache.TERMINE ? 0 : task.getPlannedHours());
+            task.setEffectiveHours(StatutTache.TERMINE.equals(task.getStatut()) ? task.getPlannedHours() : 0);
+            task.setRemainingHours(StatutTache.TERMINE.equals(task.getStatut()) ? 0 : task.getPlannedHours());
             
             taskRepository.save(task);
             

@@ -70,7 +70,7 @@ public class ProjetServiceImpl implements ProjetService {
             System.out.println("DeveloppeurIds reçus: " + request.getDeveloppeurIds());
             
             List<User> developers = userRepository.findAllById(request.getDeveloppeurIds()).stream()
-                    .filter(user -> user.getRole() == Role.DEVELOPPEUR)
+                    .filter(user -> Role.DEVELOPPEUR.equals(user.getRole()))
                     .toList();
 
             System.out.println("Développeurs trouvés: " + developers.size());
@@ -143,7 +143,7 @@ public class ProjetServiceImpl implements ProjetService {
                 System.out.println("Mise à jour avec " + request.getDeveloppeurIds().size() + " développeurs");
                 // Récupérer les nouveaux développeurs
                 List<User> newDeveloppeurs = userRepository.findAllById(request.getDeveloppeurIds()).stream()
-                        .filter(user -> user.getRole() == Role.DEVELOPPEUR)
+                        .filter(user -> Role.DEVELOPPEUR.equals(user.getRole()))
                         .toList();
                 
                 System.out.println("Développeurs trouvés: " + newDeveloppeurs.size());
@@ -300,7 +300,7 @@ public class ProjetServiceImpl implements ProjetService {
         long activeProjects = projetRepository.findByStatut(StatutProjet.EN_COURS).size();
         long completedProjects = projetRepository.findByStatut(StatutProjet.TERMINE).size();
         long lateProjects = projetRepository.findAll().stream()
-                .filter(p -> p.getDateFin().isBefore(LocalDate.now()) && p.getStatut() != StatutProjet.TERMINE)
+                .filter(p -> p.getDateFin().isBefore(LocalDate.now()) && !StatutProjet.TERMINE.equals(p.getStatut()))
                 .count();
 
         return new DashboardStatsResponse(
@@ -326,7 +326,7 @@ public class ProjetServiceImpl implements ProjetService {
     }
 
     private boolean isEligibleAsDeveloper(User user) {
-        return user.getRole() == Role.DEVELOPPEUR || user.getRole() == Role.STAGIAIRE;
+        return Role.DEVELOPPEUR.equals(user.getRole()) || Role.STAGIAIRE.equals(user.getRole());
     }
 
 
@@ -560,10 +560,10 @@ public class ProjetServiceImpl implements ProjetService {
         if (project.getTasks() != null && !project.getTasks().isEmpty()) {
             totalTasks = project.getTasks().size();
             completedTasks = (int) project.getTasks().stream()
-                    .filter(task -> task.getStatut() == StatutTache.TERMINE)
+                    .filter(task -> StatutTache.TERMINE.equals(task.getStatut()))
                     .count();
             inProgressTasks = (int) project.getTasks().stream()
-                    .filter(task -> task.getStatut() == StatutTache.EN_COURS)
+                    .filter(task -> StatutTache.EN_COURS.equals(task.getStatut()))
                     .count();
         }
 

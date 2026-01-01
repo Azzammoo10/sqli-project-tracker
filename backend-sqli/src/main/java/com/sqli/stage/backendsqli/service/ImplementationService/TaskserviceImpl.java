@@ -45,7 +45,7 @@ public class TaskserviceImpl implements Taskservice {
         User current = getCurrentUser();
 
         // Autorisations
-        if (current.getRole() != Role.CHEF_DE_PROJET && current.getRole() != Role.ADMIN) {
+        if (!Role.CHEF_DE_PROJET.equals(current.getRole()) && !Role.ADMIN.equals(current.getRole())) {
             throw new AccessdeniedException("Seuls les chefs de projet ou admin peuvent créer des tâches.");
         }
 
@@ -68,19 +68,19 @@ public class TaskserviceImpl implements Taskservice {
 
         // Vérifier ownership / responsabilité
         // (préférable à createdBy: chefDeProjet est plus métier)
-        if (current.getRole() != Role.ADMIN) {
+        if (!Role.ADMIN.equals(current.getRole())) {
             if (projet.getCreatedBy() == null || !projet.getCreatedBy().getId().equals(current.getId())) {
                 throw new AccessdeniedException("Vous n'êtes pas le chef du projet.");
             }
         }
 
         // Statut projet
-        if (projet.getStatut() == StatutProjet.TERMINE) {
+        if (StatutProjet.TERMINE.equals(projet.getStatut())) {
             throw new IllegalStateException("Impossible de créer une tâche sur un projet terminé.");
         }
 
         // Rôle dev
-        if (developpeur.getRole() != Role.DEVELOPPEUR) {
+        if (!Role.DEVELOPPEUR.equals(developpeur.getRole())) {
             throw new IllegalArgumentException("Seuls les développeurs peuvent recevoir des tâches.");
         }
         if (!developpeur.isEnabled()) {
@@ -160,7 +160,7 @@ public class TaskserviceImpl implements Taskservice {
             User dev = userRepository.findById(request.getDeveloppeurId())
                     .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable avec ID " + request.getDeveloppeurId()));
 
-            if (dev.getRole() != Role.DEVELOPPEUR) {
+            if (!Role.DEVELOPPEUR.equals(dev.getRole())) {
                 throw new IllegalArgumentException("L'utilisateur assigné n'est pas un développeur.");
             }
 
@@ -278,7 +278,7 @@ public class TaskserviceImpl implements Taskservice {
         User current = getCurrentUser();
         
         // Vérifier que l'utilisateur est un chef de projet
-        if (current.getRole() != Role.CHEF_DE_PROJET) {
+        if (!Role.CHEF_DE_PROJET.equals(current.getRole())) {
             throw new AccessdeniedException("Seuls les chefs de projet peuvent accéder à cette fonctionnalité.");
         }
         
@@ -424,7 +424,7 @@ public class TaskserviceImpl implements Taskservice {
         }
 
         // déjà terminé ? on sort idempotent
-        if (task.getStatut() == StatutTache.TERMINE) {
+        if (StatutTache.TERMINE.equals(task.getStatut())) {
             return mapToReponse(task);
         }
 
@@ -457,7 +457,7 @@ public class TaskserviceImpl implements Taskservice {
             }
 
             // déjà terminé ? on sort idempotent
-            if (task.getStatut() == StatutTache.EN_COURS) {
+            if (StatutTache.EN_COURS.equals(task.getStatut())) {
                 return mapToReponse(task);
             }
 
@@ -518,7 +518,7 @@ public class TaskserviceImpl implements Taskservice {
         }
 
         // déjà bloquée ? on sort idempotent
-        if (task.getStatut() == StatutTache.BLOQUE) {
+        if (StatutTache.BLOQUE.equals(task.getStatut())) {
             return mapToReponse(task);
         }
 

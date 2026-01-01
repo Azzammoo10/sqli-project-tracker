@@ -44,7 +44,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         long lateProjects = projectRepository.findAll().stream()
                 .filter(p -> p.getDateFin() != null)
                 .filter(p -> p.getDateFin().isBefore(today))
-                .filter(p -> p.getStatut() != StatutProjet.TERMINE)
+                .filter(p -> !StatutProjet.TERMINE.equals(p.getStatut()))
                 .count();
 
         long totalTasks = taskRepository.count();
@@ -173,13 +173,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         
         long totalProjects = chefProjects.size();
         long activeProjects = chefProjects.stream()
-                .filter(p -> p.getStatut() == StatutProjet.EN_COURS)
+                .filter(p -> StatutProjet.EN_COURS.equals(p.getStatut()))
                 .count();
         long completedProjects = chefProjects.stream()
-                .filter(p -> p.getStatut() == StatutProjet.TERMINE)
+                .filter(p -> StatutProjet.TERMINE.equals(p.getStatut()))
                 .count();
         long overdueProjects = chefProjects.stream()
-                .filter(p -> p.getDateFin() != null && p.getDateFin().isBefore(today) && p.getStatut() != StatutProjet.TERMINE)
+                .filter(p -> p.getDateFin() != null && p.getDateFin().isBefore(today) && !StatutProjet.TERMINE.equals(p.getStatut()))
                 .count();
 
         // Filtrer les tâches des projets de ce chef
@@ -598,7 +598,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return chefProjects.stream()
                 .filter(p -> p.getDateFin() != null && 
                            p.getDateFin().isBefore(today) && 
-                           p.getStatut() != StatutProjet.TERMINE)
+                           !StatutProjet.TERMINE.equals(p.getStatut()))
                 .map(p -> {
                     Map<String, Object> overdue = new HashMap<>();
                     overdue.put("id", p.getId());

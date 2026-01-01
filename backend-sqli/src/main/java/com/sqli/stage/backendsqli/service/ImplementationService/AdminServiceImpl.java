@@ -159,7 +159,7 @@ public class AdminServiceImpl implements AdminService {
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec id : " + id));
 
         // Vérifier si l'utilisateur est un admin (empêcher la suppression d'admin)
-        if (user.getRole() == Role.ADMIN) {
+        if (Role.ADMIN.equals(user.getRole())) {
             throw new RuntimeException("Impossible de supprimer un administrateur");
         }
 
@@ -167,7 +167,7 @@ public class AdminServiceImpl implements AdminService {
             System.out.println("=== SUPPRESSION SÉCURISÉE DE L'UTILISATEUR " + user.getUsername() + " ===");
             
             // 1. Gérer les projets où l'utilisateur est client
-            if (user.getRole() == Role.CLIENT) {
+            if (Role.CLIENT.equals(user.getRole())) {
                 List<Project> clientProjects = projetRepository.findByClientId(id);
                 if (!clientProjects.isEmpty()) {
                     System.out.println("⚠️  ATTENTION: L'utilisateur est client de " + clientProjects.size() + " projet(s)");
@@ -283,7 +283,7 @@ public class AdminServiceImpl implements AdminService {
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec id : " + id));
 
         // Vérifier si l'utilisateur est un admin (empêcher la suppression d'admin)
-        if (user.getRole() == Role.ADMIN) {
+        if (Role.ADMIN.equals(user.getRole())) {
             throw new RuntimeException("Impossible de supprimer un administrateur");
         }
 
@@ -315,7 +315,7 @@ public class AdminServiceImpl implements AdminService {
             }
             
             // 4. Si c'est un client, gérer ses projets
-            if (user.getRole() == Role.CLIENT) {
+            if (Role.CLIENT.equals(user.getRole())) {
                 List<Project> clientProjects = projetRepository.findByClientId(id);
                 if (!clientProjects.isEmpty()) {
                     for (Project project : clientProjects) {
