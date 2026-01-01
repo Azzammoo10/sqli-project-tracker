@@ -240,7 +240,7 @@ frontend:lint:
   allow_failure: true
 
 # ============================================================================
-# STAGE 3: QUALITÉ (SonarQube Unified) - VERSION CORRIGÉE (SYNTAXE)
+# STAGE 3: QUALITÉ (SonarQube Unified) - VERSION CORRIGÉE (ARTEFACTS)
 # ============================================================================
 sonarqube:full-project:
   stage: quality
@@ -248,8 +248,12 @@ sonarqube:full-project:
     name: sonarsource/sonar-scanner-cli:latest
     entrypoint: [""]
   needs:
-    - backend:test
-    - frontend:test
+    - job: backend:build    # <--- AJOUT CRITIQUE : Récupère les .class nécessaires à l'analyse Java
+      artifacts: true
+    - job: backend:test     # Récupère le rapport Jacoco
+      artifacts: true
+    - job: frontend:test    # Récupère le rapport LCOV
+      artifacts: true
   variables:
     GIT_DEPTH: 0
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
@@ -266,7 +270,6 @@ sonarqube:full-project:
         exit 1
       fi
 
-    # CORRECTION ICI : Utilisation de ">" pour supprimer les antislashs problématiques
     - >
       sonar-scanner
       -Dsonar.organization=sqli-projects
