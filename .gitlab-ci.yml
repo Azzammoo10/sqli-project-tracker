@@ -1,5 +1,5 @@
 # ============================================================================
-# GitLab CI/CD Pipeline Optimisé - SQLI Stage Project (CORRIGÉ)
+# GitLab CI/CD Pipeline Optimisé - SQLI Stage Project (FINAL)
 # ============================================================================
 # Backend: Spring Boot 3.5.3 (Java 17)
 # Frontend: React Router 7 (Node.js 20)
@@ -23,9 +23,9 @@ variables:
   BACKEND_IMAGE: $CI_REGISTRY_IMAGE/backend
   FRONTEND_IMAGE: $CI_REGISTRY_IMAGE/frontend
   
-  # SonarQube - CORRECTION: Valeurs par défaut si non définies
+  # SonarQube
   SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-  # SONAR_HOST_URL: "${SONAR_HOST_URL}"
+  SONAR_HOST_URL: "https://sonarcloud.io" # Forcé ici pour être sûr
   
   # Versions
   JAVA_VERSION: "17"
@@ -240,86 +240,54 @@ frontend:lint:
   allow_failure: true
 
 # ============================================================================
-# JOB SONARQUBE CORRIGÉ - À remplacer dans .gitlab-ci.yml
+# STAGE 3: QUALITÉ (SonarQube Unified) - CORRIGÉ
 # ============================================================================
-
-sonarqube:backend:
-  stage: quality
-  image: maven:3-openjdk-17
-  needs:
-    - job: backend:build
-      artifacts: true
-    - job: backend:test
-      artifacts: true
-
-  variables:
-    GIT_DEPTH: 0
-    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-  cache:
-    key: "${CI_JOB_NAME}"
-    paths:
-      - .sonar/cache
-      - .m2/repository
-  script:
-    - echo "📊 Analyse SonarQube du backend..."
-    - |
-      if [ -z "$SONAR_HOST_URL" ] || [ -z "$SONAR_TOKEN" ]; then
-        echo "⚠️ Variables SonarQube absentes (SONAR_HOST_URL ou SONAR_TOKEN)"
-        exit 0
-      fi
-    - cd backend-sqli
-    - mvn verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=sqli-platform -Dsonar.qualitygate.wait=true
-    - echo "✅ Analyse terminée - Consultez ${SONAR_HOST_URL}/dashboard?id=sqli-platform"
-    
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "develop"
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  allow_failure: true
-
-sonarqube:frontend:
+sonarqube:full-project:
   stage: quality
   image:
     name: sonarsource/sonar-scanner-cli:latest
     entrypoint: [""]
   needs:
-    - job: frontend:build
-      artifacts: true
-    - job: frontend:test
-      artifacts: true
-
+    - backend:test
+    - frontend:test
   variables:
     GIT_DEPTH: 0
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
   cache:
-    key: "${CI_JOB_NAME}"
+    key: "sonar-cache"
     paths:
       - .sonar/cache
   script:
-    - echo "📊 Analyse SonarQube du frontend..."
+    - echo "📊 Analyse SonarQube globale du projet..."
+    - echo "🔍 Vérification des variables..."
     - |
-      if [ -z "$SONAR_HOST_URL" ] || [ -z "$SONAR_TOKEN" ]; then
-        echo "⚠️ Variables SonarQube absentes (SONAR_HOST_URL ou SONAR_TOKEN)"
-        exit 0
+      if [ -z "$SONAR_TOKEN" ]; then
+        echo "❌ ERREUR: La variable SONAR_TOKEN est manquante dans GitLab CI/CD Settings."
+        exit 1
       fi
-    - cd frontend-sqli
-    - >
-      sonar-scanner
-      -Dsonar.projectKey=sqli-frontend
-      -Dsonar.organization=sqli-projects
-      -Dsonar.sources=app
-      -Dsonar.tests=app
-      -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx
-      -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-      -Dsonar.typescript.tsconfigPath=tsconfig.json
-      -Dsonar.qualitygate.wait=true
-    - echo "✅ Analyse terminée - Consultez ${SONAR_HOST_URL}/dashboard?id=sqli-frontend"
-    
+
+    - sonar-scanner \
+        -Dsonar.organization=sqli-projects \
+        -Dsonar.projectKey=sqli-platform \
+        -Dsonar.projectName="SQLI Full Platform" \
+        -Dsonar.host.url=$SONAR_HOST_URL \
+        -Dsonar.token=$SONAR_TOKEN \
+        -Dsonar.sources=backend-sqli/src/main/java,frontend-sqli/app \
+        -Dsonar.tests=backend-sqli/src/test/java,frontend-sqli/app \
+        -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/*Test.java \
+        -Dsonar.java.binaries=backend-sqli/target/classes \
+        -Dsonar.coverage.jacoco.xmlReportPaths=backend-sqli/target/site/jacoco/jacoco.xml \
+        -Dsonar.javascript.lcov.reportPaths=frontend-sqli/coverage/lcov.info \
+        -Dsonar.typescript.tsconfigPath=frontend-sqli/tsconfig.json \
+        -Dsonar.sourceEncoding=UTF-8 \
+        -Dsonar.qualitygate.wait=true
+
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  allow_failure: true
+  allow_failure: false
+
 # ============================================================================
 # STAGE 4: SÉCURITÉ
 # ============================================================================
@@ -344,7 +312,6 @@ security:dependency-check:
   allow_failure: true
 
 # Scan de sécurité des secrets (GitLeaks)
-# CORRECTION: Ajouter entrypoint vide pour éviter le conflit avec sh
 security:secrets-scan:
   stage: security
   image: 
