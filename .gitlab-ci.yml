@@ -367,6 +367,11 @@ docker:backend:
   needs:
     - backend:build
     - backend:test
+  retry:
+    max: 2
+    when:
+      - script_failure
+      - runner_system_failure
   script:
     - echo "🐳 Build de l'image Docker backend..."
     - export VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}
@@ -389,6 +394,11 @@ docker:frontend:
   needs:
     - frontend:build
     - frontend:test
+  retry:
+    max: 2
+    when:
+      - script_failure
+      - runner_system_failure
   script:
     - echo "🐳 Build de l'image Docker frontend..."
     - export VERSION=${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}
