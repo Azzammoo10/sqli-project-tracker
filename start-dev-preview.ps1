@@ -1,5 +1,5 @@
-# Script PowerShell pour démarrer l'environnement de développement
-Write-Host "Demarrage de l'environnement de developpement..." -ForegroundColor Green
+# Script PowerShell pour démarrer l'environnement de développement en mode preview
+Write-Host "Demarrage de l'environnement de developpement (MODE PREVIEW)..." -ForegroundColor Green
 
 # Fonction pour attendre que ngrok soit prêt
 function Wait-ForNgrok {
@@ -46,9 +46,7 @@ try {
     exit 1
 }
 
-# Mise à jour du fichier qrCodeService.ts
-# --- Params ---
-$qrCodeServicePath = "frontend-sqli/app/services/qrCodeService.ts"
+# Récupérer l'URL ngrok pour le port 5173
 $targetPort = 5173
 $maxRetries = 15
 $delaySeconds = 1
@@ -61,14 +59,11 @@ function Get-NgrokUrlForPort([int]$port, [int]$retries, [int]$delaySec) {
             $resp = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -Method GET -TimeoutSec 2 -ErrorAction Stop
 
             if ($resp -and $resp.tunnels) {
-                # Filtrer sur le tunnel qui pointe vers le port demandé
                 $tunnels = $resp.tunnels | Where-Object {
-                    # ngrok retourne typiquement "http://localhost:5173" ou "http://127.0.0.1:5173"
                     $_.config.addr -match "://(localhost|127\.0\.0\.1):$port($|/)"
                 }
 
                 if ($tunnels) {
-                    # Prioriser l'URL publique en HTTPS si dispo
                     $httpsTunnel = $tunnels | Where-Object { $_.public_url -like "https://*" } | Select-Object -First 1
                     $chosen = if ($httpsTunnel) { $httpsTunnel } else { $tunnels | Select-Object -First 1 }
 
@@ -78,7 +73,7 @@ function Get-NgrokUrlForPort([int]$port, [int]$retries, [int]$delaySec) {
                 }
             }
         } catch {
-            # API pas prête ou ngrok pas lancé
+            # API pas prête
         }
 
         Start-Sleep -Seconds $delaySec
@@ -90,48 +85,26 @@ function Get-NgrokUrlForPort([int]$port, [int]$retries, [int]$delaySec) {
 $ngrokUrl = Get-NgrokUrlForPort -port $targetPort -retries $maxRetries -delaySec $delaySeconds
 
 if (-not $ngrokUrl) {
-    Write-Host "Échec: impossible de trouver une URL ngrok pour localhost:$targetPort via l'API 4040." -ForegroundColor Red
-    Write-Host "Vérifie que ngrok tourne et qu'un tunnel pointe vers le port $targetPort." -ForegroundColor Yellow
+    Write-Host "Échec: impossible de trouver une URL ngrok pour localhost:$targetPort" -ForegroundColor Red
     exit 1
 }
 
 Write-Host "URL ngrok détectée pour $targetPort : $ngrokUrl" -ForegroundColor Green
 
-# --- Mise à jour du fichier ---
-if (-not (Test-Path $qrCodeServicePath)) {
-    Write-Host "Fichier introuvable: $qrCodeServicePath" -ForegroundColor Red
-    exit 1
-}
-
-Write-Host "Mise à jour de qrCodeService.ts..." -ForegroundColor Cyan
-
-# Remplace toute URL https://*.ngrok-free.app par celle détectée
-# (conserve le chemin qui suit l'hôte le cas échéant)
-# Exemple: https://XXXX.ngrok-free.app/api -> devient https://NEW.ngrok-free.app/api
-$content = Get-Content $qrCodeServicePath -Raw
-
-# Pattern: capture l'hôte ngrok et un éventuel chemin à conserver
-$pattern = "https://[a-zA-Z0-9-]+\.ngrok-free\.app(?<rest>/[^\s`"'\)\]]*)?"
-
-# Remplacement: nouvel host + le chemin capturé si présent
-$replacement = "${ngrokUrl}`$1"
-# Comme on a nommé le groupe (?<rest>...), référençons-le comme ${rest}
-# PowerShell -replace n'autorise pas la syntaxe ${rest} directement,
-# on fait une 2e passe pour corriger si besoin :
-$updated = [Regex]::Replace($content, $pattern, { param($m)
-    $rest = $m.Groups["rest"].Value
-    return "$ngrokUrl$rest"
-})
-
-Set-Content $qrCodeServicePath $updated -NoNewline
-Write-Host "qrCodeService.ts mis à jour avec $ngrokUrl" -ForegroundColor Green
-
-
-# Mise à jour du fichier QRCodeService.java (backend)
-Write-Host "Mise a jour de QRCodeService.java..." -ForegroundColor Cyan
+# Mise à jour des fichiers
+$qrCodeServicePath = "frontend-sqli/app/services/qrCodeService.ts"
 $qrCodeServiceJavaPath = "backend-sqli/src/main/java/com/sqli/stage/backendsqli/service/QRCodeService.java"
+
+Write-Host "Mise a jour de qrCodeService.ts..." -ForegroundColor Cyan
+$content = Get-Content $qrCodeServicePath -Raw
+$pattern = "https://[a-zA-Z0-9-]+\.ngrok-free\.(app|dev|io)"
+$updated = [Regex]::Replace($content, $pattern, $ngrokUrl)
+Set-Content $qrCodeServicePath $updated -NoNewline
+Write-Host "qrCodeService.ts mis a jour avec $ngrokUrl" -ForegroundColor Green
+
+Write-Host "Mise a jour de QRCodeService.java..." -ForegroundColor Cyan
 $javaContent = Get-Content $qrCodeServiceJavaPath -Raw
-$updatedJavaContent = $javaContent -replace 'https://[a-zA-Z0-9-]+\.ngrok-free\.app', $ngrokUrl
+$updatedJavaContent = $javaContent -replace 'https://[a-zA-Z0-9-]+\.ngrok-free\.(app|dev|io)', $ngrokUrl
 Set-Content $qrCodeServiceJavaPath $updatedJavaContent -NoNewline
 Write-Host "QRCodeService.java mis a jour" -ForegroundColor Green
 
@@ -145,45 +118,35 @@ Start-Process -FilePath "cmd" -ArgumentList "/k", "start-backend.bat" -WindowSty
 Write-Host "Attente du demarrage du backend..." -ForegroundColor Yellow
 Start-Sleep -Seconds 15
 
-# Démarrage du frontend
-Write-Host "Demarrage du frontend..." -ForegroundColor Cyan
-$frontendScript = "cd frontend-sqli`nnpm run dev"
-$frontendScript | Out-File -FilePath "start-frontend.bat" -Encoding Default
-Start-Process -FilePath "cmd" -ArgumentList "/k", "start-frontend.bat" -WindowStyle Normal
+# Build du frontend
+Write-Host "Build du frontend..." -ForegroundColor Cyan
+$buildScript = "cd frontend-sqli`nnpm run build"
+$buildScript | Out-File -FilePath "build-frontend.bat" -Encoding Default
+Start-Process -FilePath "cmd" -ArgumentList "/c", "build-frontend.bat" -Wait -WindowStyle Normal
 
-# Attendre le démarrage du frontend
-Write-Host "Attente du demarrage du frontend..." -ForegroundColor Yellow
-Start-Sleep -Seconds 10
+# Démarrage du frontend en mode preview
+Write-Host "Demarrage du frontend en mode PREVIEW..." -ForegroundColor Cyan
+$frontendScript = "cd frontend-sqli`nnpm run preview -- --host 0.0.0.0 --port 5173"
+$frontendScript | Out-File -FilePath "start-frontend-preview.bat" -Encoding Default
+Start-Process -FilePath "cmd" -ArgumentList "/k", "start-frontend-preview.bat" -WindowStyle Normal
 
 # Affichage des informations finales
 Write-Host ""
-Write-Host "========================================" -ForegroundColor Green
-Write-Host "Environnement de developpement pret !" -ForegroundColor Green
-Write-Host "========================================" -ForegroundColor Green
+Write-Host "Environnement de developpement pret (MODE PREVIEW) !" -ForegroundColor Green
+Write-Host "URL ngrok: $ngrokUrl" -ForegroundColor Cyan
+Write-Host "Frontend local: http://localhost:5173" -ForegroundColor Cyan
+Write-Host "Backend local: http://localhost:8080" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "URLs d'acces :" -ForegroundColor Cyan
-Write-Host "  - Frontend local : http://localhost:5173" -ForegroundColor White
-Write-Host "  - Backend local  : http://localhost:8080" -ForegroundColor White
-Write-Host "  - Ngrok (mobile) : $ngrokUrl" -ForegroundColor White
+Write-Host "Les QR codes utiliseront automatiquement la nouvelle URL ngrok" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "Les QR codes sont maintenant actifs !" -ForegroundColor Yellow
-Write-Host "Les QR codes pointent vers : $ngrokUrl/project/{id}" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "Pour tester :" -ForegroundColor Cyan
-Write-Host "  1. Connectez-vous en tant que client" -ForegroundColor White
-Write-Host "  2. Allez dans 'Projets'" -ForegroundColor White
-Write-Host "  3. Scannez un QR code avec votre telephone" -ForegroundColor White
+Write-Host "NOTE: Le frontend tourne en mode PREVIEW pour une meilleure compatibilite avec ngrok" -ForegroundColor Yellow
 Write-Host ""
 
 # Nettoyer les fichiers temporaires
 Start-Sleep -Seconds 2
 Remove-Item "start-backend.bat" -ErrorAction SilentlyContinue
-Remove-Item "start-frontend.bat" -ErrorAction SilentlyContinue
+Remove-Item "build-frontend.bat" -ErrorAction SilentlyContinue
+Remove-Item "start-frontend-preview.bat" -ErrorAction SilentlyContinue
 
-Write-Host "Appuyez sur Entree pour arreter tous les services..." -ForegroundColor Red
-Read-Host
-
-# Arrêter les services
-Write-Host "Arret des services..." -ForegroundColor Yellow
-Stop-Process -Name java,node,ngrok -Force -ErrorAction SilentlyContinue
-Write-Host "Services arretes." -ForegroundColor Green
+# Garder la fenêtre ouverte
+Read-Host "Appuyez sur Entree pour fermer cette fenetre"

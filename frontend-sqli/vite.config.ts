@@ -13,10 +13,13 @@ export default defineConfig({
       'localhost',
       '127.0.0.1',
       '192.168.1.4',
-      '.ngrok-free.app', // Autoriser tous les sous-domaines ngrok
-      '03d418b181d0.ngrok-free.app', // Ancienne URL ngrok frontend
-      '67f295abd8fa.ngrok-free.app', // Ancienne URL ngrok frontend
-      '29b9e11d43bd.ngrok-free.app', // URL ngrok frontend actuelle
+      '.ngrok-free.app', // Autoriser tous les sous-domaines ngrok .app
+      '.ngrok-free.dev', // Autoriser tous les sous-domaines ngrok .dev
+      '.ngrok.io', // Autoriser tous les sous-domaines ngrok .io
+      '03d418b181d0.ngrok-free.app',
+      '67f295abd8fa.ngrok-free.app',
+      '29b9e11d43bd.ngrok-free.app',
+      'aleen-balsaminaceous-temeka.ngrok-free.dev', // URL ngrok actuelle
     ],
     proxy: {
       '/api': {
