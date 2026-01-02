@@ -21,11 +21,11 @@ public class QRCodeService {
      * @return Le QR code en format byte array
      */
     public byte[] generateProjectQRCode(Long projectId, String projectName) throws WriterException, IOException {
-        // URL de la page publique frontend (pas l'API backend!)
-        // Le QR code doit pointer vers la page publique du frontend qui affiche les infos
+        // URL qui sera encodée dans le QR code - utiliser l'URL ngrok du frontend
+        // Le frontend aura une page publique qui appelle l'API backend
         String projectUrl = "https://aleen-balsaminaceous-temeka.ngrok-free.dev/project/" + projectId;
         
-        // Créer le contenu du QR code - juste l'URL de la page publique frontend
+        // Créer le contenu du QR code - juste l'URL de la page publique
         String qrContent = projectUrl;
         
         // Générer le QR code avec une taille plus grande pour une meilleure lisibilité
