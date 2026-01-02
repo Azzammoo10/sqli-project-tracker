@@ -18,6 +18,8 @@ paths = [
   '''.*/dist/.*''',
   '''.*odc\.mv\.db.*''',
   '''.*dependency-check-data.*''',
+  '''ngrok\.yml''',
+  '''ngrok\.yml\.example''',
 ]
 
 # Ignore specific regexes (example: localhost URLs are not secrets)
