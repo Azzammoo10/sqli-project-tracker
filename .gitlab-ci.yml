@@ -274,29 +274,27 @@ sonarqube:full-project:
         echo "❌ ERREUR: La variable SONAR_TOKEN est manquante dans GitLab CI/CD Settings."
         exit 1
       fi
-    
     - echo "📦 Copie des dépendances Maven pour analyse..."
     - cd backend-sqli
-    - mvn dependency:copy-dependencies -DoutputDirectory=target/dependency -DincludeScope=compile -B 2>/dev/null || echo "⚠️ Avertissement: impossible de copier les dépendances (normal si Maven non disponible)"
+    - mvn dependency:copy-dependencies -DoutputDirectory=target/dependency -DincludeScope=compile -B 2>/dev/null || echo "⚠️ Avertissement: impossible de copier les dépendances"
     - cd ..
-
-    - >
-      sonar-scanner
-      -Dsonar.organization=sqli-projects
-      -Dsonar.projectKey=sqli-platform
-      -Dsonar.projectName="SQLI Full Platform"
-      -Dsonar.host.url=$SONAR_HOST_URL
-      -Dsonar.token=$SONAR_TOKEN
-      -Dsonar.sources=backend-sqli/src/main/java,frontend-sqli/app
-      -Dsonar.tests=backend-sqli/src/test/java,frontend-sqli/app
-      -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/*Test.java
-      -Dsonar.java.binaries=backend-sqli/target/classes
-      -Dsonar.java.libraries=backend-sqli/target/dependency/*.jar,.m2/repository/**/*.jar
-      -Dsonar.coverage.jacoco.xmlReportPaths=backend-sqli/target/site/jacoco/jacoco.xml
-      -Dsonar.javascript.lcov.reportPaths=frontend-sqli/coverage/lcov.info
-      -Dsonar.typescript.tsconfigPath=frontend-sqli/tsconfig.json
-      -Dsonar.sourceEncoding=UTF-8
-      -Dsonar.qualitygate.wait=false
+    - |
+      sonar-scanner \
+        -Dsonar.organization=sqli-projects \
+        -Dsonar.projectKey=sqli-platform \
+        -Dsonar.projectName="SQLI Full Platform" \
+        -Dsonar.host.url=$SONAR_HOST_URL \
+        -Dsonar.token=$SONAR_TOKEN \
+        -Dsonar.sources=backend-sqli/src/main/java,frontend-sqli/app \
+        -Dsonar.tests=backend-sqli/src/test/java,frontend-sqli/app \
+        -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/*Test.java \
+        -Dsonar.java.binaries=backend-sqli/target/classes \
+        -Dsonar.java.libraries=backend-sqli/target/dependency/*.jar,.m2/repository/**/*.jar \
+        -Dsonar.coverage.jacoco.xmlReportPaths=backend-sqli/target/site/jacoco/jacoco.xml \
+        -Dsonar.javascript.lcov.reportPaths=frontend-sqli/coverage/lcov.info \
+        -Dsonar.typescript.tsconfigPath=frontend-sqli/tsconfig.json \
+        -Dsonar.sourceEncoding=UTF-8 \
+        -Dsonar.qualitygate.wait=false
 
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
